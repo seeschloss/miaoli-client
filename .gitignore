@@ -1,8 +1,5 @@
 *.swp
 
-.watchmanconfig
-.flowconfig
-
 # OSX
 #
 .DS_Store
