@@ -1,6 +1,8 @@
 // vim: et ts=2 sts=2 sw=2
 import React from 'react';
-import { StyleSheet, StatusBar, Button, Text, TextInput, KeyboardAvoidingView, View, FlatList, ScrollView } from 'react-native';
+import { StyleSheet,
+  Alert, Share, Clipboard, Linking, Keyboard,
+  StatusBar, Button, Text, TextInput, View, FlatList, ScrollView } from 'react-native';
 
 class TribuneInput extends React.Component {
   constructor(props) {
@@ -19,7 +21,6 @@ class TribuneInput extends React.Component {
   }
 
   clear = () => {
-    console.log("clearing input");
     this.input.clear();
   }
 
@@ -82,9 +83,15 @@ class TribunePosts extends React.Component {
       props.item.post
   );
 
+  onRefresh = () => {
+    this.props.tribune.update()
+  }
+
   render() {
     return (
       <FlatList
+        contentContainerStyle={styles.tribunePosts}
+        onRefresh={this.onRefresh}
         ref={(ref) => { this.flatList = ref }}
         extraData={this.props.tribune.state.posts}
         data={this.props.tribune.postsList().reverse()}
@@ -141,9 +148,9 @@ class Post extends React.Component {
   render() {
     return (
       <View style={[styles.flip, styles.tribunePost]}>
-        <Text onPress={this.appendClock} style={styles.tribunePostClock}>{this.clock()}</Text>
+        <Text onPress={this.appendClock} style={styles.tribunePostClock} selectable>{this.clock()}</Text>
         <Text style={styles.tribunePostSpacer}> </Text>
-        <Text style={styles.tribunePostAuthor}>{this.author()}</Text>
+        <Text style={styles.tribunePostAuthor} selectable>{this.author()}</Text>
         <Text style={styles.tribunePostSpacer}> </Text>
         <PostMessage message={this.message()} tribune={this.props.tribune} />
       </View>
@@ -184,7 +191,7 @@ class PostMessage extends React.Component {
     return {
       type: "url",
       text: "[url]",
-      url: match[0],
+      url: match[1],
       match: match
     };
   }
@@ -225,7 +232,11 @@ class PostMessage extends React.Component {
         f: this.segmentFromSpanMarkup
       },
       {
-        pattern: /<a href=['"]([^'"]*)['"]>[^<]*<\/a>/,
+        pattern: /<a href="([^"]*)">[^<]*<\/a>/,
+        f: this.segmentFromURL
+      },
+      {
+        pattern: /<a href='([^']*)'>[^<]*<\/a>/,
         f: this.segmentFromURL
       },
       {
@@ -300,7 +311,7 @@ class PostMessage extends React.Component {
           case 'clock':
             return <PostMessageClock key={i} style={[styles.tribunePostMessageSegment, styles.tribunePostMessageSegmentClock]} text={segment.text} tribune={this.props.tribune} />
           case 'url':
-            return <PostMessageURL key={i} style={[styles.tribunePostMessageSegment, styles.tribunePostMessageSegmentURL]} text={segment.text} />
+            return <PostMessageURL key={i} style={[styles.tribunePostMessageSegment, styles.tribunePostMessageSegmentURL]} text={segment.text} url={segment.url} />
           default:
             return <Text key={i} style={styles.tribunePostMessageSegment}>{segment.text}</Text>
         }
@@ -310,15 +321,31 @@ class PostMessage extends React.Component {
   render() {
     return (
       <View style={styles.tribunePostMessage}>
-        <Text>{this.renderedSegments()}</Text>
+        <Text selectable>{this.renderedSegments()}</Text>
       </View>
     );
   }
 }
 
 class PostMessageURL extends React.Component {
+  onPress = () => {
+    Linking.openURL(this.props.url)
+  }
+
+  onLongPress = () => {
+    Alert.alert(
+      'URL',
+      this.props.url,
+      [
+        {text: 'Open in browser', onPress: () => Linking.openURL(this.props.url)},
+        {text: 'Copy in clipboard', onPress: () => Clipboard.setString(this.props.url)},
+        {text: 'Share', onPress: () => Share.share({url: this.props.url, message: this.props.url})},
+      ]
+    )
+  }
+
   render() {
-    return <Text style={this.props.style}>{this.props.text}</Text>
+    return <Text style={this.props.style} onPress={this.onPress} onLongPress={this.onLongPress}>{this.props.text}</Text>
   }
 }
 
@@ -336,6 +363,7 @@ class Tribune extends React.Component {
     }
 
     setTimeout(() => { this.update() }, 1000)
+    setInterval(() => { this.update() }, 10000)
   }
 
   append = (text) => {
@@ -359,6 +387,7 @@ class Tribune extends React.Component {
         console.log(response);
         if (response.ok) {
           this.input.clear();
+          Keyboard.dismiss();
 
           this.update();
         }
@@ -393,11 +422,11 @@ class Tribune extends React.Component {
 
   render() {
     return (
-      <KeyboardAvoidingView style={styles.tribune} behavior='height'>
+      <View style={styles.tribune}>
         <Text style={styles.tribuneTitle}>{this.props.title}</Text>
         <TribunePosts ref={(ref) => { this.postsView = ref; }} tribune={this} />
         <TribuneInput ref={(ref) => { this.input = ref; }} tribune={this} />
-      </KeyboardAvoidingView>
+      </View>
     );
   }
 }
@@ -407,7 +436,7 @@ export default class App extends React.Component {
     setTimeout(() => {
       StatusBar.setHidden(false);
       StatusBar.setTranslucent(false);
-      StatusBar.setBarStyle("dark-content");
+      StatusBar.setBarStyle("light-content");
       StatusBar.setBackgroundColor("black");
     }, 1000);
   }
@@ -432,7 +461,6 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     justifyContent: 'space-around',
     alignItems: 'stretch',
-    marginTop: StatusBar.currentHeight,
     padding: 5,
   },
   tribuneTitle: {
@@ -488,7 +516,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tribuneInputButton: {
-    flex: 0,
+    width: 200,
+    height: 200,
   },
   flip: {
     transform: [{ scaleY: -1 }],
