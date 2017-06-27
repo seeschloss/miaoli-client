@@ -33,7 +33,7 @@ class TribuneInput extends React.Component {
   render() {
     return (
       <View style={styles.tribuneInput}>
-        <TextInput ref={(ref) => { this.input = ref }} style={styles.tribuneInputText} placeholder='Your message' onChangeText={text => this.onTextChange(text)} value={this.state.text} />
+        <TextInput ref={(ref) => { this.input = ref }} style={styles.tribuneInputText} onSubmitEditing={this.postMessage} placeholder='Your message' onChangeText={text => this.onTextChange(text)} value={this.state.text} />
         <Button ref={(ref) => { this.button = ref }} style={styles.tribuneInputButton} onPress={this.postMessage} title='✉️' />
       </View>
     );
@@ -326,7 +326,7 @@ class PostMessage extends React.Component {
   render() {
     return (
       <View style={styles.tribunePostMessage}>
-        <Text selectable>{this.renderedSegments()}</Text>
+        <Text onPress={this.appendClock} selectable>{this.renderedSegments()}</Text>
       </View>
     );
   }
@@ -489,7 +489,7 @@ const styles = StyleSheet.create({
   tribunePost: {
     flex: -1,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'stretch',
     marginTop: 4,
     paddingRight: 5,
     borderRadius: 10,
@@ -502,7 +502,6 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'flex-start',
     justifyContent: 'flex-start',
-    alignSelf: 'stretch',
     marginRight: 4,
     backgroundColor: 'white',
     borderColor: 'white',
@@ -526,6 +525,7 @@ const styles = StyleSheet.create({
   },
   tribunePostMessage: {
     flex: 1,
+    justifyContent: 'center',
   },
   tribunePostMessageSegment: {
     color: 'black',
