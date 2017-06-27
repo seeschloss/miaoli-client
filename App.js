@@ -22,6 +22,7 @@ class TribuneInput extends React.Component {
 
   clear = () => {
     this.input.clear();
+    this.setState({text: ""})
   }
 
   append = (text) => {
@@ -148,17 +149,21 @@ class Post extends React.Component {
   render() {
     return (
       <View style={[styles.flip, styles.tribunePost]}>
-        <Text onPress={this.appendClock} style={styles.tribunePostClock} selectable>{this.clock()}</Text>
-        <Text style={styles.tribunePostSpacer}> </Text>
-        <Text style={styles.tribunePostAuthor} selectable>{this.author()}</Text>
-        <Text style={styles.tribunePostSpacer}> </Text>
-        <PostMessage message={this.message()} tribune={this.props.tribune} />
+        <View style={styles.tribunePostInfo}>
+          <Text numberOfLines={1} onPress={this.appendClock} style={styles.tribunePostClock} selectable>{this.clock()}</Text>
+          <Text numberOfLines={1} onPress={this.appendClock} style={styles.tribunePostAuthor} selectable>{this.author()}</Text>
+        </View>
+        <PostMessage message={this.message()} tribune={this.props.tribune} post={this} />
       </View>
     );
   }
 }
 
 class PostMessage extends React.Component {
+  appendClock = () => {
+    this.props.tribune.append(this.props.post.clock() + " ");
+  }
+
   segmentFromMarkup(match) {
     return {
       type: "markup",
@@ -307,13 +312,13 @@ class PostMessage extends React.Component {
                 style.push(styles.tribunePostMessageSegmentStrikethrough);
                 break;
             }
-            return <Text key={i} style={style} text={segment.text}>{segment.text}</Text>
+            return <Text onPress={this.appendClock} key={i} style={style} text={segment.text}>{segment.text}</Text>
           case 'clock':
             return <PostMessageClock key={i} style={[styles.tribunePostMessageSegment, styles.tribunePostMessageSegmentClock]} text={segment.text} tribune={this.props.tribune} />
           case 'url':
             return <PostMessageURL key={i} style={[styles.tribunePostMessageSegment, styles.tribunePostMessageSegmentURL]} text={segment.text} url={segment.url} />
           default:
-            return <Text key={i} style={styles.tribunePostMessageSegment}>{segment.text}</Text>
+            return <Text onPress={this.appendClock} key={i} style={styles.tribunePostMessageSegment}>{segment.text}</Text>
         }
     });
   }
@@ -345,7 +350,7 @@ class PostMessageURL extends React.Component {
   }
 
   render() {
-    return <Text style={this.props.style} onPress={this.onPress} onLongPress={this.onLongPress}>{this.props.text}</Text>
+    return <Text pressRetentionOffset={{top: 20, bottom: 20, right: 20, left: 20}} style={this.props.style} onPress={this.onPress} onLongPress={this.onLongPress}>{this.props.text}</Text>
   }
 }
 
@@ -362,6 +367,11 @@ class Tribune extends React.Component {
       posts: []
     }
 
+    this.backend = 'http://moules.org/board/last.php?backend=tsv';
+    this.post_url = 'http://moules.org/board/add.php';
+    this.post_format = 'message=%s';
+    this.user_agent = 'Miaoli/0.0';
+
     setTimeout(() => { this.update() }, 1000)
     setInterval(() => { this.update() }, 10000)
   }
@@ -377,11 +387,12 @@ class Tribune extends React.Component {
 
     var headers = new Headers();
     headers.append('Content-Type', 'application/x-www-form-urlencoded');
+    headers.append('User-Agent', this.user_agent);
 
-    fetch('http://moules.org/board/add.php', {
+    fetch(this.post_url, {
         method: 'POST',
         headers: headers,
-        body: "message=" + text
+        body: this.post_format.replace('%s', text)
       })
       .then(response => {
         console.log(response);
@@ -396,7 +407,7 @@ class Tribune extends React.Component {
 
   update() {
     this.postsView.setRefreshing(true);
-    fetch('http://moules.org/board/last.php?backend=tsv')
+    fetch(this.backend)
       .then(response => response.text())
       .then(tsv => { this.parseTsv(tsv); })
   }
@@ -409,7 +420,12 @@ class Tribune extends React.Component {
     var posts = tsv.split(/\n/).map(line => line.split(/\t/));
 
     posts = posts.filter(post => post[0] > 0).map(post => {
-      return <Post id={post[0]} time={post[1]} info={post[2]} login={post[3]} message={post[4]} tribune={this} />
+      var message = post[4]
+        .replace(/&gt;/g, '>')
+        .replace(/&lt;/g, '<')
+        .replace(/&amp;/g, '&')
+
+      return <Post id={post[0]} time={post[1]} info={post[2]} login={post[3]} message={message} tribune={this} />
     });
 
     this.setState({posts: posts});
@@ -471,21 +487,33 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   tribunePost: {
-    flex: 1,
+    flex: -1,
     flexDirection: 'row',
+    marginTop: 4,
+    padding: 5,
+    borderRadius: 10,
+    backgroundColor: '#abcdef',
+    alignItems: 'center',
   },
-  tribunePostSpacer: {
+  tribunePostInfo: {
     flex: 0,
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    marginRight: 4,
   },
   tribunePostClock: {
     flex: 0,
+    fontWeight: 'bold',
   },
   tribunePostAuthor: {
     flex: 0,
     color: 'green',
+    width: 50,
+    overflow: 'hidden',
   },
   tribunePostMessage: {
-    flex: 1,
+    flex: -1,
   },
   tribunePostMessageSegment: {
   },
