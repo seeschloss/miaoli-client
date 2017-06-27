@@ -33,8 +33,16 @@ class TribuneInput extends React.Component {
   render() {
     return (
       <View style={styles.tribuneInput}>
-        <TextInput ref={(ref) => { this.input = ref }} style={styles.tribuneInputText} onSubmitEditing={this.postMessage} placeholder='Your message' onChangeText={text => this.onTextChange(text)} value={this.state.text} />
-        <Button ref={(ref) => { this.button = ref }} style={styles.tribuneInputButton} onPress={this.postMessage} title='✉️' />
+        <TextInput ref={(ref) => { this.input = ref }}
+            autoCapitalize={'sentences'}
+            style={styles.tribuneInputText}
+            onSubmitEditing={this.postMessage}
+            placeholder='Your message'
+            onChangeText={text => this.onTextChange(text)}
+            value={this.state.text}
+            blurOnSubmit={true}
+            returnKeyType={'send'}
+            />
       </View>
     );
   }
@@ -77,7 +85,7 @@ class TribunePosts extends React.Component {
   }
 
   renderScrollComponent = ({ style, refreshing, ...props }) => (
-    <ScrollView style={[style, styles.flip]} />
+    <ScrollView keyboardShouldPersistTaps={'always'} style={[style, styles.flip]} />
   );
 
   renderItem = props => (
@@ -328,15 +336,24 @@ class PostMessage extends React.Component {
   render() {
     return (
       <TouchableNativeFeedback onPress={this.appendClock}>
-        <View style={styles.tribunePostMessage}>
-          <Text selectable>{this.renderedSegments()}</Text>
-        </View>
+        <Text style={styles.tribunePostMessage}>
+          {this.renderedSegments()}
+        </Text>
       </TouchableNativeFeedback>
     );
   }
 }
 
 class PostMessageURL extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.domain = this.props.url
+      .replace(/https?:\/\//, '')
+      .replace(/\/.*$/, '')
+      .replace(/^www\./, '')
+  }
+
   onPress = () => {
     Linking.openURL(this.props.url)
   }
@@ -354,7 +371,11 @@ class PostMessageURL extends React.Component {
   }
 
   render() {
-    return <Text pressRetentionOffset={{top: 20, bottom: 20, right: 20, left: 20}} style={this.props.style} onPress={this.onPress} onLongPress={this.onLongPress}>{this.props.text}</Text>
+    return <Text ref={(ref) => { this.text = ref }}
+                onPress={this.onPress} onLongPress={this.onLongPress}
+                style={this.props.style}>
+             {this.domain}
+           </Text>
   }
 }
 
@@ -535,8 +556,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   tribunePostMessage: {
-    flex: 1,
+    flex: -1,
     justifyContent: 'center',
+    alignSelf: 'center',
+    alignItems: 'stretch',
     paddingRight: 5,
     paddingLeft: 5,
     borderTopRightRadius: 10,
@@ -547,11 +570,14 @@ const styles = StyleSheet.create({
   },
   tribunePostMessageSegmentURL: {
     fontWeight: 'bold',
-    backgroundColor: 'white',
-    borderRadius: 4,
+    color: '#1976D2',
+    textDecorationLine: 'underline',
+    textShadowColor: 'white',
+    textShadowOffset: {width: -1, height: -1},
+    textShadowRadius: 1,
   },
   tribunePostMessageSegmentClock: {
-    color: 'blue',
+    color: '#1976D2',
   },
   tribunePostMessageSegmentBold: {
     fontWeight: 'bold',
