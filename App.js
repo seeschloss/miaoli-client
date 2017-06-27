@@ -424,6 +424,7 @@ class Tribune extends React.Component {
         .replace(/&gt;/g, '>')
         .replace(/&lt;/g, '<')
         .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
 
       return <Post id={post[0]} time={post[1]} info={post[2]} login={post[3]} message={message} tribune={this} />
     });
