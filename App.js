@@ -204,7 +204,7 @@ class PostMessage extends React.Component {
   segmentFromClock(match) {
     return {
       type: "clock",
-      text: match[0],
+      text: match[11],
       match: match
     };
   }
@@ -245,7 +245,7 @@ class PostMessage extends React.Component {
         f: this.segmentFromURL
       },
       {
-        pattern: /((([0-9]{4})-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01])))#)?((([01]?[0-9])|(2[0-3])):([0-5][0-9])(:([0-5][0-9]))?([:\^][0-9]|[¹²³⁴⁵⁶⁷⁸⁹])?(@[0-9A-Za-z]+)?)/,
+        pattern: /((([0-9]{4})-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01])))[T #])?((([01]?[0-9])|(2[0-3])):([0-5][0-9])(:([0-5][0-9]))?([:\^][0-9]|[¹²³⁴⁵⁶⁷⁸⁹])?(@[0-9A-Za-z]+)?)/,
         f: this.segmentFromClock
       }
     ];
@@ -489,18 +489,30 @@ const styles = StyleSheet.create({
   tribunePost: {
     flex: -1,
     flexDirection: 'row',
-    marginTop: 4,
-    padding: 5,
-    borderRadius: 10,
-    backgroundColor: '#abcdef',
     alignItems: 'center',
+    marginTop: 4,
+    paddingRight: 5,
+    borderRadius: 10,
+    backgroundColor: '#CDDC39',
+    borderColor: '#CDDC39',
+    borderWidth: 1,
   },
   tribunePostInfo: {
     flex: 0,
     flexDirection: 'column',
     alignItems: 'flex-start',
     justifyContent: 'flex-start',
+    alignSelf: 'stretch',
     marginRight: 4,
+    backgroundColor: 'white',
+    borderColor: 'white',
+    paddingTop: 3,
+    paddingBottom: 3,
+    paddingLeft: 3,
+    paddingRight: 3,
+    borderTopLeftRadius: 10,
+    borderBottomLeftRadius: 10,
+    borderWidth: 0,
   },
   tribunePostClock: {
     flex: 0,
@@ -513,9 +525,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   tribunePostMessage: {
-    flex: -1,
+    flex: 1,
   },
   tribunePostMessageSegment: {
+    color: 'black',
   },
   tribunePostMessageSegmentURL: {
     fontWeight: 'bold',
