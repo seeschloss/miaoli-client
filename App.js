@@ -2,7 +2,7 @@
 import React from 'react';
 import { StyleSheet,
   Alert, Share, Clipboard, Linking, Keyboard,
-  StatusBar, Button, Text, TextInput, View, FlatList, TouchableNativeFeedback, ScrollView } from 'react-native';
+  StatusBar, Button, Text, TextInput, View, FlatList, TouchableHighlight, ScrollView } from 'react-native';
 
 class TribuneInput extends React.Component {
   constructor(props) {
@@ -157,12 +157,12 @@ class Post extends React.Component {
   render() {
     return (
       <View style={[styles.flip, styles.tribunePost]}>
-        <TouchableNativeFeedback style={styles.tribunePostInfoWrapper} onPress={this.appendClock}>
+        <TouchableHighlight style={styles.tribunePostInfoWrapper} onPress={this.appendClock}>
           <View style={styles.tribunePostInfo}>
             <Text numberOfLines={1} style={styles.tribunePostClock} selectable>{this.clock()}</Text>
             <Text numberOfLines={1} style={styles.tribunePostAuthor} selectable>{this.author()}</Text>
           </View>
-        </TouchableNativeFeedback>
+        </TouchableHighlight>
         <PostMessage message={this.message()} tribune={this.props.tribune} post={this} />
       </View>
     );
@@ -335,11 +335,13 @@ class PostMessage extends React.Component {
 
   render() {
     return (
-      <TouchableNativeFeedback onPress={this.appendClock}>
-        <Text style={styles.tribunePostMessage}>
-          {this.renderedSegments()}
-        </Text>
-      </TouchableNativeFeedback>
+      <TouchableHighlight style={styles.tribunePostMessageWrapper} underlayColor={'white'} activeOpacity={0.8} onPress={this.appendClock}>
+        <View style={styles.tribunePostMessage}>
+          <Text selectable>
+            {this.renderedSegments()}
+          </Text>
+        </View>
+      </TouchableHighlight>
     );
   }
 }
@@ -513,7 +515,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   tribunePost: {
-    flex: -1,
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'stretch',
     marginTop: 4,
@@ -555,11 +557,14 @@ const styles = StyleSheet.create({
     width: 50,
     overflow: 'hidden',
   },
+  tribunePostMessageWrapper: {
+    flex: 1,
+  },
   tribunePostMessage: {
-    flex: -1,
-    justifyContent: 'center',
-    alignSelf: 'center',
-    alignItems: 'stretch',
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
     paddingRight: 5,
     paddingLeft: 5,
     borderTopRightRadius: 10,
