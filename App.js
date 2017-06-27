@@ -2,7 +2,7 @@
 import React from 'react';
 import { StyleSheet,
   Alert, Share, Clipboard, Linking, Keyboard,
-  StatusBar, Button, Text, TextInput, View, FlatList, ScrollView } from 'react-native';
+  StatusBar, Button, Text, TextInput, View, FlatList, TouchableNativeFeedback, ScrollView } from 'react-native';
 
 class TribuneInput extends React.Component {
   constructor(props) {
@@ -149,10 +149,12 @@ class Post extends React.Component {
   render() {
     return (
       <View style={[styles.flip, styles.tribunePost]}>
-        <View style={styles.tribunePostInfo}>
-          <Text numberOfLines={1} onPress={this.appendClock} style={styles.tribunePostClock} selectable>{this.clock()}</Text>
-          <Text numberOfLines={1} onPress={this.appendClock} style={styles.tribunePostAuthor} selectable>{this.author()}</Text>
-        </View>
+        <TouchableNativeFeedback style={styles.tribunePostInfoWrapper} onPress={this.appendClock}>
+          <View style={styles.tribunePostInfo}>
+            <Text numberOfLines={1} style={styles.tribunePostClock} selectable>{this.clock()}</Text>
+            <Text numberOfLines={1} style={styles.tribunePostAuthor} selectable>{this.author()}</Text>
+          </View>
+        </TouchableNativeFeedback>
         <PostMessage message={this.message()} tribune={this.props.tribune} post={this} />
       </View>
     );
@@ -195,7 +197,7 @@ class PostMessage extends React.Component {
   segmentFromURL(match) {
     return {
       type: "url",
-      text: "[url]",
+      text: "URL",
       url: match[1],
       match: match
     };
@@ -312,22 +314,24 @@ class PostMessage extends React.Component {
                 style.push(styles.tribunePostMessageSegmentStrikethrough);
                 break;
             }
-            return <Text onPress={this.appendClock} key={i} style={style} text={segment.text}>{segment.text}</Text>
+            return <Text key={i} style={style} text={segment.text}>{segment.text}</Text>
           case 'clock':
             return <PostMessageClock key={i} style={[styles.tribunePostMessageSegment, styles.tribunePostMessageSegmentClock]} text={segment.text} tribune={this.props.tribune} />
           case 'url':
             return <PostMessageURL key={i} style={[styles.tribunePostMessageSegment, styles.tribunePostMessageSegmentURL]} text={segment.text} url={segment.url} />
           default:
-            return <Text onPress={this.appendClock} key={i} style={styles.tribunePostMessageSegment}>{segment.text}</Text>
+            return <Text key={i} style={styles.tribunePostMessageSegment}>{segment.text}</Text>
         }
     });
   }
 
   render() {
     return (
-      <View style={styles.tribunePostMessage}>
-        <Text onPress={this.appendClock} selectable>{this.renderedSegments()}</Text>
-      </View>
+      <TouchableNativeFeedback onPress={this.appendClock}>
+        <View style={styles.tribunePostMessage}>
+          <Text selectable>{this.renderedSegments()}</Text>
+        </View>
+      </TouchableNativeFeedback>
     );
   }
 }
@@ -492,20 +496,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'stretch',
     marginTop: 4,
-    paddingRight: 5,
     borderRadius: 10,
     backgroundColor: '#CDDC39',
     borderColor: '#CDDC39',
     borderWidth: 1,
+  },
+  tribunePostInfoWrapper: {
+    flex: 0,
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    justifyContent: 'center',
+    borderTopLeftRadius: 10,
+    borderBottomLeftRadius: 10,
+    borderWidth: 0,
   },
   tribunePostInfo: {
     flex: 0,
     flexDirection: 'column',
     alignItems: 'flex-start',
     justifyContent: 'flex-start',
-    marginRight: 4,
     backgroundColor: 'white',
-    borderColor: 'white',
     paddingTop: 3,
     paddingBottom: 3,
     paddingLeft: 3,
@@ -527,12 +537,18 @@ const styles = StyleSheet.create({
   tribunePostMessage: {
     flex: 1,
     justifyContent: 'center',
+    paddingRight: 5,
+    paddingLeft: 5,
+    borderTopRightRadius: 10,
+    borderBottomRightRadius: 10,
   },
   tribunePostMessageSegment: {
     color: 'black',
   },
   tribunePostMessageSegmentURL: {
     fontWeight: 'bold',
+    backgroundColor: 'white',
+    borderRadius: 4,
   },
   tribunePostMessageSegmentClock: {
     color: 'blue',
