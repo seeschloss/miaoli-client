@@ -1,3 +1,5 @@
+// vim: et ts=2 sts=2 sw=2
+
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -104,6 +106,7 @@ export const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   tribuneInput: {
+    display: 'none',
     flex: 0,
     flexDirection: 'row',
     justifyContent: 'space-around'
