@@ -1,9 +1,9 @@
 // vim: et ts=2 sts=2 sw=2
 import React from 'react';
-import { View, StatusBar } from 'react-native';
+import { View, StatusBar, DrawerLayoutAndroid, Text } from 'react-native';
 
 import { styles } from './src/style';
-import { Tribune } from './src/tribune';
+import { MiaoliMenu, Tribune } from './src/tribune';
 
 export default class App extends React.Component {
   componentWillMount() {
@@ -16,10 +16,17 @@ export default class App extends React.Component {
   }
 
   render() {
+    var navigationView = ( <MiaoliMenu /> );
+
     return (
-      <View style={styles.tribuneContainer}>
-        <Tribune title='Public' />
-      </View>
+      <DrawerLayoutAndroid
+        drawerWidth={300}
+        drawerPosition={DrawerLayoutAndroid.positions.Left}
+        renderNavigationView={() => navigationView}>
+          <View style={styles.tribuneContainer}>
+            <Tribune title='Public' />
+          </View>
+        </DrawerLayoutAndroid>
     );
   }
 }

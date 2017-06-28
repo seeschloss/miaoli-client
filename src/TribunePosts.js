@@ -15,7 +15,9 @@ export class TribunePosts extends React.Component {
   setRefreshing = (refreshing) => {
     this.refreshing = refreshing;
 
-    this.flatList.refreshing = refreshing;
+    if (this.flatList) {
+      this.flatList.refreshing = refreshing;
+    }
 
     if (!refreshing) {
       this.scrollToBottom();
