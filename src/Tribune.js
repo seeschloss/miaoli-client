@@ -44,28 +44,27 @@ export class Tribune extends React.Component {
         body: this.post_format.replace('%s', text)
       })
       .then(response => {
-        console.log(response);
         if (response.ok) {
-          this.input.clear();
-          Keyboard.dismiss();
-
-          this.update();
+          this.update((posts) => {
+            this.input.clear();
+            Keyboard.dismiss();
+          });
         }
       })
   }
 
-  update() {
+  update(callback) {
     this.postsView.setRefreshing(true);
     fetch(this.backend)
       .then(response => response.text())
-      .then(tsv => { this.parseTsv(tsv); })
+      .then(tsv => { this.parseTsv(tsv, callback); })
   }
 
   postsList() {
     return this.state.posts.map(p => { return { key: p.props.id, post: p } })
   }
 
-  parseTsv(tsv) {
+  parseTsv(tsv, callback) {
     var posts = tsv.split(/\n/).map(line => line.split(/\t/));
 
     posts = posts.filter(post => post[0] > 0).map(post => {
@@ -80,6 +79,10 @@ export class Tribune extends React.Component {
 
     this.setState({posts: posts});
     this.postsView.setRefreshing(false);
+
+    if (callback) {
+      callback(posts)
+    }
   }
 
   onTextChange(text) {

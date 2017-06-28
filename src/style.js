@@ -21,7 +21,6 @@ export const styles = StyleSheet.create({
   tribunePosts: {
     flex: 1,
     justifyContent: 'flex-start',
-	background: 'blue',
   },
   tribunePost: {
     flex: 1,
@@ -106,7 +105,6 @@ export const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   tribuneInput: {
-    display: 'none',
     flex: 0,
     flexDirection: 'row',
     justifyContent: 'space-around'
@@ -117,6 +115,26 @@ export const styles = StyleSheet.create({
   tribuneInputButton: {
     width: 200,
     height: 200,
+  },
+  newPostButtonWrapper: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 40,
+  },
+  newPostButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 40,
+    backgroundColor: '#1976D2',
+    alignContent: 'center',
+    justifyContent: 'center',
+  },
+  newPostButtonText: {
+    fontSize: 25,
+    textAlign: 'center',
   },
   flip: {
     transform: [{ scaleY: -1 }],
