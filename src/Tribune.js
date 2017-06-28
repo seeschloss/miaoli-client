@@ -1,7 +1,7 @@
 // vim: et ts=2 sts=2 sw=2
 
 import React from 'react';
-import { Text, View } from 'react-native';
+import { Text, View, Keyboard } from 'react-native';
 
 import { styles } from './style';
 

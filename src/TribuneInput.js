@@ -11,6 +11,7 @@ export class TribuneInput extends React.Component {
 
     this.state = {
       text: "",
+      display: "none",
     }
   }
   postMessage = () => {
@@ -18,53 +19,25 @@ export class TribuneInput extends React.Component {
   }
 
   onTextChange = (text) => {
-    this.setState({text: text})
+    this.setState({text: text, display: "flex"})
   }
 
   clear = () => {
     this.input.clear();
-    this.setState({text: ""})
+    this.setState({text: "", display: "none"})
   }
 
   append = (text) => {
-    this.setState({text: this.state.text + text})
+    this.setState({text: this.state.text + text, display: "flex"})
     this.input.focus();
   }
 
-  active = () => {
-    if (this.state.text != "") {
-      return true
-    }
-
-    if (!this.input) {
-      return false
-    }
-
-    if (this.input.isFocused()) {
-      return true
-    }
-
-    return false
-  }
-
   render() {
-    if (this.active()) {
-      var display = 'flex';
-      if (this.postButton) {
-        this.postButton.setState({display: 'none'});
-      }
-    } else {
-      var display = 'none';
-      if (this.postButton) {
-        this.postButton.setState({display: 'none'});
-      }
-    }
-
     return (
       <View style={[styles.tribuneInput]}>
         <TextInput ref={(ref) => { this.input = ref }}
             autoCapitalize={'sentences'}
-            style={[styles.tribuneInputText, {display: display}]}
+            style={[styles.tribuneInputText, {display: this.state.display}]}
             onSubmitEditing={this.postMessage}
             placeholder='Your message'
             onChangeText={text => this.onTextChange(text)}
