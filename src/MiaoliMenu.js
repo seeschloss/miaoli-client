@@ -1,7 +1,7 @@
 // vim: et ts=2 sts=2 sw=2
 
 import React from 'react';
-import { View, Text } from 'react-native';
+import { ScrollView, TouchableNativeFeedback, Text } from 'react-native';
 import { NavigationActions } from 'react-navigation'
 
 import { styles } from './style';
@@ -22,9 +22,11 @@ export class MiaoliMenu extends React.Component {
 
   render() {
     return (
-      <View style={{flex: 1, backgroundColor: '#fff'}}>
-        <Text style={{margin: 10, fontSize: 15, textAlign: 'left'}} onPress={this.showSettings}>I'm in the Drawer!</Text>
-      </View>
+      <ScrollView style={{flex: 1, backgroundColor: '#fff'}}>
+        <TouchableNativeFeedback onPress={this.showSettings}>
+          <Text style={{padding: 10, fontSize: 15, textAlign: 'left'}}>Settings</Text>
+        </TouchableNativeFeedback>
+      </ScrollView>
     );
   }
 }

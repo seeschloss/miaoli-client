@@ -2,14 +2,17 @@
 import React from 'react';
 import { View, StatusBar, DrawerLayoutAndroid, Text } from 'react-native';
 
-import { StackNavigator, addNavigationHelpers } from 'react-navigation';
+import { DrawerNavigator } from 'react-navigation';
 
 import { styles } from './src/style';
 import { MiaoliMenu, PageTribune, PageSettings } from './src/tribune';
 
-const NavigationStack = StackNavigator({
-  Home: {
-    screen: PageTribune
+const NavigationDrawer = DrawerNavigator({
+  'Tribune-Moules': {
+    screen: PageTribune,
+  },
+  'Tribune-Moules 2': {
+    screen: PageTribune,
   },
   Settings: {
     screen: PageSettings,
@@ -18,19 +21,9 @@ const NavigationStack = StackNavigator({
 });
 
 export default class App extends React.Component {
-  navigationView = () => {
-    return ( <MiaoliMenu navigation={this.navRef} drawer={this.drawerRef} /> );
-  }
-
   render() {
     return (
-      <DrawerLayoutAndroid
-        ref={(ref) => this.drawerRef = ref}
-        drawerWidth={300}
-        drawerPosition={DrawerLayoutAndroid.positions.Left}
-        renderNavigationView={() => this.navigationView()}>
-          <NavigationStack ref={(ref) => this.navRef = ref} />
-      </DrawerLayoutAndroid>
+       <NavigationDrawer />
     );
   }
 }

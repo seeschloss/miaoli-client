@@ -136,6 +136,27 @@ export const styles = StyleSheet.create({
     fontSize: 25,
     textAlign: 'center',
   },
+  menuItem: {
+    padding: 15,
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  menuItemLabel: {
+    fontSize: 20,
+    color: 'black',
+  },
+  menuItemValue: {
+    fontSize: 15,
+    marginLeft: 20,
+  },
+  menuHeader: {
+    padding: 10,
+  },
+  menuModal: {
+    margin: 50,
+  },
   flip: {
     transform: [{ scaleY: -1 }],
   },

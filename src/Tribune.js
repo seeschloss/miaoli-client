@@ -21,8 +21,17 @@ export class Tribune extends React.Component {
     this.post_format = 'message=%s';
     this.user_agent = 'Miaoli/0.0';
 
+  }
+
+  componentDidMount() {
     setTimeout(() => { this.update() }, 1000)
-    setInterval(() => { this.update() }, 10000)
+    this.interval = setInterval(() => { this.update() }, 10000)
+    this._isMounted = true
+  }
+
+  componentWillUnmount() {
+    this._isMounted = false
+    clearInterval(this.interval);
   }
 
   append = (text) => {
@@ -80,8 +89,13 @@ export class Tribune extends React.Component {
       return <Post id={post[0]} time={post[1]} info={post[2]} login={post[3]} message={message} tribune={this} />
     });
 
-    this.setState({posts: posts});
-    this.postsView.setRefreshing(false);
+    if (this._isMounted) {
+      this.setState({posts: posts})
+    }
+
+    if (this.postsView) {
+      this.postsView.setRefreshing(false);
+    }
 
     if (callback) {
       callback(posts)
