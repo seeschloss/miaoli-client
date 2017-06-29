@@ -2,7 +2,7 @@
 
 export * from './MiaoliMenu';
 export * from './PageTribune';
-export * from './PageSettings';
+export * from './PageTribuneSettings';
 export * from './Tribune';
 export * from './TribuneInput';
 export * from './TribunePosts';

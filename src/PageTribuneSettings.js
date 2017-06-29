@@ -7,7 +7,7 @@ import { View, SectionList, Button, Text, TouchableNativeFeedback, Modal, TextIn
 import { styles } from './style';
 import { Tribune } from './Tribune';
 
-export class PageSettings extends React.Component {
+export class PageTribuneSettings extends React.Component {
   static navigationOptions = ({navigation, screenProps}) => ({
     title: screenProps.tribune + ' settings',
   })

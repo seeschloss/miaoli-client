@@ -16,10 +16,12 @@ export class Tribune extends React.Component {
       posts: []
     }
 
-    this.backend = 'http://moules.org/board/last.php?backend=tsv';
-    this.post_url = 'http://moules.org/board/add.php';
-    this.post_format = 'message=%s';
-    this.user_agent = 'Miaoli/0.0';
+    console.log(['props', this.props])
+
+    this.backend = this.props.configuration.backend
+    this.post_url = this.props.configuration.post_url
+    this.post_format = this.props.configuration.post_format
+    this.user_agent = this.props.configuration.user_agent
 
   }
 
