@@ -54,7 +54,10 @@ export class Tribune extends React.Component {
   }
 
   update(callback) {
-    this.postsView.setRefreshing(true);
+    if (this.postsView) {
+      this.postsView.setRefreshing(true);
+    }
+
     fetch(this.backend)
       .then(response => response.text())
       .then(tsv => { this.parseTsv(tsv, callback); })
@@ -92,7 +95,6 @@ export class Tribune extends React.Component {
   render() {
     return (
       <View style={styles.tribune}>
-        <Text style={styles.tribuneTitle}>{this.props.title}</Text>
         <TribunePosts ref={(ref) => { this.postsView = ref; }} tribune={this} />
         <TribuneInput ref={(ref) => { this.input = ref; }} tribune={this} />
       </View>

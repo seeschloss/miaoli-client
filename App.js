@@ -2,31 +2,35 @@
 import React from 'react';
 import { View, StatusBar, DrawerLayoutAndroid, Text } from 'react-native';
 
+import { StackNavigator, addNavigationHelpers } from 'react-navigation';
+
 import { styles } from './src/style';
-import { MiaoliMenu, Tribune } from './src/tribune';
+import { MiaoliMenu, PageTribune, PageSettings } from './src/tribune';
+
+const NavigationStack = StackNavigator({
+  Home: {
+    screen: PageTribune
+  },
+  Settings: {
+    screen: PageSettings,
+    path: 'settings',
+  },
+});
 
 export default class App extends React.Component {
-  componentWillMount() {
-    setTimeout(() => {
-      StatusBar.setHidden(false);
-      StatusBar.setTranslucent(false);
-      StatusBar.setBarStyle("light-content");
-      StatusBar.setBackgroundColor("black");
-    }, 1000);
+  navigationView = () => {
+    return ( <MiaoliMenu navigation={this.navRef} drawer={this.drawerRef} /> );
   }
 
   render() {
-    var navigationView = ( <MiaoliMenu /> );
-
     return (
       <DrawerLayoutAndroid
+        ref={(ref) => this.drawerRef = ref}
         drawerWidth={300}
         drawerPosition={DrawerLayoutAndroid.positions.Left}
-        renderNavigationView={() => navigationView}>
-          <View style={styles.tribuneContainer}>
-            <Tribune title='Public' />
-          </View>
-        </DrawerLayoutAndroid>
+        renderNavigationView={() => this.navigationView()}>
+          <NavigationStack ref={(ref) => this.navRef = ref} />
+      </DrawerLayoutAndroid>
     );
   }
 }

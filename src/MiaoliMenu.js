@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { View, Text } from 'react-native';
+import { NavigationActions } from 'react-navigation'
 
 import { styles } from './style';
 
@@ -10,10 +11,19 @@ export class MiaoliMenu extends React.Component {
     super(props);
   }
 
+  showSettings = () => {
+    const navigateAction = NavigationActions.navigate({
+      routeName: 'Settings'
+    });
+
+    this.props.navigation.dispatch(navigateAction)
+    this.props.drawer.closeDrawer()
+  }
+
   render() {
     return (
       <View style={{flex: 1, backgroundColor: '#fff'}}>
-        <Text style={{margin: 10, fontSize: 15, textAlign: 'left'}}>I'm in the Drawer!</Text>
+        <Text style={{margin: 10, fontSize: 15, textAlign: 'left'}} onPress={this.showSettings}>I'm in the Drawer!</Text>
       </View>
     );
   }
