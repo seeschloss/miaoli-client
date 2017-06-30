@@ -28,6 +28,14 @@ export default class App extends React.Component {
         user_agent: 'Miaoli/0.0',
       },
       {
+        title: 'Euromussels',
+        color: 'blue',
+        backend: 'http://faab.euromussels.eu/data/backend.xml',
+        post_url: 'http://faab.euromussels.eu/add.php',
+        post_format: 'message=%s',
+        user_agent: 'Miaoli/0.0',
+      },
+      {
         title: 'Adonai',
         color: 'blue',
         backend: 'http://miaoli.im/tribune/papitalisme/tsv',
@@ -43,8 +51,9 @@ export default class App extends React.Component {
       .getItem("tribune:configuration")
       .then((result) => {
 
-        if (!result) {
+        if (true || !result) {
           AsyncStorage.setItem('tribune:configuration', JSON.stringify(this.defaultSettings()))
+          this.setState({configurationLoaded: true, configuration: this.defaultSettings()})
         } else {
           this.setState({configurationLoaded: true, configuration: JSON.parse(result)})
         }

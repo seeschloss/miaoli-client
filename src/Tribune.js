@@ -3,6 +3,8 @@
 import React from 'react';
 import { Text, View, Keyboard } from 'react-native';
 
+var DOMParser = require('xmldom').DOMParser;
+
 import { styles } from './style';
 
 import { Post } from './Post';
@@ -15,8 +17,6 @@ export class Tribune extends React.Component {
     this.state = {
       posts: []
     }
-
-    console.log(['props', this.props])
 
     this.backend = this.props.configuration.backend
     this.post_url = this.props.configuration.post_url
@@ -70,15 +70,66 @@ export class Tribune extends React.Component {
     }
 
     fetch(this.backend)
-      .then(response => response.text())
-      .then(tsv => { this.parseTsv(tsv, callback); })
+      .then(response => {
+        var backendContentType = response.headers.get('Content-Type')
+        response.text().then(text => {
+          if (backendContentType && backendContentType.match('text/tab-separated-values')) {
+            var posts = this.parseTsv(text)
+          } else {
+            var posts = this.parseXml(text)
+          }
+
+          if (this._isMounted) {
+            this.setState({posts: posts})
+          }
+
+          if (callback) {
+            callback(posts)
+          }
+
+          if (this.postsView) {
+            this.postsView.setRefreshing(false);
+          }
+        })
+        .done()
+      })
+      .done()
   }
 
   postsList() {
     return this.state.posts.map(p => { return { key: p.props.id, post: p } })
   }
 
-  parseTsv(tsv, callback) {
+  parseXml(xml) {
+    var dom = new DOMParser().parseFromString(xml)
+
+    var xmlPosts = dom.getElementsByTagName('post')
+
+    var posts = [];
+
+    for (var i = 0; i < xmlPosts.length; i++) {
+      const xmlPost = xmlPosts.item(i)
+
+      const id = xmlPost.getAttribute('id')
+      const time = xmlPost.getAttribute('time')
+      const infoElement = xmlPost.getElementsByTagName('info')
+      var info = infoElement.length ? infoElement.item(0).textContent : ""
+
+      const loginElement = xmlPost.getElementsByTagName('login')
+      var login = loginElement.length ? loginElement.item(0).textContent : ""
+
+      const messageElement = xmlPost.getElementsByTagName('message')
+      var message = messageElement.length ? messageElement.item(0).textContent : ""
+
+      posts.push(
+        <Post id={id} time={time} info={info} login={login} message={message} tribune={this} />
+      )
+    }
+
+    return posts.reverse()
+  }
+
+  parseTsv(tsv) {
     var posts = tsv.split(/\n/).map(line => line.split(/\t/));
 
     posts = posts.filter(post => post[0] > 0).map(post => {
@@ -91,17 +142,7 @@ export class Tribune extends React.Component {
       return <Post id={post[0]} time={post[1]} info={post[2]} login={post[3]} message={message} tribune={this} />
     });
 
-    if (this._isMounted) {
-      this.setState({posts: posts})
-    }
-
-    if (this.postsView) {
-      this.postsView.setRefreshing(false);
-    }
-
-    if (callback) {
-      callback(posts)
-    }
+    return posts
   }
 
   onTextChange(text) {

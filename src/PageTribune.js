@@ -17,16 +17,17 @@ class PageTribuneBrowser extends React.Component {
     return {
       title: tribuneConfiguration.title,
       headerRight: <Button title="Settings" onPress={() => {
-                      navigation.navigation.navigate('TribuneSettings', {tribuneTitle: tribuneConfiguration.title})
+                      navigation.navigation.navigate('TribuneSettings', {tribune: tribuneConfiguration})
                       }}
                    />
     }
   }
 
   render() {
+    console.log(['tribune', this.props.screenProps]);
     return (
       <View style={styles.tribuneContainer}>
-        <Tribune configuration={this.props.screenProps.tribune} />
+        <Tribune key={this.props.screenProps.tribuneId} configuration={this.props.screenProps.tribune} />
       </View>
     );
   }
@@ -39,7 +40,7 @@ const NavigationStack = StackNavigator({
   },
   TribuneSettings: {
     screen: PageTribuneSettings,
-    path: 'tribune/:tribuneTitle/settings',
+    path: 'tribune/:tribune/settings',
   },
 });
 
@@ -58,7 +59,7 @@ export class PageTribune extends React.Component {
     const configuration = this.props.screenProps.configuration[tribune];
 
     return (
-       <NavigationStack screenProps={{tribune: configuration}} />
+       <NavigationStack screenProps={{tribune: configuration, tribuneId: tribune}} />
     );
   }
 }

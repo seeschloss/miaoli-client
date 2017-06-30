@@ -9,44 +9,26 @@ import { Tribune } from './Tribune';
 
 export class PageTribuneSettings extends React.Component {
   static navigationOptions = ({navigation, screenProps}) => ({
-    title: screenProps.tribune + ' settings',
+    title: screenProps.tribune.title + ' settings',
   })
-
-  defaultValues = () => {
-    return [
-      ['color', 'blue'],
-      ['backend', 'http://moules.org/board/last.php?backend=tsv'],
-      ['post_url', 'http://moules.org/board/add.php'],
-      ['post_format', 'message=%s'],
-      ['user_agent', 'Miaoli/0.0'],
-    ];
-  }
 
   constructor(props) {
     super(props)
-
-    AsyncStorage
-      .getItem("tribune:moules:configured")
-      .then((result) => {
-
-        if (!result) {
-          AsyncStorage.multiSet(this.defaultValues())
-        }
-      })
+      console.log(this)
   }
 
   render() {
     return (
       <SectionList style={{flex: 1, backgroundColor: 'white'}}
-        renderItem={({item}) => <ListItem title={item.title} settingKey={item.key} />}
+        renderItem={({item}) => <ListItem title={item.title} settingKey={item.key} value={item.value} />}
         renderSectionHeader={({section}) => <ListHeader title={section.title} key={section.key} />}
         sections={[
           {data: [
-            {title: 'Display name', key: "user_agent"},
-            {title: 'Color', key: "color"},
-            {title: 'Backend', key: "backend"},
-            {title: 'Post URL', key: "post_url"},
-            {title: 'Post format', key: "post_format"},
+            {title: 'Display name', key: "user_agent", value: this.props.screenProps.tribune.user_agent},
+            {title: 'Color', key: "color", value: this.props.screenProps.tribune.color},
+            {title: 'Backend', key: "backend", value: this.props.screenProps.tribune.backend},
+            {title: 'Post URL', key: "post_url", value: this.props.screenProps.tribune.post_url},
+            {title: 'Post format', key: "post_format", value: this.props.screenProps.tribune.post_format},
           ], title: "Tribune settings", key: "tribune-settings"},
         ]}
       />
@@ -58,18 +40,9 @@ class ListItem extends React.Component {
   constructor(props) {
     super(props)
 
-    AsyncStorage
-      .getItem(this.props.settingKey)
-      .then((result) => {
-        this.currentText = result;
-        this.setState({value: result})
-        this.initialValue = this.state.value
-      }, (error) => {
-      });
-
     this.state = {
       modalVisible: false,
-      value: "",
+      value: this.props.value,
     }
   }
 
