@@ -19,6 +19,7 @@ export class Tribune extends React.Component {
     }
 
     this.backend = this.props.configuration.backend
+    this.backend_type = this.props.configuration.backend_type
     this.post_url = this.props.configuration.post_url
     this.post_format = this.props.configuration.post_format
     this.user_agent = this.props.configuration.user_agent
@@ -119,7 +120,40 @@ export class Tribune extends React.Component {
       var login = loginElement.length ? loginElement.item(0).textContent : ""
 
       const messageElement = xmlPost.getElementsByTagName('message')
-      var message = messageElement.length ? messageElement.item(0).textContent : ""
+
+      if (messageElement.length > 0) {
+        if (messageElement.item(0).hasChildNodes()) {
+          var message = "";
+
+          for (var j = 0; j < messageElement.item(0).childNodes.length; j++) {
+            var childNode = messageElement.item(0).childNodes.item(j);
+
+            switch (childNode.tagName) {
+              case "a":
+                message += '<a href="' + childNode.getAttribute('href') + '">' + childNode.textContent + '</a>';
+                break;
+              case undefined:
+                if (this.backend_type == "xml-htmlentitised") {
+                  message += childNode.textContent
+                    .replace(/&gt;/g, '>')
+                    .replace(/&lt;/g, '<')
+                    .replace(/&amp;/g, '&')
+                    .replace(/&quot;/g, '"')
+                } else {
+                  message += childNode.textContent;
+                }
+                break;
+              default:
+                message += '<' + childNode.tagName + '>' + childNode.textContent + '</' + childNode.tagName + '>';
+                break;
+            }
+          }
+        } else {
+          var message = messageElement.length ? messageElement.item(0).textContent : ""
+        }
+      } else {
+        var message = "";
+      }
 
       posts.push(
         <Post id={id} time={time} info={info} login={login} message={message} tribune={this} />
