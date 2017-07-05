@@ -6,12 +6,7 @@ import { Post } from './Post';
 
 export class Tribune {
   constructor(configuration) {
-    this.backend = configuration.backend
-    this.backend_type = configuration.backend_type
-    this.post_url = configuration.post_url
-    this.post_format = configuration.post_format
-    this.user_agent = configuration.user_agent
-
+    this.configuration = configuration;
   }
 
   post = (text) => {
@@ -20,18 +15,24 @@ export class Tribune {
     }
 
     var headers = new Headers();
+    headers.append('Accept', 'application/xml, text/xml');
     headers.append('Content-Type', 'application/x-www-form-urlencoded');
-    headers.append('User-Agent', this.user_agent);
+    headers.append('Referer', this.configuration.backend);
+    headers.append('User-Agent', this.configuration.user_agent);
 
-    return fetch(this.post_url, {
+    if (this.configuration.cookie && this.configuration.cookie.length > 0) {
+      headers.append('Cookie', this.configuration.cookie);
+    }
+
+    return fetch(this.configuration.post_url, {
       method: 'POST',
       headers: headers,
-      body: this.post_format.replace('%s', text)
-    }).then(() => { console.log(['posted']) })
+      body: this.configuration.post_format.replace('%s', text)
+    }).then((response) => { return response.ok })
   }
 
   update() {
-    return fetch(this.backend)
+    return fetch(this.configuration.backend)
       .then(response => {
         var backendContentType = response.headers.get('Content-Type')
         return response.text().then(text => {
@@ -78,7 +79,7 @@ export class Tribune {
                 message += '<a href="' + childNode.getAttribute('href') + '">' + childNode.textContent + '</a>';
                 break;
               case undefined:
-                if (this.backend_type == "xml-htmlentitised") {
+                if (this.configuration.backend_type == "xml-htmlentitised") {
                   message += childNode.textContent
                     .replace(/&gt;/g, '>')
                     .replace(/&lt;/g, '<')

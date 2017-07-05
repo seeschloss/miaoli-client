@@ -67,7 +67,7 @@ export default class App extends React.Component {
       .getItem("tribune:configuration")
       .then((result) => {
 
-        if (true || !result) {
+        if (!result) {
           AsyncStorage.setItem('tribune:configuration', JSON.stringify(this.defaultSettings()))
           this.setState({configurationLoaded: true, configuration: this.defaultSettings()})
         } else {
@@ -96,6 +96,7 @@ export default class App extends React.Component {
 
         class PageTribune extends React.Component {
           static tribune = tribune
+          static tribuneId = i
 
           static navigationOptions = ({navigation, screenProps}) => {
             return { title: tribune.title, }
@@ -103,7 +104,7 @@ export default class App extends React.Component {
 
           render() {
             return (
-               <NavigationStack screenProps={{tribune: tribune}} />
+               <NavigationStack screenProps={{tribune: tribune, tribuneId: i}} />
             );
           }
         }

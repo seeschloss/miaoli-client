@@ -1,7 +1,7 @@
 // vim: et ts=2 sts=2 sw=2
 
 import React from 'react';
-import { View, SectionList, Button, Text, TouchableNativeFeedback, Modal, TextInput } from 'react-native';
+import { View, SectionList, Button, Text, TouchableNativeFeedback, Modal, TextInput, AsyncStorage } from 'react-native';
 
 import { styles } from './style';
 import { Tribune } from './Tribune';
@@ -14,7 +14,7 @@ export class PageTribuneSettings extends React.Component {
   render() {
     return (
       <SectionList style={{flex: 1, backgroundColor: 'white'}}
-        renderItem={({item}) => <ListItem title={item.title} settingKey={item.key} value={item.value} />}
+        renderItem={({item}) => <ListItem title={item.title} settingKey={item.key} value={item.value} tribune={this.props.screenProps.tribune} tribuneId={this.props.screenProps.tribuneId} />}
         renderSectionHeader={({section}) => <ListHeader title={section.title} key={section.key} />}
         sections={[
           {data: [
@@ -23,6 +23,7 @@ export class PageTribuneSettings extends React.Component {
             {title: 'Backend', key: "backend", value: this.props.screenProps.tribune.backend},
             {title: 'Post URL', key: "post_url", value: this.props.screenProps.tribune.post_url},
             {title: 'Post format', key: "post_format", value: this.props.screenProps.tribune.post_format},
+            {title: 'Cookie', key: "cookie", value: this.props.screenProps.tribune.cookie},
           ], title: "Tribune settings", key: "tribune-settings"},
         ]}
       />
@@ -52,6 +53,24 @@ class ListItem extends React.Component {
   changeValue = () => {
     this.setState({value: this.currentText})
     this.setState({modalVisible: false})
+
+    this.props.tribune[this.props.settingKey] = this.currentText
+    this.saveSettings()
+  }
+
+  saveSettings = () => {
+    AsyncStorage
+      .getItem("tribune:configuration")
+      .then((result) => {
+        if (result) {
+          var configuration = JSON.parse(result)
+
+          if (configuration[this.props.tribuneId] !== undefined) {
+            configuration[this.props.tribuneId][this.props.settingKey] = this.state.value
+            AsyncStorage.setItem('tribune:configuration', JSON.stringify(configuration))
+          }
+        }
+      })
   }
 
   render() {
