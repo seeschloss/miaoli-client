@@ -1,8 +1,7 @@
 // vim: et ts=2 sts=2 sw=2
 
 import React from 'react';
-import { View, SectionList, Button, Text, TouchableNativeFeedback, Modal, TextInput,
-         AsyncStorage } from 'react-native';
+import { View, SectionList, Button, Text, TouchableNativeFeedback, Modal, TextInput } from 'react-native';
 
 import { styles } from './style';
 import { Tribune } from './Tribune';
@@ -11,11 +10,6 @@ export class PageTribuneSettings extends React.Component {
   static navigationOptions = ({navigation, screenProps}) => ({
     title: screenProps.tribune.title + ' settings',
   })
-
-  constructor(props) {
-    super(props)
-      console.log(this)
-  }
 
   render() {
     return (
@@ -57,8 +51,6 @@ class ListItem extends React.Component {
 
   changeValue = () => {
     this.setState({value: this.currentText})
-
-    AsyncStorage.setItem(this.props.settingKey, this.currentText)
     this.setState({modalVisible: false})
   }
 

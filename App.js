@@ -2,10 +2,10 @@
 import React from 'react';
 import { View, StatusBar, DrawerLayoutAndroid, Text, AsyncStorage } from 'react-native';
 
-import { DrawerNavigator } from 'react-navigation';
+import { DrawerNavigator, StackNavigator } from 'react-navigation';
 
 import { styles } from './src/style';
-import { MiaoliMenu, PageTribune } from './src/tribune';
+import { MiaoliMenu, PageTribuneSettings, PageTribuneBrowser } from './src/tribune';
 
 export default class App extends React.Component {
   constructor(props) {
@@ -27,6 +27,7 @@ export default class App extends React.Component {
         post_url: 'http://moules.org/board/add.php',
         post_format: 'message=%s',
         user_agent: 'Miaoli/0.0',
+        cookie: '',
       },
       {
         title: 'DLFP',
@@ -36,6 +37,7 @@ export default class App extends React.Component {
         post_url: 'https://linuxfr.org/board',
         post_format: 'board[message]=%s',
         user_agent: 'Miaoli/0.0',
+        cookie: '',
       },
       {
         title: 'Euromussels',
@@ -45,6 +47,7 @@ export default class App extends React.Component {
         post_url: 'http://faab.euromussels.eu/add.php',
         post_format: 'message=%s',
         user_agent: 'Miaoli/0.0',
+        cookie: '',
       },
       {
         title: 'Adonai',
@@ -54,6 +57,7 @@ export default class App extends React.Component {
         post_url: 'http://miaoli.im/tribune/papitalisme/post',
         post_format: 'message=%s',
         user_agent: 'Miaoli/0.0',
+        cookie: '',
       },
     ];
   }
@@ -79,6 +83,31 @@ export default class App extends React.Component {
     if (this.state.configurationLoaded) {
       var screens = {}
       this.state.configuration.forEach((tribune, i) => {
+        const NavigationStack = StackNavigator({
+          TribuneHome: {
+            screen: PageTribuneBrowser,
+            path: 'tribune/:tribune',
+          },
+          TribuneSettings: {
+            screen: PageTribuneSettings,
+            path: 'tribune/:tribune/settings',
+          },
+        });
+
+        class PageTribune extends React.Component {
+          static tribune = tribune
+
+          static navigationOptions = ({navigation, screenProps}) => {
+            return { title: tribune.title, }
+          }
+
+          render() {
+            return (
+               <NavigationStack screenProps={{tribune: tribune}} />
+            );
+          }
+        }
+
         screens["tribune-" + i] = {
           screen: PageTribune,
         }
@@ -100,3 +129,4 @@ export default class App extends React.Component {
     }
   }
 }
+

@@ -1,7 +1,7 @@
 // vim: et ts=2 sts=2 sw=2
 
 export * from './MiaoliMenu';
-export * from './PageTribune';
+export * from './PageTribuneBrowser';
 export * from './PageTribuneSettings';
 export * from './Tribune';
 export * from './TribuneInput';

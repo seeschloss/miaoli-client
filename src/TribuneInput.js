@@ -1,7 +1,7 @@
 // vim: et ts=2 sts=2 sw=2
 
 import React from 'react';
-import { TextInput, TouchableHighlight, View, Text } from 'react-native';
+import { TextInput, TouchableHighlight, View, Text, Keyboard } from 'react-native';
 
 import { styles } from './style';
 
@@ -14,8 +14,13 @@ export class TribuneInput extends React.Component {
       display: "none",
     }
   }
+
   postMessage = () => {
     this.props.tribune.post(this.state.text)
+      .then(posts => {
+        this.clear();
+        Keyboard.dismiss();
+      })
   }
 
   onTextChange = (text) => {

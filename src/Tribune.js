@@ -1,44 +1,17 @@
 // vim: et ts=2 sts=2 sw=2
 
-import React from 'react';
-import { Text, View, Keyboard } from 'react-native';
-
 var DOMParser = require('xmldom').DOMParser;
 
-import { styles } from './style';
-
 import { Post } from './Post';
-import { TribunePosts } from './TribunePosts';
-import { TribuneInput } from './TribuneInput';
 
-export class Tribune extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      posts: []
-    }
+export class Tribune {
+  constructor(configuration) {
+    this.backend = configuration.backend
+    this.backend_type = configuration.backend_type
+    this.post_url = configuration.post_url
+    this.post_format = configuration.post_format
+    this.user_agent = configuration.user_agent
 
-    this.backend = this.props.configuration.backend
-    this.backend_type = this.props.configuration.backend_type
-    this.post_url = this.props.configuration.post_url
-    this.post_format = this.props.configuration.post_format
-    this.user_agent = this.props.configuration.user_agent
-
-  }
-
-  componentDidMount() {
-    setTimeout(() => { this.update() }, 1000)
-    this.interval = setInterval(() => { this.update() }, 10000)
-    this._isMounted = true
-  }
-
-  componentWillUnmount() {
-    this._isMounted = false
-    clearInterval(this.interval);
-  }
-
-  append = (text) => {
-    this.input.append(text);
   }
 
   post = (text) => {
@@ -50,55 +23,27 @@ export class Tribune extends React.Component {
     headers.append('Content-Type', 'application/x-www-form-urlencoded');
     headers.append('User-Agent', this.user_agent);
 
-    fetch(this.post_url, {
-        method: 'POST',
-        headers: headers,
-        body: this.post_format.replace('%s', text)
-      })
-      .then(response => {
-        if (response.ok) {
-          this.update((posts) => {
-            this.input.clear();
-            Keyboard.dismiss();
-          });
-        }
-      })
+    return fetch(this.post_url, {
+      method: 'POST',
+      headers: headers,
+      body: this.post_format.replace('%s', text)
+    }).then(() => { console.log(['posted']) })
   }
 
-  update(callback) {
-    if (this.postsView) {
-      this.postsView.setRefreshing(true);
-    }
-
-    fetch(this.backend)
+  update() {
+    return fetch(this.backend)
       .then(response => {
         var backendContentType = response.headers.get('Content-Type')
-        response.text().then(text => {
+        return response.text().then(text => {
           if (backendContentType && backendContentType.match('text/tab-separated-values')) {
             var posts = this.parseTsv(text)
           } else {
             var posts = this.parseXml(text)
           }
 
-          if (this._isMounted) {
-            this.setState({posts: posts})
-          }
-
-          if (callback) {
-            callback(posts)
-          }
-
-          if (this.postsView) {
-            this.postsView.setRefreshing(false);
-          }
+          return posts
         })
-        .done()
       })
-      .done()
-  }
-
-  postsList() {
-    return this.state.posts.map(p => { return { key: p.props.id, post: p } })
   }
 
   parseXml(xml) {
@@ -156,7 +101,7 @@ export class Tribune extends React.Component {
       }
 
       posts.push(
-        <Post id={id} time={time} info={info} login={login} message={message} tribune={this} />
+        new Post({id: id, time: time, info: info, login: login, message: message, tribune: this})
       )
     }
 
@@ -173,23 +118,10 @@ export class Tribune extends React.Component {
         .replace(/&amp;/g, '&')
         .replace(/&quot;/g, '"')
 
-      return <Post id={post[0]} time={post[1]} info={post[2]} login={post[3]} message={message} tribune={this} />
+      return new Post({id: post[0], time: post[1], info: post[2], login: post[3], message: message, tribune: this})
     });
 
     return posts
-  }
-
-  onTextChange(text) {
-    return text
-  }
-
-  render() {
-    return (
-      <View style={styles.tribune}>
-        <TribunePosts ref={(ref) => { this.postsView = ref; }} tribune={this} />
-        <TribuneInput ref={(ref) => { this.input = ref; }} tribune={this} />
-      </View>
-    );
   }
 }
 
