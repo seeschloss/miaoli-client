@@ -147,8 +147,8 @@ class PostMessage extends React.Component {
     };
   }
 
-  segments() {
-    if (!this.props.message) {
+  segments(text) {
+    if (!text) {
       return [];
     }
 
@@ -157,31 +157,37 @@ class PostMessage extends React.Component {
     var patterns = [
       {
         pattern: /<(m|s|u|b|i|tt|code)>(.*?)<\/\1>/,
-        f: this.segmentFromMarkup
+        f: this.segmentFromMarkup,
+        recursive: true,
       },
       {
         pattern: /<span style="([^"]*)">(.*?)<\/span>/,
-        f: this.segmentFromSpanMarkup
+        f: this.segmentFromSpanMarkup,
+        recursive: true,
       },
       {
         pattern: /<span style='([^']*)'>(.*?)<\/span>/,
-        f: this.segmentFromSpanMarkup
+        f: this.segmentFromSpanMarkup,
+        recursive: true,
       },
       {
         pattern: /<a href="([^"]*)">[^<]*<\/a>/,
-        f: this.segmentFromURL
+        f: this.segmentFromURL,
+        recursive: false,
       },
       {
         pattern: /<a href='([^']*)'>[^<]*<\/a>/,
-        f: this.segmentFromURL
+        f: this.segmentFromURL,
+        recursive: false,
       },
       {
         pattern: /((([0-9]{4})-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01])))[T #])?((([01]?[0-9])|(2[0-3])):([0-5][0-9])(:([0-5][0-9]))?([:\^][0-9]|[¹²³⁴⁵⁶⁷⁸⁹])?(@[0-9A-Za-z]+)?)/,
-        f: this.segmentFromClock
+        f: this.segmentFromClock,
+        recursive: false,
       }
     ];
 
-    var remaining = this.props.message.substr(0);
+    var remaining = text.substr(0);
     while (remaining.length > 0) {
       var matches = [];
 
@@ -211,7 +217,11 @@ class PostMessage extends React.Component {
           remaining = remaining.substr(first_match.match.index);
         }
 
-        segments.push(first_match.pattern.f(first_match.match));
+        var segment = first_match.pattern.f(first_match.match);
+        if (first_match.pattern.recursive) {
+          segment.segments = this.segments(segment.text)
+        }
+        segments.push(segment);
 
         remaining = remaining.substr(first_match.match[0].length);
       } else {
@@ -224,34 +234,42 @@ class PostMessage extends React.Component {
     return segments;
   }
 
-  renderedSegments() {
-    return this.segments().map((segment, i) => {
-        switch (segment.type) {
-          case 'markup':
-            var style = [styles.tribunePostMessageSegment];
-            switch (segment.tag) {
-              case 'b':
-                style.push(styles.tribunePostMessageSegmentBold);
-                break;
-              case 'i':
-                style.push(styles.tribunePostMessageSegmentItalic);
-                break;
-              case 'u':
-                style.push(styles.tribunePostMessageSegmentUnderline);
-                break;
-              case 's':
-                style.push(styles.tribunePostMessageSegmentStrikethrough);
-                break;
-            }
-            return <Text key={i} style={style} text={segment.text}>{segment.text}</Text>
-          case 'clock':
-            return <PostMessageClock key={i} style={[styles.tribunePostMessageSegment, styles.tribunePostMessageSegmentClock]} text={segment.text} tribune={this.props.tribune} />
-          case 'url':
-            return <PostMessageURL key={i} style={[styles.tribunePostMessageSegment, styles.tribunePostMessageSegmentURL]} text={segment.text} url={segment.url} />
-          default:
-            return <Text key={i} style={styles.tribunePostMessageSegment}>{segment.text}</Text>
+  renderSegment(segment, key) {
+    if (segment.segments && segment.segments.length > 0) {
+      var contents = segment.segments.map((segment, i) => this.renderSegment(segment, key + '.' + i))
+    } else {
+      var contents = segment.text
+    }
+
+    switch (segment.type) {
+      case 'markup':
+        var style = [styles.tribunePostMessageSegment];
+        switch (segment.tag) {
+          case 'b':
+            style.push(styles.tribunePostMessageSegmentBold);
+            break;
+          case 'i':
+            style.push(styles.tribunePostMessageSegmentItalic);
+            break;
+          case 'u':
+            style.push(styles.tribunePostMessageSegmentUnderline);
+            break;
+          case 's':
+            style.push(styles.tribunePostMessageSegmentStrikethrough);
+            break;
         }
-    });
+        return <Text key={key} style={style} text={segment.text}>{contents}</Text>
+      case 'clock':
+        return <PostMessageClock key={key} style={[styles.tribunePostMessageSegment, styles.tribunePostMessageSegmentClock]} text={contents} tribune={this.props.tribune} />
+      case 'url':
+        return <PostMessageURL key={key} style={[styles.tribunePostMessageSegment, styles.tribunePostMessageSegmentURL]} text={contents} url={segment.url} />
+      default:
+        return <Text key={key} style={styles.tribunePostMessageSegment}>{contents}</Text>
+    }
+  }
+
+  renderedSegments() {
+    return this.segments(this.props.message).map((segment, i) => this.renderSegment(segment, i));
   }
 
   render() {
