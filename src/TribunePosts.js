@@ -1,7 +1,7 @@
 // vim: et ts=2 sts=2 sw=2
 
 import React from 'react';
-import { FlatList, ScrollView } from 'react-native';
+import { FlatList, ScrollView, RefreshControl } from 'react-native';
 
 
 import { styles } from './style';
@@ -10,15 +10,15 @@ export class TribunePosts extends React.Component {
   constructor(props) {
     super(props);
 
-    this.refreshing = false;
-
     this.state = {
-      posts: []
+      posts: [],
+      refreshing: false,
+      forceRefreshing: false,
     }
   }
 
   setRefreshing = (refreshing) => {
-    this.refreshing = refreshing;
+    this.setState({refreshing: refreshing})
 
     if (this.flatList) {
       this.flatList.refreshing = refreshing;
@@ -49,7 +49,16 @@ export class TribunePosts extends React.Component {
   }
 
   renderScrollComponent = ({ style, refreshing, ...props }) => (
-    <ScrollView keyboardShouldPersistTaps={'always'} style={[style, styles.flip]} />
+    <ScrollView
+      keyboardShouldPersistTaps={'always'}
+      style={[style, styles.flip]}
+      refreshControl={
+        <RefreshControl
+          refreshing={this.state.forceRefreshing}
+          onRefresh={this.forceRefresh}
+          />
+      }
+      />
   );
 
   appendClock = (clock) => {
@@ -57,28 +66,31 @@ export class TribunePosts extends React.Component {
   }
 
   renderItem = props => {
-    const post = props.item.post
-
-    return (<View style={[styles.flip, styles.tribunePost]}>
-      <TouchableHighlight style={styles.tribunePostInfoWrapper} onPress={() => { this.appendClock(post.clock()) }}>
-        <View style={styles.tribunePostInfo}>
-          <Text numberOfLines={1} style={styles.tribunePostClock} selectable>{post.clock()}</Text>
-          <Text numberOfLines={1} style={styles.tribunePostAuthor} selectable>{post.author()}</Text>
-        </View>
-      </TouchableHighlight>
-      <PostMessage message={post.message} tribune={this.props.tribune} post={post} />
-    </View>)
+    return (<PostMessage tribune={this.props.tribune} post={props.item.post} />)
   };
 
   postsList() {
     return this.state.posts.map(p => { return { key: p.id, post: p } }).reverse()
   }
 
+  onEndReached = () => {
+    console.log('end reached')
+  }
+
+  forceRefresh = () => {
+    this.setState({refreshing: true, forceRefreshing: true})
+    this.props.tribune.refreshTribune()
+      .then(() => {
+        this.setState({refreshing: false, forceRefreshing: false})
+      })
+  }
+
   render() {
     return (
       <FlatList
         contentContainerStyle={styles.tribunePosts}
-        onRefresh={this.onRefresh}
+        onEndReached={this.onEndReached}
+        onEndReachedThreshold={0.5}
         ref={(ref) => { this.flatList = ref }}
         extraData={this.state.posts}
         data={this.postsList()}
@@ -104,7 +116,7 @@ class PostMessage extends React.Component {
   hasOnlyEmojis = () => {
     const emojiOrClockRegex = /^((((([0-9]{4})-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01])))[T #])?((([01]?[0-9])|(2[0-3])):([0-5][0-9])(:([0-5][0-9]))?([:\^][0-9]|[¹²³⁴⁵⁶⁷⁸⁹])?(@[0-9A-Za-z]+)?))|(?:[\u2700-\u27bf]|(?:\ud83c[\udde6-\uddff]){2}|[\ud800-\udbff][\udc00-\udfff]|[\u0023-\u0039]\ufe0f?\u20e3|\u3299|\u3297|\u303d|\u3030|\u24c2|\ud83c[\udd70-\udd71]|\ud83c[\udd7e-\udd7f]|\ud83c\udd8e|\ud83c[\udd91-\udd9a]|\ud83c[\udde6-\uddff]|[\ud83c[\ude01-\ude02]|\ud83c\ude1a|\ud83c\ude2f|[\ud83c[\ude32-\ude3a]|[\ud83c[\ude50-\ude51]|\u203c|\u2049|[\u25aa-\u25ab]|\u25b6|\u25c0|[\u25fb-\u25fe]|\u00a9|\u00ae|\u2122|\u2139|\ud83c\udc04|[\u2600-\u26FF]|\u2b05|\u2b06|\u2b07|\u2b1b|\u2b1c|\u2b50|\u2b55|\u231a|\u231b|\u2328|\u23cf|[\u23e9-\u23f3]|[\u23f8-\u23fa]|\ud83c\udccf|\u2934|\u2935|[\u2190-\u21ff])|( ))*$/
 
-    return !!emojiOrClockRegex.exec(this.props.message)
+    return !!emojiOrClockRegex.exec(this.props.post.message)
   }
 
   segmentFromMarkup(match) {
@@ -286,18 +298,26 @@ class PostMessage extends React.Component {
   }
 
   renderedSegments() {
-    return this.segments(this.props.message).map((segment, i) => this.renderSegment(segment, i));
+    return this.segments(this.props.post.message).map((segment, i) => this.renderSegment(segment, i));
   }
 
   render() {
     return (
-      <TouchableHighlight style={styles.tribunePostMessageWrapper} underlayColor={'white'} activeOpacity={0.8} onPress={this.appendClock}>
-        <View style={styles.tribunePostMessage}>
-          <Text selectable>
-            {this.renderedSegments()}
-          </Text>
-        </View>
-      </TouchableHighlight>
+      <View style={[styles.flip, styles.tribunePost]}>
+        <TouchableHighlight style={styles.tribunePostInfoWrapper} onPress={this.appendClock}>
+          <View style={styles.tribunePostInfo}>
+            <Text numberOfLines={1} style={styles.tribunePostClock} selectable>{this.props.post.clock()}</Text>
+            <Text numberOfLines={1} style={styles.tribunePostAuthor} selectable>{this.props.post.author()}</Text>
+          </View>
+        </TouchableHighlight>
+        <TouchableHighlight style={styles.tribunePostMessageWrapper} underlayColor={'white'} activeOpacity={0.8} onPress={this.appendClock}>
+          <View style={styles.tribunePostMessage}>
+            <Text selectable>
+              {this.renderedSegments()}
+            </Text>
+          </View>
+        </TouchableHighlight>
+      </View>
     );
   }
 }

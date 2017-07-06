@@ -35,11 +35,10 @@ export class PageTribuneBrowser extends React.Component {
 
   componentDidMount() {
     setTimeout(() => { this.refreshTribune() }, 1000)
-    this.interval = setInterval(() => { this.refreshTribune() }, 10000)
   }
 
   componentWillUnmount() {
-    clearInterval(this.interval);
+    clearTimeout(this.timeout);
   }
 
   componentDidUpdate() {
@@ -55,15 +54,12 @@ export class PageTribuneBrowser extends React.Component {
   }
 
   refreshTribune = () => {
+    clearTimeout(this.timeout);
     return this.tribune.update()
-      .then(posts => this.update(posts))
-  }
-
-  update = (posts) => {
-    this.postsView.setRefreshing(true);
-    this.setState({posts: posts})
-    this.postsView.setState({posts: posts})
-    this.postsView.setRefreshing(false);
+      .then(posts => {
+        this.postsView.setState({refreshing: false, posts: posts})
+        this.timeout = setTimeout(() => { this.refreshTribune() }, 30000)
+      })
   }
 
   render() {
