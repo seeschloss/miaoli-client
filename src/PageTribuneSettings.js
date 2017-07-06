@@ -39,6 +39,8 @@ class ListItem extends React.Component {
       modalVisible: false,
       value: this.props.value,
     }
+
+    this.currentText = this.props.value
   }
 
   onPress = () => {
