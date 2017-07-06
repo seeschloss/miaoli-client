@@ -53,6 +53,10 @@ export class PageTribuneBrowser extends React.Component {
       .then(() => this.refreshTribune())
   }
 
+  showNewPostButton = (show) => {
+    this.input.setState({newPostButtonDisplay: show ? 'flex' : 'none'})
+  }
+
   refreshTribune = () => {
     clearTimeout(this.timeout);
     return this.tribune.update()

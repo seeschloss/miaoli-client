@@ -134,6 +134,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#1976D2',
     alignContent: 'center',
     justifyContent: 'center',
+    opacity: 0.7,
   },
   newPostButtonText: {
     fontSize: 25,

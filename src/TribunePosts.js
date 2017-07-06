@@ -48,9 +48,18 @@ export class TribunePosts extends React.Component {
     }
   }
 
+  onScroll = (e) => {
+    if (e.nativeEvent.contentOffset.y < 100) {
+      this.props.tribune.showNewPostButton(true)
+    } else {
+      this.props.tribune.showNewPostButton(false)
+    }
+  }
+
   renderScrollComponent = ({ style, refreshing, ...props }) => (
     <ScrollView
       keyboardShouldPersistTaps={'always'}
+      onScroll={this.onScroll}
       style={[style, styles.flip]}
       refreshControl={
         <RefreshControl
@@ -96,6 +105,7 @@ export class TribunePosts extends React.Component {
         data={this.postsList()}
         renderItem={this.renderItem}
         renderScrollComponent={this.renderScrollComponent}
+        onScroll={this.onScroll}
         />
     );
   }

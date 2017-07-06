@@ -12,6 +12,7 @@ export class TribuneInput extends React.Component {
     this.state = {
       text: "",
       display: "none",
+      newPostButtonDisplay: "flex",
     }
   }
 
@@ -60,23 +61,18 @@ export class TribuneInput extends React.Component {
 class PostButton extends React.Component {
   constructor(props) {
     super(props)
-
-    // Ouch, the button hides actual messages, so... let's just not display it for now
-    this.state = {
-      display: "none",
-    }
   }
 
   showInput = () => {
     this.props.input.append(' ')
-    this.setState({display: "none"})
+    this.props.input.setState({newPostButtonDisplay: "none"})
   }
 
   render() {
     return (
-      <TouchableHighlight style={[styles.newPostButtonWrapper, {display: this.state.display}]} onPress={this.showInput}>
+      <TouchableHighlight style={[styles.newPostButtonWrapper, {display: this.props.input.state.newPostButtonDisplay}]} onPress={this.showInput}>
         <View style={styles.newPostButton}>
-          <Text style={styles.newPostButtonText}>✉️</Text>
+          <Text style={styles.newPostButtonText}>📧</Text>
         </View>
       </TouchableHighlight>
     );
