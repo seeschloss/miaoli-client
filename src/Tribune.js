@@ -27,7 +27,7 @@ export class Tribune {
     return fetch(this.configuration.post_url, {
       method: 'POST',
       headers: headers,
-      body: this.configuration.post_format.replace('%s', text)
+      body: this.configuration.post_format.replace('%s', encodeURIComponent(text))
     }).then((response) => { return response.ok })
   }
 
