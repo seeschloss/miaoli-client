@@ -1,4 +1,4 @@
-package com.miaoli;
+package im.miaoli;
 
 import com.facebook.react.ReactActivity;
 

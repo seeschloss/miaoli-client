@@ -1,4 +1,4 @@
-package com.miaoli;
+package im.miaoli;
 
 import android.app.Application;
 
