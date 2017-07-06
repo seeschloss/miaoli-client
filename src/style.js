@@ -81,6 +81,9 @@ export const styles = StyleSheet.create({
   tribunePostMessageSegment: {
     color: 'black',
   },
+  tribunePostMessageSegmentEmoji: {
+    fontSize: 25,
+  },
   tribunePostMessageSegmentURL: {
     fontWeight: 'bold',
     color: '#1976D2',
