@@ -1,7 +1,7 @@
 // vim: et ts=2 sts=2 sw=2
 
 import React from 'react';
-import { TextInput, TouchableNativeFeedback, View, Text, Button } from 'react-native';
+import { TextInput, TouchableNativeFeedback, View, Text, Button, Picker } from 'react-native';
 
 import { StackNavigator } from 'react-navigation';
 import { Icon } from 'react-native-elements';
@@ -28,10 +28,25 @@ export class PageTribuneBrowser extends React.Component {
     return {
       title: tribuneConfiguration.title,
       headerLeft: <View style={{marginLeft: 15}}><TouchableNativeFeedback onPress={() => {navigation.screenProps.drawerNavigation.navigate('DrawerOpen')}}><Icon name="menu" /></TouchableNativeFeedback></View>,
-      headerRight: <Button title="Settings" onPress={() => {
-                      navigation.navigation.navigate('TribuneSettings', {tribune: tribuneConfiguration})
-                      }}
-                   />
+      headerRight: <View style={{width: 50, height: 50}}>
+                     <TouchableNativeFeedback>
+                       <Picker mode={'dropdown'} style={{backgroundColor: 'white'}}
+                           selectedValue={'none'}
+                           onValueChange={(value) => {
+                             switch (value) {
+                               case 'settings':
+                                 navigation.navigation.navigate('TribuneSettings', {tribune: tribuneConfiguration})
+                                 break;
+                             }
+                           }}>
+                         <Picker.Item color={"grey"} label={tribuneConfiguration.title} value="none" />
+                         <Picker.Item label="Settings" value="settings" />
+                       </Picker>
+                     </TouchableNativeFeedback>
+                     <View style={{width: 50, height: 50, justifyContent: 'center', alignItems: 'center', position: 'absolute'}}>
+                       <Icon name="more-vert" pointerEvents="none" />
+                     </View>
+                   </View>
     }
   }
 
