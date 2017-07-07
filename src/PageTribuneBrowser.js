@@ -61,7 +61,7 @@ export class PageTribuneBrowser extends React.Component {
     clearTimeout(this.timeout);
     return this.tribune.update()
       .then(posts => {
-        this.postsView.setState({refreshing: false, posts: posts})
+        this.postsView.setPosts(posts)
         this.timeout = setTimeout(() => { this.refreshTribune() }, 30000)
       })
   }

@@ -78,10 +78,6 @@ export class TribunePosts extends React.Component {
     return (<PostMessage tribune={this.props.tribune} post={props.item.post} />)
   };
 
-  postsList() {
-    return this.state.posts.map(p => { return { key: p.id, post: p } }).reverse()
-  }
-
   onEndReached = () => {
     console.log('end reached')
   }
@@ -94,6 +90,13 @@ export class TribunePosts extends React.Component {
       })
   }
 
+  setPosts = (posts) => {
+    this.setState({
+      posts: posts.map(p => { return { key: p.id, post: p } }).reverse(),
+      refreshing: false,
+    })
+  }
+
   render() {
     return (
       <FlatList
@@ -101,8 +104,8 @@ export class TribunePosts extends React.Component {
         onEndReached={this.onEndReached}
         onEndReachedThreshold={0.5}
         ref={(ref) => { this.flatList = ref }}
-        extraData={this.state.posts}
-        data={this.postsList()}
+        extraData={this.props.tribune.lastid}
+        data={this.state.posts}
         renderItem={this.renderItem}
         renderScrollComponent={this.renderScrollComponent}
         onScroll={this.onScroll}

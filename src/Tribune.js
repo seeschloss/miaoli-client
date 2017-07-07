@@ -7,6 +7,9 @@ import { Post } from './Post';
 export class Tribune {
   constructor(configuration) {
     this.configuration = configuration;
+
+    this.lastId = 0
+    this.posts = []
   }
 
   post = (text) => {
@@ -44,6 +47,16 @@ export class Tribune {
 
           return posts
         })
+      })
+      .then(posts => {
+        posts.forEach(post => {
+          if (post.id > this.lastId) {
+            this.posts.push(post)
+            this.lastId = Math.max(this.lastId, post.id)
+          }
+        })
+
+        return this.posts
       })
   }
 
