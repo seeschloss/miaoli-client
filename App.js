@@ -104,7 +104,7 @@ export default class App extends React.Component {
 
           render() {
             return (
-               <NavigationStack screenProps={{tribune: tribune, tribuneId: i}} />
+               <NavigationStack screenProps={{tribune: tribune, tribuneId: i, drawerNavigation: this.props.navigation}} />
             );
           }
         }

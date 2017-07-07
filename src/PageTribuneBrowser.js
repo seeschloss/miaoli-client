@@ -1,9 +1,10 @@
 // vim: et ts=2 sts=2 sw=2
 
 import React from 'react';
-import { TextInput, TouchableHighlight, View, Text, Button } from 'react-native';
+import { TextInput, TouchableNativeFeedback, View, Text, Button } from 'react-native';
 
 import { StackNavigator } from 'react-navigation';
+import { Icon } from 'react-native-elements';
 
 import { styles } from './style';
 import { Tribune } from './Tribune';
@@ -26,6 +27,7 @@ export class PageTribuneBrowser extends React.Component {
 
     return {
       title: tribuneConfiguration.title,
+      headerLeft: <View style={{marginLeft: 15}}><TouchableNativeFeedback onPress={() => {navigation.screenProps.drawerNavigation.navigate('DrawerOpen')}}><Icon name="menu" /></TouchableNativeFeedback></View>,
       headerRight: <Button title="Settings" onPress={() => {
                       navigation.navigation.navigate('TribuneSettings', {tribune: tribuneConfiguration})
                       }}
