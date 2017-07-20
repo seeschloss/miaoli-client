@@ -23,6 +23,17 @@ export class PageTribuneBrowser extends React.Component {
   static navigationOptions = (navigation) => {
     const tribuneConfiguration = navigation.screenProps.tribune
 
+    var items = [
+       <Picker.Item key="title" color={"grey"} label={tribuneConfiguration.title} value="none" />,
+       <Picker.Item key="settings" label="Settings" value="settings" />,
+    ]
+
+    if (tribuneConfiguration.loginpage) {
+      items.push(
+       <Picker.Item key="login"    label="Login" value="login" style={{display: 'none'}} />
+      )
+    }
+
     return {
       title: tribuneConfiguration.title,
       headerLeft: <View style={{marginLeft: 15}}><TouchableNativeFeedback onPress={() => {navigation.screenProps.drawerNavigation.navigate('DrawerOpen')}}><Icon name="menu" /></TouchableNativeFeedback></View>,
@@ -35,10 +46,12 @@ export class PageTribuneBrowser extends React.Component {
                                case 'settings':
                                  navigation.navigation.navigate('TribuneSettings', {tribune: tribuneConfiguration})
                                  break;
+                               case 'login':
+                                 navigation.navigation.navigate('TribuneLogin', {tribune: tribuneConfiguration})
+                                 break;
                              }
                            }}>
-                         <Picker.Item color={"grey"} label={tribuneConfiguration.title} value="none" />
-                         <Picker.Item label="Settings" value="settings" />
+                             {items}
                        </Picker>
                      </TouchableNativeFeedback>
                      <View pointerEvents="none" style={{width: 50, height: 50, backgroundColor: 'white', justifyContent: 'center', alignItems: 'center', position: 'absolute'}}>

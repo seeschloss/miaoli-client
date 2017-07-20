@@ -5,7 +5,7 @@ import { View, StatusBar, DrawerLayoutAndroid, Text, AsyncStorage } from 'react-
 import { DrawerNavigator, StackNavigator } from 'react-navigation';
 
 import { styles } from './src/style';
-import { MiaoliMenu, PageTribuneSettings, PageTribuneBrowser } from './src/tribune';
+import { MiaoliMenu, PageTribuneSettings, PageTribuneBrowser, PageTribuneLogin } from './src/tribune';
 
 export default class App extends React.Component {
   constructor(props) {
@@ -28,6 +28,7 @@ export default class App extends React.Component {
         post_format: 'message=%s',
         user_agent: 'Miaoli/0.0',
         cookie: '',
+        loginpage: undefined,
       },
       {
         title: 'DLFP',
@@ -38,6 +39,7 @@ export default class App extends React.Component {
         post_format: 'board[message]=%s',
         user_agent: 'Miaoli/0.0',
         cookie: '',
+        loginpage: 'https://linuxfr.org',
       },
       {
         title: 'Euromussels',
@@ -48,6 +50,7 @@ export default class App extends React.Component {
         post_format: 'message=%s',
         user_agent: 'Miaoli/0.0',
         cookie: '',
+        loginpage: 'http://faab.euromussels.eu/loginF.php',
       },
       {
         title: 'Adonai',
@@ -71,7 +74,26 @@ export default class App extends React.Component {
           AsyncStorage.setItem('tribune:configuration', JSON.stringify(this.defaultSettings()))
           this.setState({configurationLoaded: true, configuration: this.defaultSettings()})
         } else {
-          this.setState({configurationLoaded: true, configuration: JSON.parse(result)})
+          var defaultSettings = this.defaultSettings();
+          var settings = JSON.parse(result);
+
+          console.log(settings)
+          for (var i in settings) {
+            var backend = settings[i].backend
+
+            for (var j in defaultSettings) {
+              if (defaultSettings[j].backend == backend) {
+                for (var key in defaultSettings[j]) {
+                  if (settings[i][key] === undefined) {
+                    settings[i][key] = defaultSettings[j][key]
+                    console.log([backend, key, defaultSettings[j][key]])
+                  }
+                }
+              }
+            }
+          }
+
+          this.setState({configurationLoaded: true, configuration: settings})
         }
       })
   }
@@ -91,6 +113,10 @@ export default class App extends React.Component {
           TribuneSettings: {
             screen: PageTribuneSettings,
             path: 'tribune/:tribune/settings',
+          },
+          TribuneLogin: {
+            screen: PageTribuneLogin,
+            path: 'tribune/:tribune/login',
           },
         });
 
