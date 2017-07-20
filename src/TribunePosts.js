@@ -1,7 +1,7 @@
 // vim: et ts=2 sts=2 sw=2
 
 import React from 'react';
-import { FlatList, ScrollView, RefreshControl } from 'react-native';
+import { FlatList, ScrollView, RefreshControl, AsyncStorage } from 'react-native';
 
 
 import { styles } from './style';
@@ -14,7 +14,24 @@ export class TribunePosts extends React.Component {
       posts: [],
       refreshing: false,
       forceRefreshing: false,
+      lastId: 0,
     }
+
+    this.loadHistory()
+  }
+
+  loadHistory = () => {
+    AsyncStorage
+      .getItem("tribune:" + this.props.tribuneId + ":post-ids")
+      .then((result) => {
+        if (result) {
+          this.state.posts = JSON.parse(result)
+            .map(p => { return { key: p.id, post: new Post({id: p.id, tribune: this.props.tribune}) } })
+            .reverse()
+
+          this.lastId = this.state.posts[0].id
+        }
+      })
   }
 
   setRefreshing = (refreshing) => {
@@ -75,7 +92,7 @@ export class TribunePosts extends React.Component {
   }
 
   renderItem = props => {
-    return (<PostMessage tribune={this.props.tribune} post={props.item.post} />)
+    return (<PostMessage tribune={this.props.tribune} tribuneId={this.props.tribuneId} post={props.item.post} />)
   };
 
   onEndReached = () => {
@@ -91,8 +108,16 @@ export class TribunePosts extends React.Component {
   }
 
   setPosts = (posts) => {
+    posts.forEach(post => {
+      if (post.id > this.state.lastId) {
+        this.state.posts.unshift({key: post.id, post: post})
+        this.state.lastId = Math.max(this.state.lastId, post.id);
+      }
+    })
+
     this.setState({
-      posts: posts.map(p => { return { key: p.id, post: p } }).reverse(),
+      posts: this.state.posts,
+      lastId: this.state.lastId,
       refreshing: false,
     })
   }
@@ -104,7 +129,7 @@ export class TribunePosts extends React.Component {
         onEndReached={this.onEndReached}
         onEndReachedThreshold={0.5}
         ref={(ref) => { this.flatList = ref }}
-        extraData={this.props.tribune.lastid}
+        extraData={this.state.lastId}
         data={this.state.posts}
         renderItem={this.renderItem}
         renderScrollComponent={this.renderScrollComponent}
@@ -119,17 +144,50 @@ class PostMessage extends React.Component {
   constructor(props) {
     super(props);
 
-    this._hasOnlyEmojis = this.hasOnlyEmojis()
+    this.state = {
+      post: props.post,
+    }
+  }
+
+  componentDidMount = () => {
+    if (!this.state.post.message) {
+      this.loadFromHistory()
+    } else if (!this.state.post.saved) {
+      this.saveToHistory()
+      this._hasOnlyEmojis = this.hasOnlyEmojis()
+    }
+  }
+
+  loadFromHistory = () => {
+    AsyncStorage
+      .getItem("tribune:" + this.props.tribuneId + ":posts:" + this.state.post.id)
+      .then((result) => {
+        if (result) {
+          var fields = JSON.parse(result)
+          fields.tribune = this.props.tribune
+          fields.saved = true
+          this.setState({post: new Post(fields)})
+        } else {
+        }
+      })
+  }
+
+  saveToHistory = () => {
+    if (this.state.post.message && !this.state.post.saved) {
+      AsyncStorage
+        .setItem("tribune:" + this.props.tribuneId + ":posts:" + this.state.post.id, JSON.stringify(this.state.post.export()))
+      this.state.post.saved = true
+    }
   }
 
   appendClock = () => {
-    this.props.tribune.append(this.props.post.clock() + " ");
+    this.props.tribune.append(this.state.post.clock() + " ");
   }
 
   hasOnlyEmojis = () => {
     const emojiOrClockRegex = /^((((([0-9]{4})-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01])))[T #])?((([01]?[0-9])|(2[0-3])):([0-5][0-9])(:([0-5][0-9]))?([:\^][0-9]|[¹²³⁴⁵⁶⁷⁸⁹])?(@[0-9A-Za-z]+)?))|(?:[\u2700-\u27bf]|(?:\ud83c[\udde6-\uddff]){2}|[\ud800-\udbff][\udc00-\udfff]|[\u0023-\u0039]\ufe0f?\u20e3|\u3299|\u3297|\u303d|\u3030|\u24c2|\ud83c[\udd70-\udd71]|\ud83c[\udd7e-\udd7f]|\ud83c\udd8e|\ud83c[\udd91-\udd9a]|\ud83c[\udde6-\uddff]|[\ud83c[\ude01-\ude02]|\ud83c\ude1a|\ud83c\ude2f|[\ud83c[\ude32-\ude3a]|[\ud83c[\ude50-\ude51]|\u203c|\u2049|[\u25aa-\u25ab]|\u25b6|\u25c0|[\u25fb-\u25fe]|\u00a9|\u00ae|\u2122|\u2139|\ud83c\udc04|[\u2600-\u26FF]|\u2b05|\u2b06|\u2b07|\u2b1b|\u2b1c|\u2b50|\u2b55|\u231a|\u231b|\u2328|\u23cf|[\u23e9-\u23f3]|[\u23f8-\u23fa]|\ud83c\udccf|\u2934|\u2935|[\u2190-\u21ff])|( ))*$/
 
-    return !!emojiOrClockRegex.exec(this.props.post.message)
+    return !!emojiOrClockRegex.exec(this.state.post.message)
   }
 
   segmentFromMarkup(match) {
@@ -311,16 +369,20 @@ class PostMessage extends React.Component {
   }
 
   renderedSegments() {
-    return this.segments(this.props.post.message).map((segment, i) => this.renderSegment(segment, i));
+    return this.segments(this.state.post.message).map((segment, i) => this.renderSegment(segment, i));
   }
 
   render() {
+    if (!this.state.post.message) {
+      return null
+    }
+
     return (
       <View style={[styles.flip, styles.tribunePost]}>
         <TouchableHighlight style={styles.tribunePostInfoWrapper} onPress={this.appendClock}>
           <View style={styles.tribunePostInfo}>
-            <Text numberOfLines={1} style={styles.tribunePostClock} selectable>{this.props.post.clock()}</Text>
-            <Text numberOfLines={1} style={styles.tribunePostAuthor} selectable>{this.props.post.author()}</Text>
+            <Text numberOfLines={1} style={styles.tribunePostClock} selectable>{this.state.post.clock()}</Text>
+            <Text numberOfLines={1} style={styles.tribunePostAuthor} selectable>{this.state.post.author()}</Text>
           </View>
         </TouchableHighlight>
         <TouchableHighlight style={styles.tribunePostMessageWrapper} underlayColor={'white'} activeOpacity={0.8} onPress={this.appendClock}>

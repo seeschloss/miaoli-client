@@ -53,6 +53,7 @@ export class Tribune {
           if (post.id > this.lastId) {
             this.posts.push(post)
             this.lastId = Math.max(this.lastId, post.id)
+            this.configuration.lastId = this.lastId
           }
         })
 

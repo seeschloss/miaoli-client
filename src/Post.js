@@ -10,6 +10,10 @@ export class Post {
     this.tribune = fields.tribune
   }
 
+  export() {
+    return {id: this.id, time: this.time, info: this.info, login: this.login, message: this.message};
+  }
+
   clock() {
     if (this.time == undefined) {
       console.log(this);

@@ -14,12 +14,10 @@ import { TribuneInput } from './TribuneInput';
 export class PageTribuneBrowser extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {
-      posts: []
-    }
 
     this.configuration = this.props.screenProps.tribune
     this.tribune = new Tribune(this.configuration)
+    this.tribuneId = this.props.screenProps.tribuneId
   }
 
   static navigationOptions = (navigation) => {
@@ -30,7 +28,7 @@ export class PageTribuneBrowser extends React.Component {
       headerLeft: <View style={{marginLeft: 15}}><TouchableNativeFeedback onPress={() => {navigation.screenProps.drawerNavigation.navigate('DrawerOpen')}}><Icon name="menu" /></TouchableNativeFeedback></View>,
       headerRight: <View style={{width: 50, height: 50}}>
                      <TouchableNativeFeedback>
-                       <Picker mode={'dropdown'} style={{backgroundColor: 'white'}}
+                       <Picker mode={'dropdown'} style={{backgroundColor: 'white', minWidth: 150}}
                            selectedValue={'none'}
                            onValueChange={(value) => {
                              switch (value) {
@@ -43,7 +41,7 @@ export class PageTribuneBrowser extends React.Component {
                          <Picker.Item label="Settings" value="settings" />
                        </Picker>
                      </TouchableNativeFeedback>
-                     <View style={{width: 50, height: 50, justifyContent: 'center', alignItems: 'center', position: 'absolute'}}>
+                     <View pointerEvents="none" style={{width: 50, height: 50, backgroundColor: 'white', justifyContent: 'center', alignItems: 'center', position: 'absolute'}}>
                        <Icon name="more-vert" pointerEvents="none" />
                      </View>
                    </View>
@@ -87,7 +85,7 @@ export class PageTribuneBrowser extends React.Component {
     return (
       <View style={styles.tribuneContainer}>
         <View style={styles.tribune}>
-          <TribunePosts ref={(ref) => { this.postsView = ref; }} tribune={this} />
+          <TribunePosts ref={(ref) => { this.postsView = ref; }} tribune={this} tribuneId={this.tribuneId} />
           <TribuneInput ref={(ref) => { this.input = ref; }} tribune={this} />
         </View>
       </View>
