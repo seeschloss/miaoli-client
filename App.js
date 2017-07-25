@@ -5,7 +5,7 @@ import { View, StatusBar, DrawerLayoutAndroid, Text, AsyncStorage } from 'react-
 import { DrawerNavigator, StackNavigator } from 'react-navigation';
 
 import { styles } from './src/style';
-import { MiaoliMenu, PageTribuneSettings, PageTribuneBrowser, PageTribuneLogin } from './src/tribune';
+import { MiaoliMenu, PageTribuneSettings, PageTribuneBrowser, PageTribuneLogin, Tribune } from './src/tribune';
 
 export default class App extends React.Component {
   constructor(props) {
@@ -21,7 +21,7 @@ export default class App extends React.Component {
     return [
       {
         title: 'Moules',
-        color: 'blue',
+        color: "#fde096",
         backend: 'http://moules.org/board/last.php?backend=tsv',
         backend_type: 'tsv',
         post_url: 'http://moules.org/board/add.php',
@@ -32,7 +32,7 @@ export default class App extends React.Component {
       },
       {
         title: 'DLFP',
-        color: 'blue',
+        color: "#67c6f2",
         backend: 'https://linuxfr.org/board/index.xml',
         backend_type: 'xml-htmlentitised',
         post_url: 'https://linuxfr.org/board',
@@ -43,7 +43,7 @@ export default class App extends React.Component {
       },
       {
         title: 'Euromussels',
-        color: 'blue',
+        color: "#f4b189",
         backend: 'http://faab.euromussels.eu/data/backend.xml',
         backend_type: 'xml-raw',
         post_url: 'http://faab.euromussels.eu/add.php',
@@ -54,7 +54,7 @@ export default class App extends React.Component {
       },
       {
         title: 'Adonai',
-        color: 'blue',
+        color: "#4bd0e3",
         backend: 'http://miaoli.im/tribune/papitalisme/tsv',
         backend_type: 'tsv',
         post_url: 'http://miaoli.im/tribune/papitalisme/post',
@@ -87,6 +87,9 @@ export default class App extends React.Component {
                   if (settings[i][key] === undefined) {
                     settings[i][key] = defaultSettings[j][key]
                     console.log([backend, key, defaultSettings[j][key]])
+                  } else if (key == "color" && settings[i][key] === "blue") {
+                    settings[i][key] = defaultSettings[j][key]
+                    console.log([backend, key, defaultSettings[j][key]])
                   }
                 }
               }
@@ -104,33 +107,39 @@ export default class App extends React.Component {
 
     if (this.state.configurationLoaded) {
       var screens = {}
-      this.state.configuration.forEach((tribune, i) => {
+      this.state.configuration.forEach((tribuneConfiguration, i) => {
+        var tribuneObject = new Tribune(tribuneConfiguration)
+
         const NavigationStack = StackNavigator({
           TribuneHome: {
             screen: PageTribuneBrowser,
-            path: 'tribune/:tribune',
+            path: 'tribune/:tribune/:page',
           },
           TribuneSettings: {
             screen: PageTribuneSettings,
-            path: 'tribune/:tribune/settings',
+            path: 'tribune/:tribune/:page/settings',
           },
           TribuneLogin: {
             screen: PageTribuneLogin,
-            path: 'tribune/:tribune/login',
+            path: 'tribune/:tribune/:page/login',
           },
+        }, {
+          initialRouteParams: {tribune: tribuneObject, page: null}
         });
 
         class PageTribune extends React.Component {
-          static tribune = tribune
+          static tribune = tribuneObject
           static tribuneId = i
 
           static navigationOptions = ({navigation, screenProps}) => {
-            return { title: tribune.title, }
+            return { title: tribuneConfiguration.title, }
           }
 
           render() {
             return (
-               <NavigationStack screenProps={{tribune: tribune, tribuneId: i, drawerNavigation: this.props.navigation}} />
+               <NavigationStack
+                 screenProps={{tribune: this.constructor.tribune, tribuneId: i, drawerNavigation: this.props.navigation}}
+               />
             );
           }
         }

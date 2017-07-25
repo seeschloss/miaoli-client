@@ -24,7 +24,7 @@ export class Tribune {
     headers.append('User-Agent', this.configuration.user_agent);
 
     if (this.configuration.cookie && this.configuration.cookie.length > 0) {
-      headers.append('Cookie', this.configuration.cookie);
+      headers.append('Cookie', this.configuration.cookie)
     }
 
     return fetch(this.configuration.post_url, {

@@ -28,8 +28,6 @@ export const styles = StyleSheet.create({
     alignItems: 'stretch',
     marginTop: 4,
     borderRadius: 10,
-    backgroundColor: '#CDDC39',
-    borderColor: '#CDDC39',
     borderWidth: 1,
   },
   tribunePostInfoWrapper: {

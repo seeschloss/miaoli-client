@@ -15,6 +15,7 @@ export class TribunePosts extends React.Component {
       refreshing: false,
       forceRefreshing: false,
       lastId: 0,
+      configuration: this.props.tribune.configuration.color,
     }
 
     this.loadHistory()
@@ -129,7 +130,7 @@ export class TribunePosts extends React.Component {
         onEndReached={this.onEndReached}
         onEndReachedThreshold={0.5}
         ref={(ref) => { this.flatList = ref }}
-        extraData={this.state.lastId}
+        extraData={[this.state.lastId, this.state.color]}
         data={this.state.posts}
         renderItem={this.renderItem}
         renderScrollComponent={this.renderScrollComponent}
@@ -377,8 +378,13 @@ class PostMessage extends React.Component {
       return null
     }
 
+    const style = {
+      backgroundColor: this.props.tribune.configuration.color,
+      borderColor: this.props.tribune.configuration.color,
+    }
+
     return (
-      <View style={[styles.flip, styles.tribunePost]}>
+      <View style={[styles.flip, styles.tribunePost, style]}>
         <TouchableHighlight style={styles.tribunePostInfoWrapper} onPress={this.appendClock}>
           <View style={styles.tribunePostInfo}>
             <Text numberOfLines={1} style={styles.tribunePostClock} selectable>{this.state.post.clock()}</Text>

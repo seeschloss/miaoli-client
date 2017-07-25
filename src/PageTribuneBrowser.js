@@ -3,7 +3,6 @@
 import React from 'react';
 import { TextInput, TouchableNativeFeedback, View, Text, Button, Picker } from 'react-native';
 
-import { StackNavigator } from 'react-navigation';
 import { Icon } from 'react-native-elements';
 
 import { styles } from './style';
@@ -15,13 +14,13 @@ export class PageTribuneBrowser extends React.Component {
   constructor(props) {
     super(props);
 
-    this.configuration = this.props.screenProps.tribune
-    this.tribune = new Tribune(this.configuration)
+    this.tribune = this.props.screenProps.tribune
+    this.configuration = this.tribune.configuration
     this.tribuneId = this.props.screenProps.tribuneId
   }
 
   static navigationOptions = (navigation) => {
-    const tribuneConfiguration = navigation.screenProps.tribune
+    const tribuneConfiguration = navigation.screenProps.tribune.configuration
 
     var items = [
        <Picker.Item key="title" color={"grey"} label={tribuneConfiguration.title} value="none" />,
@@ -36,7 +35,12 @@ export class PageTribuneBrowser extends React.Component {
 
     return {
       title: tribuneConfiguration.title,
-      headerLeft: <View style={{marginLeft: 15}}><TouchableNativeFeedback onPress={() => {navigation.screenProps.drawerNavigation.navigate('DrawerOpen')}}><Icon name="menu" /></TouchableNativeFeedback></View>,
+      headerLeft: <View style={{marginLeft: 15}}>
+                    <TouchableNativeFeedback
+                      onPress={() => {navigation.screenProps.drawerNavigation.navigate('DrawerOpen')}}>
+                        <Icon name="menu" />
+                    </TouchableNativeFeedback>
+                  </View>,
       headerRight: <View style={{width: 50, height: 50}}>
                      <TouchableNativeFeedback>
                        <Picker mode={'dropdown'} style={{backgroundColor: 'white', minWidth: 150}}
@@ -44,10 +48,10 @@ export class PageTribuneBrowser extends React.Component {
                            onValueChange={(value) => {
                              switch (value) {
                                case 'settings':
-                                 navigation.navigation.navigate('TribuneSettings', {tribune: tribuneConfiguration})
+                                 navigation.navigation.navigate('TribuneSettings', {tribune: navigation.screenProps.tribune, page: navigation.navigation.state.params.page})
                                  break;
                                case 'login':
-                                 navigation.navigation.navigate('TribuneLogin', {tribune: tribuneConfiguration})
+                                 navigation.navigation.navigate('TribuneLogin', {tribune: navigation.screenProps.tribune})
                                  break;
                              }
                            }}>
@@ -62,6 +66,11 @@ export class PageTribuneBrowser extends React.Component {
   }
 
   componentDidMount() {
+    // This param will be used by PageTribuneSettings to setState() when
+    // values are changed.
+    this.props.navigation.setParams({page: this})
+
+
     setTimeout(() => { this.refreshTribune() }, 1000)
   }
 
