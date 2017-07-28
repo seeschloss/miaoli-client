@@ -15,7 +15,6 @@ export class TribunePosts extends React.Component {
       refreshing: false,
       forceRefreshing: false,
       lastId: 0,
-      configuration: this.props.tribune.configuration.color,
     }
 
     this.loadHistory()
@@ -93,7 +92,7 @@ export class TribunePosts extends React.Component {
   }
 
   renderItem = props => {
-    return (<PostMessage tribune={this.props.tribune} tribuneId={this.props.tribuneId} post={props.item.post} />)
+    return (<PostMessage tribuneId={this.props.tribune.backend} post={props.item.post} />)
   };
 
   onEndReached = () => {
@@ -110,9 +109,10 @@ export class TribunePosts extends React.Component {
 
   setPosts = (posts) => {
     posts.forEach(post => {
-      if (post.id > this.state.lastId) {
-        this.state.posts.unshift({key: post.id, post: post})
-        this.state.lastId = Math.max(this.state.lastId, post.id);
+      const local_id = parseInt(post.time) + (parseFloat(post.id) / 10000)
+      if (local_id > this.state.lastId) {
+        this.state.posts.unshift({key: local_id, post: post})
+        this.state.lastId = Math.max(this.state.lastId, local_id);
       }
     })
 
@@ -165,7 +165,7 @@ class PostMessage extends React.Component {
       .then((result) => {
         if (result) {
           var fields = JSON.parse(result)
-          fields.tribune = this.props.tribune
+          fields.tribune = this.props.post.tribune
           fields.saved = true
           this.setState({post: new Post(fields)})
         } else {
@@ -182,7 +182,7 @@ class PostMessage extends React.Component {
   }
 
   appendClock = () => {
-    this.props.tribune.append(this.state.post.clock() + " ");
+    this.props.post.tribune.append(this.state.post.clock() + " ");
   }
 
   hasOnlyEmojis = () => {
@@ -356,7 +356,7 @@ class PostMessage extends React.Component {
         }
         return <Text key={key} style={style} text={segment.text}>{contents}</Text>
       case 'clock':
-        return <PostMessageClock key={key} style={[styles.tribunePostMessageSegment, styles.tribunePostMessageSegmentClock]} text={contents} tribune={this.props.tribune} />
+        return <PostMessageClock key={key} style={[styles.tribunePostMessageSegment, styles.tribunePostMessageSegmentClock]} text={contents} tribune={this.props.post.tribune} />
       case 'url':
         return <PostMessageURL key={key} style={[styles.tribunePostMessageSegment, styles.tribunePostMessageSegmentURL]} text={contents} url={segment.url} />
       case 'text':
@@ -379,8 +379,8 @@ class PostMessage extends React.Component {
     }
 
     const style = {
-      backgroundColor: this.props.tribune.configuration.color,
-      borderColor: this.props.tribune.configuration.color,
+      backgroundColor: this.props.post.tribune.configuration.color,
+      borderColor: this.props.post.tribune.configuration.color,
     }
 
     return (

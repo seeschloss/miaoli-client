@@ -16,7 +16,7 @@ export class PageTribuneSettings extends React.Component {
 
     return (
       <SectionList style={{flex: 1, backgroundColor: 'white'}}
-        renderItem={({item}) => <ListItem navigation={this.props.navigation} title={item.title} settingKey={item.key} value={item.value} configuration={configuration} tribuneId={this.props.screenProps.tribuneId} />}
+        renderItem={({item}) => <ListItem navigation={this.props.navigation} title={item.title} settingKey={item.key} value={item.value} configuration={configuration} />}
         renderSectionHeader={({section}) => <ListHeader title={section.title} key={section.key} />}
         sections={[
           {data: [
@@ -75,12 +75,15 @@ class ListItem extends React.Component {
       .getItem("tribune:configuration")
       .then((result) => {
         if (result) {
-          var configuration = JSON.parse(result)
+          var globalConfiguration = JSON.parse(result)
 
-          if (configuration[this.props.tribuneId] !== undefined) {
-            configuration[this.props.tribuneId][this.props.settingKey] = this.state.value
-            AsyncStorage.setItem('tribune:configuration', JSON.stringify(configuration))
-          }
+          globalConfiguration.forEach((tribuneConfiguration) => {
+            if (tribuneConfiguration.backend == this.props.configuration.backend) {
+              tribuneConfiguration[this.props.settingKey] = this.state.value
+            }
+          })
+
+          AsyncStorage.setItem('tribune:configuration', JSON.stringify(globalConfiguration))
         }
       })
   }

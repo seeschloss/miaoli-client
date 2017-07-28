@@ -4,6 +4,7 @@ export * from './MiaoliMenu';
 export * from './PageTribuneBrowser';
 export * from './PageTribuneSettings';
 export * from './PageTribuneLogin';
+export * from './PageFeedBrowser';
 export * from './Tribune';
 export * from './TribuneInput';
 export * from './TribunePosts';

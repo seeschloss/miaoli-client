@@ -12,30 +12,20 @@ import { Tribune } from './Tribune';
 import { TribunePosts } from './TribunePosts';
 import { TribuneInput } from './TribuneInput';
 
-export class PageTribuneBrowser extends React.Component {
+export class PageFeedBrowser extends React.Component {
   constructor(props) {
     super(props);
 
-    this.tribune = this.props.screenProps.tribune
-    this.configuration = this.tribune.configuration
+    this.tribunes = this.props.screenProps.tribunes
   }
 
   static navigationOptions = (navigation) => {
-    const tribuneConfiguration = navigation.screenProps.tribune.configuration
-
     var items = [
-       <Picker.Item key="title" color={"grey"} label={tribuneConfiguration.title} value="none" />,
+       <Picker.Item key="title" color={"grey"} label={navigation.screenProps.title} value="none" />,
        <Picker.Item key="settings" label="Settings" value="settings" />,
     ]
-
-    if (tribuneConfiguration.loginpage) {
-      items.push(
-       <Picker.Item key="login"    label="Login" value="login" style={{display: 'none'}} />
-      )
-    }
-
     return {
-      title: tribuneConfiguration.title,
+      title: navigation.screenProps.title,
       headerLeft: <View style={{marginLeft: 15}}>
                     <TouchableNativeFeedback
                       onPress={() => {navigation.screenProps.drawerNavigation.navigate('DrawerOpen')}}>
@@ -49,10 +39,7 @@ export class PageTribuneBrowser extends React.Component {
                            onValueChange={(value) => {
                              switch (value) {
                                case 'settings':
-                                 navigation.navigation.navigate('TribuneSettings', {tribune: navigation.screenProps.tribune, page: navigation.navigation.state.params.page})
-                                 break;
-                               case 'login':
-                                 navigation.navigation.navigate('TribuneLogin', {tribune: navigation.screenProps.tribune})
+                                 navigation.navigation.navigate('FeedSettings', {page: navigation.navigation.state.params.page})
                                  break;
                              }
                            }}>
@@ -67,17 +54,28 @@ export class PageTribuneBrowser extends React.Component {
   }
 
   componentDidMount() {
-    // This param will be used by PageTribuneSettings to setState() when
+    // This param will be used by PageFeedSettings to setState() when
     // values are changed.
     this.props.navigation.setParams({page: this})
 
+    var posts = [];
+    this.tribunes.forEach(tribune => {
+      tribune.posts.forEach(post => {
+        posts.push(post)
+      })
+    })
+    posts.sort((a, b) => {
+      if (a.time == b.time) {
+        return a.id > b.id ? 1 : -1
+      } else {
+        return a.time > b.time ? 1 : -1
+      }
+    })
 
-    BackgroundTimer.clearTimeout(this.timeout);
-    this.timeout = BackgroundTimer.setTimeout(() => { this.refreshTribune() }, 1000)
+    this.postsView.setPosts(posts)
   }
 
   componentWillUnmount() {
-    //BackgroundTimer.clearTimeout(this.timeout);
   }
 
   componentDidUpdate() {
@@ -88,25 +86,11 @@ export class PageTribuneBrowser extends React.Component {
   }
 
   post = (text) => {
-    return this.tribune.post(text)
-      .then(() => this.refreshTribune())
+    return this.tribunes[0].post(text);
   }
 
   showNewPostButton = (show) => {
     this.input.setState({newPostButtonDisplay: show ? 'flex' : 'none'})
-  }
-
-  refreshTribune = () => {
-    BackgroundTimer.clearTimeout(this.timeout);
-    return this.tribune.update()
-      .then(posts => {
-        if (this.postsView) {
-          this.postsView.setPosts(posts)
-        }
-
-        this.timeout = BackgroundTimer.setTimeout(() => { this.refreshTribune() }, 30000)
-        console.log(['posts', this.tribune.configuration.title, posts.length])
-      })
   }
 
   render() {

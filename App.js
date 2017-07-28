@@ -5,7 +5,10 @@ import { View, StatusBar, DrawerLayoutAndroid, Text, AsyncStorage } from 'react-
 import { DrawerNavigator, StackNavigator } from 'react-navigation';
 
 import { styles } from './src/style';
-import { MiaoliMenu, PageTribuneSettings, PageTribuneBrowser, PageTribuneLogin, Tribune } from './src/tribune';
+import { MiaoliMenu, 
+  PageTribuneSettings, PageTribuneBrowser, PageTribuneLogin,
+  PageFeedBrowser,
+  Tribune } from './src/tribune';
 
 export default class App extends React.Component {
   constructor(props) {
@@ -14,6 +17,7 @@ export default class App extends React.Component {
     this.state = {
       configurationLoaded: false,
       configuration: [],
+      tribunes: [],
     };
   }
 
@@ -110,6 +114,8 @@ export default class App extends React.Component {
       this.state.configuration.forEach((tribuneConfiguration, i) => {
         var tribuneObject = new Tribune(tribuneConfiguration)
 
+        this.state.tribunes.push(tribuneObject)
+
         const NavigationStack = StackNavigator({
           TribuneHome: {
             screen: PageTribuneBrowser,
@@ -129,7 +135,6 @@ export default class App extends React.Component {
 
         class PageTribune extends React.Component {
           static tribune = tribuneObject
-          static tribuneId = i
 
           static navigationOptions = ({navigation, screenProps}) => {
             return { title: tribuneConfiguration.title, }
@@ -138,7 +143,7 @@ export default class App extends React.Component {
           render() {
             return (
                <NavigationStack
-                 screenProps={{tribune: this.constructor.tribune, tribuneId: i, drawerNavigation: this.props.navigation}}
+                 screenProps={{tribune: this.constructor.tribune, drawerNavigation: this.props.navigation}}
                />
             );
           }
@@ -148,6 +153,40 @@ export default class App extends React.Component {
           screen: PageTribune,
         }
       })
+
+      const allTribunes = this.state.tribunes
+      const NavigationStack = StackNavigator({
+        FeedHome: {
+          screen: PageFeedBrowser,
+          path: 'tribune/:tribunes/:page',
+        },
+        /*FeedSettings: {
+          screen: PageFeedSettings,
+          path: 'tribune/:tribunes/:page/settings',
+        },*/
+      }, {
+        initialRouteParams: {tribunes: allTribunes, page: null}
+      });
+
+      class PageFeed extends React.Component {
+        static tribunes = allTribunes
+
+        static navigationOptions = ({navigation, screenProps}) => {
+          return { title: "All tribunes", }
+        }
+
+        render() {
+          return (
+             <NavigationStack
+               screenProps={{title: "All tribunes", tribunes: this.constructor.tribunes, drawerNavigation: this.props.navigation}}
+             />
+          );
+        }
+      }
+
+      screens["feeds-all"] = {
+        screen: PageFeed,
+      }
 
       const NavigationDrawer = DrawerNavigator(screens);
 
