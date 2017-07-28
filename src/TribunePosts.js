@@ -17,9 +17,10 @@ export class TribunePosts extends React.Component {
       lastPost: null,
     }
 
-    this.loadHistory()
+    //this.loadHistory()
   }
 
+  /*
   loadHistory = () => {
     AsyncStorage
       .getItem("tribune:" + this.props.tribuneId + ":post-ids")
@@ -33,6 +34,7 @@ export class TribunePosts extends React.Component {
         }
       })
   }
+  */
 
   setRefreshing = (refreshing) => {
     this.setState({refreshing: refreshing})
@@ -67,9 +69,9 @@ export class TribunePosts extends React.Component {
 
   onScroll = (e) => {
     if (e.nativeEvent.contentOffset.y < 100) {
-      this.props.tribune.showNewPostButton(true)
+      this.props.tribuneView.showNewPostButton(true)
     } else {
-      this.props.tribune.showNewPostButton(false)
+      this.props.tribuneView.showNewPostButton(false)
     }
   }
 
@@ -88,11 +90,11 @@ export class TribunePosts extends React.Component {
   );
 
   appendClock = (clock) => {
-    this.props.tribune.append(clock + " ")
+    this.props.tribuneView.append(clock + " ")
   }
 
   renderItem = props => {
-    return (<PostMessage tribuneId={this.props.tribune.backend} post={props.item.post} />)
+    return (<PostMessage post={props.item.post} tribuneView={this.props.tribuneView} />)
   };
 
   onEndReached = () => {
@@ -101,7 +103,7 @@ export class TribunePosts extends React.Component {
 
   forceRefresh = () => {
     this.setState({refreshing: true, forceRefreshing: true})
-    this.props.tribune.refreshTribune()
+    this.props.tribuneView.refreshTribune()
       .then(() => {
         this.setState({refreshing: false, forceRefreshing: false})
       })
@@ -162,7 +164,7 @@ class PostMessage extends React.Component {
 
   loadFromHistory = () => {
     AsyncStorage
-      .getItem("tribune:" + this.props.tribuneId + ":posts:" + this.state.post.id)
+      .getItem("tribune:" + this.state.post.tribune.configuration.backend + ":posts:" + this.state.post.id)
       .then((result) => {
         if (result) {
           var fields = JSON.parse(result)
@@ -177,13 +179,13 @@ class PostMessage extends React.Component {
   saveToHistory = () => {
     if (this.state.post.message && !this.state.post.saved) {
       AsyncStorage
-        .setItem("tribune:" + this.props.tribuneId + ":posts:" + this.state.post.id, JSON.stringify(this.state.post.export()))
+        .setItem("tribune:" + this.state.post.tribune.configuration.backend + ":posts:" + this.state.post.id, JSON.stringify(this.state.post.export()))
       this.state.post.saved = true
     }
   }
 
   appendClock = () => {
-    this.props.post.tribune.append(this.state.post.clock() + " ");
+    this.props.tribuneView.append(this.state.post.clock() + " ");
   }
 
   hasOnlyEmojis = () => {
@@ -357,7 +359,7 @@ class PostMessage extends React.Component {
         }
         return <Text key={key} style={style} text={segment.text}>{contents}</Text>
       case 'clock':
-        return <PostMessageClock key={key} style={[styles.tribunePostMessageSegment, styles.tribunePostMessageSegmentClock]} text={contents} tribune={this.props.post.tribune} />
+        return <PostMessageClock key={key} style={[styles.tribunePostMessageSegment, styles.tribunePostMessageSegmentClock]} text={contents} tribuneView={this.props.tribuneView} />
       case 'url':
         return <PostMessageURL key={key} style={[styles.tribunePostMessageSegment, styles.tribunePostMessageSegmentURL]} text={contents} url={segment.url} />
       case 'text':

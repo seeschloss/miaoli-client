@@ -113,7 +113,7 @@ export class PageTribuneBrowser extends React.Component {
     return (
       <View style={styles.tribuneContainer}>
         <View style={styles.tribune}>
-          <TribunePosts ref={(ref) => { this.postsView = ref; }} tribune={this} />
+          <TribunePosts ref={(ref) => { this.postsView = ref; }} tribuneView={this} />
           <TribuneInput ref={(ref) => { this.input = ref; }} tribune={this} />
         </View>
       </View>
