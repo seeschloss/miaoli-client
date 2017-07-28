@@ -14,7 +14,7 @@ export class TribunePosts extends React.Component {
       posts: [],
       refreshing: false,
       forceRefreshing: false,
-      lastId: 0,
+      lastPost: null,
     }
 
     this.loadHistory()
@@ -29,7 +29,7 @@ export class TribunePosts extends React.Component {
             .map(p => { return { key: p.id, post: new Post({id: p.id, tribune: this.props.tribune}) } })
             .reverse()
 
-          this.lastId = this.state.posts[0].id
+          this.lastPost = this.state.posts[0]
         }
       })
   }
@@ -109,16 +109,17 @@ export class TribunePosts extends React.Component {
 
   setPosts = (posts) => {
     posts.forEach(post => {
-      const local_id = parseInt(post.time) + (parseFloat(post.id) / 10000)
-      if (local_id > this.state.lastId) {
-        this.state.posts.unshift({key: local_id, post: post})
-        this.state.lastId = Math.max(this.state.lastId, local_id);
+      if (!this.state.lastPost
+          || post.time > this.state.lastPost.time
+          || (post.time == this.state.lastPost.time && post.id > this.state.lastPost.id)) {
+        this.state.posts.unshift({key: post.time + ":" + post.id, post: post})
+        this.state.lastPost = post;
       }
     })
 
     this.setState({
       posts: this.state.posts,
-      lastId: this.state.lastId,
+      lastPost: this.state.lastPost,
       refreshing: false,
     })
   }
@@ -130,7 +131,7 @@ export class TribunePosts extends React.Component {
         onEndReached={this.onEndReached}
         onEndReachedThreshold={0.5}
         ref={(ref) => { this.flatList = ref }}
-        extraData={[this.state.lastId, this.state.color]}
+        extraData={[this.state.lastPost, this.state.color]}
         data={this.state.posts}
         renderItem={this.renderItem}
         renderScrollComponent={this.renderScrollComponent}

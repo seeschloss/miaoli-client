@@ -53,26 +53,12 @@ export class PageFeedBrowser extends React.Component {
     }
   }
 
-  componentDidMount() {
+  componentDidMount = () => {
     // This param will be used by PageFeedSettings to setState() when
     // values are changed.
     this.props.navigation.setParams({page: this})
 
-    var posts = [];
-    this.tribunes.forEach(tribune => {
-      tribune.posts.forEach(post => {
-        posts.push(post)
-      })
-    })
-    posts.sort((a, b) => {
-      if (a.time == b.time) {
-        return a.id > b.id ? 1 : -1
-      } else {
-        return a.time > b.time ? 1 : -1
-      }
-    })
-
-    this.postsView.setPosts(posts)
+    this.postsView.setPosts(this.allPosts())
   }
 
   componentWillUnmount() {
@@ -89,8 +75,47 @@ export class PageFeedBrowser extends React.Component {
     return this.tribunes[0].post(text);
   }
 
+  allPosts = () => {
+    var posts = []
+
+    this.tribunes.forEach(tribune => {
+      tribune.posts.forEach(post => {
+        posts.push(post)
+      })
+    })
+
+    posts.sort((a, b) => {
+      if (a.time == b.time) {
+        return a.id > b.id ? 1 : -1
+      } else {
+        return a.time > b.time ? 1 : -1
+      }
+    })
+
+    console.log(posts.map(post => [ post.time, post.tribune.configuration.title ]).slice(-20))
+
+    return posts
+  }
+
   showNewPostButton = (show) => {
     this.input.setState({newPostButtonDisplay: show ? 'flex' : 'none'})
+  }
+
+  refreshTribune = () => {
+    BackgroundTimer.clearTimeout(this.timeout);
+
+    return Promise.all(this.tribunes.map(tribune => { console.log(['tribune', tribune.configuration.title]); return tribune.update() }))
+      .then(posts => {
+        if (this.postsView) {
+          this.postsView.setPosts(this.allPosts())
+        }
+
+        this.timeout = BackgroundTimer.setTimeout(() => { this.refreshTribune() }, 30000)
+
+        posts.forEach(p => {
+          console.log(['posts', p.length])
+        })
+      })
   }
 
   render() {
