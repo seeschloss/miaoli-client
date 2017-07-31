@@ -1,7 +1,7 @@
 // vim: et ts=2 sts=2 sw=2
 
 import React from 'react';
-import { TextInput, TouchableNativeFeedback, View, Text, Button, Picker } from 'react-native';
+import { TextInput, TouchableNativeFeedback, View, Text, Button, Picker, Keyboard } from 'react-native';
 
 import BackgroundTimer from 'react-native-background-timer';
 
@@ -58,6 +58,9 @@ export class PageFeedBrowser extends React.Component {
     // values are changed.
     this.props.navigation.setParams({page: this})
 
+    BackgroundTimer.clearTimeout(this.timeout);
+    this.timeout = BackgroundTimer.setTimeout(() => { this.refreshTribune() }, 1000)
+
     this.postsView.setPosts(this.allPosts())
   }
 
@@ -71,8 +74,8 @@ export class PageFeedBrowser extends React.Component {
     this.input.append(text);
   }
 
-  post = (text) => {
-    return this.tribunes[0].post(text);
+  post = (text, tribune) => {
+    return tribune.post(text);
   }
 
   allPosts = () => {
@@ -101,10 +104,13 @@ export class PageFeedBrowser extends React.Component {
     this.input.setState({newPostButtonDisplay: show ? 'flex' : 'none'})
   }
 
-  refreshTribune = () => {
+  refreshTribune = (selectedTribune) => {
     BackgroundTimer.clearTimeout(this.timeout);
 
-    return Promise.all(this.tribunes.map(tribune => { console.log(['tribune', tribune.configuration.title]); return tribune.update() }))
+    return Promise.all(this.tribunes.filter(tribune => selectedTribune == undefined || selectedTribune === tribune).map(tribune => {
+          console.log(['tribune', tribune.configuration.title])
+          return tribune.update()
+        }))
       .then(posts => {
         if (this.postsView) {
           this.postsView.setPosts(this.allPosts())
@@ -118,12 +124,27 @@ export class PageFeedBrowser extends React.Component {
       })
   }
 
+  onPostMessage = (text, tribune) => {
+    this.post(text, tribune)
+      .then(posts => {
+        this.input.clear()
+        Keyboard.dismiss()
+        this.refreshTribune(tribune)
+      })
+  }
+
+  onClickPost = (post) => {
+    this.append(post.clock() + " ")
+
+    this.input.setState({currentTribune: post.tribune})
+  }
+
   render() {
     return (
       <View style={styles.tribuneContainer}>
         <View style={styles.tribune}>
-          <TribunePosts ref={(ref) => { this.postsView = ref; }} tribuneView={this} />
-          <TribuneInput ref={(ref) => { this.input = ref; }} tribune={this} />
+          <TribunePosts ref={(ref) => { this.postsView = ref; }} onClickPost={this.onClickPost} tribuneView={this} />
+          <TribuneInput ref={(ref) => { this.input = ref; }} onPostMessage={this.onPostMessage} tribunes={this.tribunes} />
         </View>
       </View>
     );

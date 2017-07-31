@@ -111,6 +111,40 @@ export default class App extends React.Component {
 
     if (this.state.configurationLoaded) {
       var screens = {}
+      const allTribunes = this.state.tribunes
+      const NavigationStack = StackNavigator({
+        FeedHome: {
+          screen: PageFeedBrowser,
+          path: 'tribune/:tribunes/:page',
+        },
+        /*FeedSettings: {
+          screen: PageFeedSettings,
+          path: 'tribune/:tribunes/:page/settings',
+        },*/
+      }, {
+        initialRouteParams: {tribunes: allTribunes, page: null}
+      });
+
+      class PageFeed extends React.Component {
+        static tribunes = allTribunes
+
+        static navigationOptions = ({navigation, screenProps}) => {
+          return { title: "All tribunes", }
+        }
+
+        render() {
+          return (
+             <NavigationStack
+               screenProps={{title: "All tribunes", tribunes: this.constructor.tribunes, drawerNavigation: this.props.navigation}}
+             />
+          );
+        }
+      }
+
+      screens["feeds-all"] = {
+        screen: PageFeed,
+      }
+
       this.state.configuration.forEach((tribuneConfiguration, i) => {
         var tribuneObject = new Tribune(tribuneConfiguration)
 
@@ -154,39 +188,6 @@ export default class App extends React.Component {
         }
       })
 
-      const allTribunes = this.state.tribunes
-      const NavigationStack = StackNavigator({
-        FeedHome: {
-          screen: PageFeedBrowser,
-          path: 'tribune/:tribunes/:page',
-        },
-        /*FeedSettings: {
-          screen: PageFeedSettings,
-          path: 'tribune/:tribunes/:page/settings',
-        },*/
-      }, {
-        initialRouteParams: {tribunes: allTribunes, page: null}
-      });
-
-      class PageFeed extends React.Component {
-        static tribunes = allTribunes
-
-        static navigationOptions = ({navigation, screenProps}) => {
-          return { title: "All tribunes", }
-        }
-
-        render() {
-          return (
-             <NavigationStack
-               screenProps={{title: "All tribunes", tribunes: this.constructor.tribunes, drawerNavigation: this.props.navigation}}
-             />
-          );
-        }
-      }
-
-      screens["feeds-all"] = {
-        screen: PageFeed,
-      }
 
       const NavigationDrawer = DrawerNavigator(screens);
 

@@ -89,12 +89,14 @@ export class TribunePosts extends React.Component {
       />
   );
 
-  appendClock = (clock) => {
-    this.props.tribuneView.append(clock + " ")
+  onClickPost = (post) => {
+    if (this.props.onClickPost) {
+      this.props.onClickPost(post)
+    }
   }
 
   renderItem = props => {
-    return (<PostMessage post={props.item.post} tribuneView={this.props.tribuneView} />)
+    return (<PostMessage post={props.item.post} onPress={this.onClickPost} tribuneView={this.props.tribuneView} />)
   };
 
   onEndReached = () => {
@@ -184,7 +186,10 @@ class PostMessage extends React.Component {
     }
   }
 
-  appendClock = () => {
+  onPress = () => {
+    if (this.props.onPress) {
+      this.props.onPress(this.state.post)
+    }
     this.props.tribuneView.append(this.state.post.clock() + " ");
   }
 
@@ -388,13 +393,13 @@ class PostMessage extends React.Component {
 
     return (
       <View style={[styles.flip, styles.tribunePost, style]}>
-        <TouchableHighlight style={styles.tribunePostInfoWrapper} onPress={this.appendClock}>
+        <TouchableHighlight style={styles.tribunePostInfoWrapper} onPress={this.onPress}>
           <View style={styles.tribunePostInfo}>
             <Text numberOfLines={1} style={styles.tribunePostClock} selectable>{this.state.post.clock()}</Text>
             <Text numberOfLines={1} style={styles.tribunePostAuthor} selectable>{this.state.post.author()}</Text>
           </View>
         </TouchableHighlight>
-        <TouchableHighlight style={styles.tribunePostMessageWrapper} underlayColor={'white'} activeOpacity={0.8} onPress={this.appendClock}>
+        <TouchableHighlight style={styles.tribunePostMessageWrapper} underlayColor={'white'} activeOpacity={0.8} onPress={this.onPress}>
           <View style={styles.tribunePostMessage}>
             <Text selectable>
               {this.renderedSegments()}

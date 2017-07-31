@@ -90,8 +90,8 @@ android {
         applicationId "im.miaoli"
         minSdkVersion 16
         targetSdkVersion 22
-        versionCode 5
-        versionName "0.1"
+        versionCode 7
+        versionName "0.2"
         ndk {
             abiFilters "armeabi-v7a", "x86"
         }

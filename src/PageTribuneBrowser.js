@@ -1,7 +1,7 @@
 // vim: et ts=2 sts=2 sw=2
 
 import React from 'react';
-import { TextInput, TouchableNativeFeedback, View, Text, Button, Picker } from 'react-native';
+import { TextInput, TouchableNativeFeedback, View, Text, Button, Picker, Keyboard } from 'react-native';
 
 import BackgroundTimer from 'react-native-background-timer';
 
@@ -88,7 +88,7 @@ export class PageTribuneBrowser extends React.Component {
   }
 
   post = (text) => {
-    return this.tribune.post(text)
+    return this.tribunes[0].post(text)
       .then(() => this.refreshTribune())
   }
 
@@ -109,12 +109,25 @@ export class PageTribuneBrowser extends React.Component {
       })
   }
 
+  onPostMessage = (text) => {
+    this.post(text)
+      .then(posts => {
+        this.input.clear()
+        Keyboard.dismiss()
+        this.refreshTribune()
+      })
+  }
+
+  onClickPost = (post) => {
+    this.append(post.clock() + " ")
+  }
+
   render() {
     return (
       <View style={styles.tribuneContainer}>
         <View style={styles.tribune}>
-          <TribunePosts ref={(ref) => { this.postsView = ref; }} tribuneView={this} />
-          <TribuneInput ref={(ref) => { this.input = ref; }} tribune={this} />
+          <TribunePosts ref={(ref) => { this.postsView = ref; }} onClickPost={this.onClickPost} tribuneView={this} />
+          <TribuneInput ref={(ref) => { this.input = ref; }} onPostMessage={ this.onPostMessage } />
         </View>
       </View>
     );
