@@ -5,6 +5,7 @@ import { View, SectionList, Button, Text, TouchableNativeFeedback, Modal, TextIn
 
 import { styles } from './style';
 import { Tribune } from './Tribune';
+import { Settings } from './Settings';
 
 export class PageTribuneSettings extends React.Component {
   static navigationOptions = ({navigation, screenProps}) => ({
@@ -71,21 +72,7 @@ class ListItem extends React.Component {
   }
 
   saveSettings = () => {
-    AsyncStorage
-      .getItem("tribune:configuration")
-      .then((result) => {
-        if (result) {
-          var globalConfiguration = JSON.parse(result)
-
-          globalConfiguration.forEach((tribuneConfiguration) => {
-            if (tribuneConfiguration.backend == this.props.configuration.backend) {
-              tribuneConfiguration[this.props.settingKey] = this.state.value
-            }
-          })
-
-          AsyncStorage.setItem('tribune:configuration', JSON.stringify(globalConfiguration))
-        }
-      })
+    Settings.saveTribuneSetting(this.props.configuration, this.props.settingKey, this.state.value)
   }
 
   render() {

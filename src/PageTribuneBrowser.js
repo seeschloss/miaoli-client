@@ -88,7 +88,7 @@ export class PageTribuneBrowser extends React.Component {
   }
 
   post = (text) => {
-    return this.tribunes[0].post(text)
+    return this.tribune.post(text)
       .then(() => this.refreshTribune())
   }
 

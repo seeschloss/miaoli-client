@@ -1,13 +1,15 @@
 // vim: et ts=2 sts=2 sw=2
 import React from 'react';
-import { View, StatusBar, DrawerLayoutAndroid, Text, AsyncStorage } from 'react-native';
+import { View, StatusBar, DrawerLayoutAndroid, Text } from 'react-native';
 
 import { DrawerNavigator, StackNavigator } from 'react-navigation';
 
 import { styles } from './src/style';
-import { MiaoliMenu, 
+import { MiaoliMenu,
+  Settings,
   PageTribuneSettings, PageTribuneBrowser, PageTribuneLogin,
   PageFeedBrowser,
+  PageNewTribuneType, PageNewTribunePredefined, PageNewTribuneDetails,
   Tribune } from './src/tribune';
 
 export default class App extends React.Component {
@@ -19,95 +21,21 @@ export default class App extends React.Component {
       configuration: [],
       tribunes: [],
     };
-  }
 
-  defaultSettings = () => {
-    return [
-      {
-        title: 'Moules',
-        color: "#fde096",
-        backend: 'http://moules.org/board/last.php?backend=tsv',
-        backend_type: 'tsv',
-        post_url: 'http://moules.org/board/add.php',
-        post_format: 'message=%s',
-        user_agent: 'Miaoli/0.0',
-        cookie: '',
-        loginpage: undefined,
-      },
-      {
-        title: 'DLFP',
-        color: "#67c6f2",
-        backend: 'https://linuxfr.org/board/index.xml',
-        backend_type: 'xml-htmlentitised',
-        post_url: 'https://linuxfr.org/board',
-        post_format: 'board[message]=%s',
-        user_agent: 'Miaoli/0.0',
-        cookie: '',
-        loginpage: 'https://linuxfr.org',
-      },
-      {
-        title: 'Euromussels',
-        color: "#f4b189",
-        backend: 'http://faab.euromussels.eu/data/backend.xml',
-        backend_type: 'xml-raw',
-        post_url: 'http://faab.euromussels.eu/add.php',
-        post_format: 'message=%s',
-        user_agent: 'Miaoli/0.0',
-        cookie: '',
-        loginpage: 'http://faab.euromussels.eu/loginF.php',
-      },
-      {
-        title: 'Adonai',
-        color: "#4bd0e3",
-        backend: 'http://miaoli.im/tribune/papitalisme/tsv',
-        backend_type: 'tsv',
-        post_url: 'http://miaoli.im/tribune/papitalisme/post',
-        post_format: 'message=%s',
-        user_agent: 'Miaoli/0.0',
-        cookie: '',
-      },
-    ];
+    Settings.app = this
   }
 
   componentDidMount = () => {
-    AsyncStorage
-      .getItem("tribune:configuration")
-      .then((result) => {
-
-        if (!result) {
-          AsyncStorage.setItem('tribune:configuration', JSON.stringify(this.defaultSettings()))
-          this.setState({configurationLoaded: true, configuration: this.defaultSettings()})
-        } else {
-          var defaultSettings = this.defaultSettings();
-          var settings = JSON.parse(result);
-
-          console.log(settings)
-          for (var i in settings) {
-            var backend = settings[i].backend
-
-            for (var j in defaultSettings) {
-              if (defaultSettings[j].backend == backend) {
-                for (var key in defaultSettings[j]) {
-                  if (settings[i][key] === undefined) {
-                    settings[i][key] = defaultSettings[j][key]
-                    console.log([backend, key, defaultSettings[j][key]])
-                  } else if (key == "color" && settings[i][key] === "blue") {
-                    settings[i][key] = defaultSettings[j][key]
-                    console.log([backend, key, defaultSettings[j][key]])
-                  }
-                }
-              }
-            }
-          }
-
-          this.setState({configurationLoaded: true, configuration: settings})
-        }
-      })
+    Settings.loadConfiguration(settings => {
+      this.setState({configurationLoaded: true, configuration: settings})
+    })
   }
 
   render() {
     const displayNavigation = this.state.configurationLoaded ? 'flex' : 'none';
     const displayLoading = this.state.configurationLoaded ? 'none' : 'flex';
+
+    console.log('rendering main')
 
     if (this.state.configurationLoaded) {
       var screens = {}
@@ -187,6 +115,41 @@ export default class App extends React.Component {
           screen: PageTribune,
         }
       })
+
+      const NavigationStackNew = StackNavigator({
+        TribuneType: {
+          screen: PageNewTribuneType,
+          path: 'tribune/new',
+        },
+        TribuneChoosePredefined: {
+          screen: PageNewTribunePredefined,
+          path: 'tribune/new/predefined',
+        },
+        TribuneDetails: {
+          screen: PageNewTribuneDetails,
+          path: 'tribune/new/details',
+        },
+      });
+
+      class PageTribune extends React.Component {
+        static tribunes = allTribunes
+
+        static navigationOptions = ({navigation, screenProps}) => {
+          return { title: "New tribune", }
+        }
+
+        render() {
+          return (
+             <NavigationStackNew
+               screenProps={{title: "New tribune", drawerNavigation: this.props.navigation}}
+             />
+          );
+        }
+      }
+
+      screens["feeds-new"] = {
+        screen: PageTribune,
+      }
 
 
       const NavigationDrawer = DrawerNavigator(screens);
