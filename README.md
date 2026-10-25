@@ -16,10 +16,10 @@ tribune. The feed refreshes every 30 seconds while the app is in the foreground.
 ## Posting
 
 The composer at the bottom of the feed sends plain text messages without
-authentication. It currently targets a temporary tribune created on miaoli.im:
+authentication. It currently targets this tribune on miaoli.im:
 
 ```text
-https://miaoli.im/tribune/native-client-test-20261025/post
+https://miaoli.im/@See/+6QbxZZANv8
 ```
 
 The target is configured in `data/Tribunes.kt` (`Tribunes.nativeTest`). It is

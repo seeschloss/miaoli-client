@@ -18,19 +18,19 @@ object Tribunes {
     )
 
     /**
-     * Temporary tribune created on miaoli.im for testing posting.
+     * Tribune provided on miaoli.im for testing posting.
      *
      * It is intentionally not part of [all], so the read-only Moules and
      * LinuxFR feeds stay unchanged. Replace it with a real tribune once
      * posting is wired into the final configuration.
      */
     val nativeTest = Tribune(
-        id = "native-test",
-        title = "Native Test",
+        id = "sikfart",
+        title = "Sikfart",
         color = 0xFFB8E0C2,
-        backendUrl = "https://miaoli.im/tribune/native-client-test-20261025/tsv",
+        backendUrl = "https://miaoli.im/@See/+6QbxZZANv8/posts.tsv",
         format = FeedFormat.TSV,
-        postUrl = "https://miaoli.im/tribune/native-client-test-20261025/post",
+        postUrl = "https://miaoli.im/@See/+6QbxZZANv8",
         postField = "message",
     )
 
