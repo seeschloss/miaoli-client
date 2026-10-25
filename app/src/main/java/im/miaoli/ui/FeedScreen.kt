@@ -2,6 +2,7 @@ package im.miaoli.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +20,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
@@ -34,6 +35,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
@@ -81,21 +83,20 @@ import kotlinx.coroutines.launch
 @Composable
 fun FeedScreen(
     state: FeedUiState,
-    tribunes: List<Tribune>,
-    postableTribunes: List<Tribune>,
+    listState: LazyListState,
     onRefresh: () -> Unit,
     onDraftChange: (String) -> Unit,
     onSelectTribune: (String) -> Unit,
     onToggleTribune: (String) -> Unit,
+    onOpenSettings: () -> Unit,
     onPost: () -> Unit,
 ) {
-    val listState = rememberLazyListState()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    val enabledTribunes = tribunes.filter { it.id in state.enabledTribuneIds }
+    val enabledTribunes = state.feedTribunes.filter { it.id in state.enabledTribuneIds }
     val visiblePosts = state.posts.filter { it.tribune.id in state.enabledTribuneIds }
     val enabledTitles = enabledTribunes.mapTo(mutableSetOf()) { it.title }
-    val visibleErrors = state.errors.filterKeys { it in enabledTitles }
+    val visibleErrors = state.errors.filterKeys { it == "Feed" || it in enabledTitles }
     val newestKey = visiblePosts.firstOrNull()?.key
 
     LaunchedEffect(newestKey) {
@@ -108,10 +109,14 @@ fun FeedScreen(
         drawerState = drawerState,
         drawerContent = {
             TribunesDrawer(
-                tribunes = tribunes,
+                tribunes = state.feedTribunes,
                 enabledTribuneIds = state.enabledTribuneIds,
                 onToggleTribune = onToggleTribune,
                 onClose = { scope.launch { drawerState.close() } },
+                onConfigure = {
+                    scope.launch { drawerState.close() }
+                    onOpenSettings()
+                },
             )
         },
     ) {
@@ -131,7 +136,7 @@ fun FeedScreen(
                         if (state.isRefreshing) {
                             CircularProgressIndicator(
                                 modifier = Modifier
-                                    .padding(end = 16.dp)
+                                    .padding(end = 8.dp)
                                     .size(22.dp),
                                 strokeWidth = 2.dp,
                             )
@@ -140,14 +145,20 @@ fun FeedScreen(
                                 Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                             }
                         }
+                        IconButton(onClick = onOpenSettings) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Configure tribunes",
+                            )
+                        }
                     },
                 )
             },
             bottomBar = {
-                if (postableTribunes.isNotEmpty()) {
+                if (state.postableTribunes.isNotEmpty()) {
                     PostComposer(
                         state = state,
-                        tribunes = postableTribunes,
+                        tribunes = state.postableTribunes,
                         onDraftChange = onDraftChange,
                         onSelectTribune = onSelectTribune,
                         onPost = onPost,
@@ -236,6 +247,7 @@ private fun TribunesDrawer(
     enabledTribuneIds: Set<String>,
     onToggleTribune: (String) -> Unit,
     onClose: () -> Unit,
+    onConfigure: () -> Unit,
 ) {
     ModalDrawerSheet(modifier = Modifier.width(300.dp)) {
         Column(
@@ -274,6 +286,27 @@ private fun TribunesDrawer(
                     tribune = tribune,
                     enabled = tribune.id in enabledTribuneIds,
                     onToggle = { onToggleTribune(tribune.id) },
+                )
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onConfigure)
+                    .padding(horizontal = 24.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.width(16.dp))
+                Text(
+                    text = "Configure tribunes",
+                    style = MaterialTheme.typography.bodyLarge,
                 )
             }
         }

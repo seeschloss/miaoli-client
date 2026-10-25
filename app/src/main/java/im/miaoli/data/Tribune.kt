@@ -16,7 +16,17 @@ data class Tribune(
     val postUrl: String? = null,
     /** Name of the form field that carries the message body. */
     val postField: String = "message",
+    /** User-Agent sent for this tribune's feed and posting requests. */
+    val userAgent: String = DEFAULT_USER_AGENT,
+    /** Optional Cookie header value sent for this tribune's requests. */
+    val cookie: String = "",
+    /** Whether this tribune is included in the merged feed and its side pane. */
+    val showInFeed: Boolean = true,
 ) {
     val canPost: Boolean
-        get() = postUrl != null
+        get() = !postUrl.isNullOrBlank()
+
+    companion object {
+        const val DEFAULT_USER_AGENT = "Miaoli/0.3 (Android)"
+    }
 }

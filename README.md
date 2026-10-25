@@ -2,8 +2,8 @@
 
 A native Android client for [tribune](https://github.com/seeschloss/miaoli) chat spaces.
 
-This is a from-scratch Kotlin rewrite of the old React Native client. It currently
-shows one merged feed from two hardcoded tribunes:
+This is a from-scratch Kotlin rewrite of the old React Native client. By default it
+shows one merged feed from two tribunes:
 
 | Tribune | Color | Backend |
 | --- | --- | --- |
@@ -15,6 +15,23 @@ tribune. The feed refreshes every 30 seconds while the app is in the foreground.
 Use the menu button in the top bar to open the tribune pane and show or hide each
 source; disabled sources are greyed out.
 
+## Configuration
+
+Open the settings icon in the top bar, or choose **Configure tribunes** at the
+bottom of the side pane. Each tribune can be edited independently:
+
+- title and color (`#RRGGBB`)
+- backend URL and feed format (TSV or HTML-escaped XML)
+- optional post URL and form field name
+- user agent
+- optional cookie header
+- whether the tribune appears in the merged feed
+
+The polling interval is global and is measured in seconds. It defaults to 30
+seconds and is clamped to 5–3600 seconds. Settings are stored in app-private
+`SharedPreferences` and applied after pressing **Save**. Posting still works
+without authentication; a configured cookie is only sent as an optional header.
+
 ## Posting
 
 The composer at the bottom of the feed sends plain text messages without
@@ -24,13 +41,14 @@ authentication. It currently targets this tribune on miaoli.im:
 https://miaoli.im/@See/+6QbxZZANv8
 ```
 
-The target is configured in `data/Tribunes.kt` (`Tribunes.nativeTest`). It is
-deliberately not part of the merged feed: the Moules and LinuxFR feeds are
-read-only and remain unchanged. Replace `nativeTest` with a permanent tribune
-when one is available.
+The default target is defined in `data/Tribunes.kt` (`Tribunes.nativeTest`) and
+can be changed from the configuration screen. It is deliberately hidden from the
+merged feed by default: the Moules and LinuxFR feeds are read-only and remain
+unchanged. Enable **Show in feed** for Sikfart if you want to see its posts too.
 
-The request is an `application/x-www-form-urlencoded` POST with a `message`
-field, `Accept: application/json`, and the Miaoli user agent.
+The request is an `application/x-www-form-urlencoded` POST using the configured
+form field (default `message`), `Accept: application/json`, the tribune's user
+agent, and its optional cookie header.
 
 ## Requirements
 
@@ -71,11 +89,11 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ## Structure
 
-- `data/` — tribune configuration, post model, TSV/XML parsers, fetching, merging and posting.
-- `ui/` — Compose feed screen, tribune side pane, composer, post row, view model and Material 3 theme.
-- `app/src/test/` — parser, merge, posting request and view model tests.
+- `data/` — tribune configuration and persistence, post model, TSV/XML parsers, fetching, merging and posting.
+- `ui/` — Compose feed screen, configuration screen, tribune side pane, composer, post row, view model and Material 3 theme.
+- `app/src/test/` — parser, merge, config, request and view model tests.
 
 ## Not implemented yet
 
-Clocks/reference navigation, login/cookies, settings, adding tribunes,
-persistence and navigation between individual tribunes.
+Clocks/reference navigation, adding or removing tribunes, interactive login, and
+navigation between individual tribunes.

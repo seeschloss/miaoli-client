@@ -38,6 +38,9 @@ class FeedRepositoryPostTest {
     private var lastUserAgent = ""
 
     @Volatile
+    private var lastCookie = ""
+
+    @Volatile
     private var lastReferer = ""
 
     @Before
@@ -50,6 +53,7 @@ class FeedRepositoryPostTest {
             lastContentType = exchange.requestHeaders.getFirst("Content-Type").orEmpty()
             lastAccept = exchange.requestHeaders.getFirst("Accept").orEmpty()
             lastUserAgent = exchange.requestHeaders.getFirst("User-Agent").orEmpty()
+            lastCookie = exchange.requestHeaders.getFirst("Cookie").orEmpty()
             lastReferer = exchange.requestHeaders.getFirst("Referer").orEmpty()
 
             val response = """{"posts":[]}""".toByteArray()
@@ -81,7 +85,22 @@ class FeedRepositoryPostTest {
         assertTrue(lastContentType.startsWith("application/x-www-form-urlencoded"))
         assertEquals("application/json", lastAccept)
         assertEquals("Miaoli/0.3 (Android)", lastUserAgent)
+        assertEquals("", lastCookie)
         assertEquals(tribune().backendUrl, lastReferer)
+    }
+
+    @Test
+    fun sendsConfiguredUserAgentAndCookie() = runBlocking {
+        repository.post(
+            tribune().copy(
+                userAgent = "Custom/1.0",
+                cookie = "session=abc",
+            ),
+            "hello",
+        )
+
+        assertEquals("Custom/1.0", lastUserAgent)
+        assertEquals("session=abc", lastCookie)
     }
 
     @Test

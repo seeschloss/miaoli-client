@@ -48,7 +48,7 @@ class FeedRepository(
     private suspend fun fetchOne(tribune: Tribune): List<Post> = withContext(Dispatchers.IO) {
         val request = Request.Builder()
             .url(tribune.backendUrl)
-            .header("User-Agent", USER_AGENT)
+            .tribuneHeaders(tribune)
             .header("Accept", "application/xml, text/xml, text/tab-separated-values, */*")
             .build()
 
@@ -65,10 +65,11 @@ class FeedRepository(
     /**
      * Posts [message] to [tribune] using its configured form endpoint.
      *
-     * No credentials are sent. A non-2xx response is reported as an [IOException].
+     * No credentials are required. A configured cookie is sent as an optional
+     * header. A non-2xx response is reported as an [IOException].
      */
     suspend fun post(tribune: Tribune, message: String) = withContext(Dispatchers.IO) {
-        val url = tribune.postUrl
+        val url = tribune.postUrl?.takeIf { it.isNotBlank() }
             ?: throw IllegalArgumentException("${tribune.title} does not support posting")
         val body = message.trim()
         require(body.isNotEmpty()) { "Message must not be empty" }
@@ -79,7 +80,7 @@ class FeedRepository(
 
         val request = Request.Builder()
             .url(url)
-            .header("User-Agent", USER_AGENT)
+            .tribuneHeaders(tribune)
             .header("Accept", "application/json")
             .header("Referer", tribune.backendUrl)
             .post(form)
@@ -92,9 +93,14 @@ class FeedRepository(
         }
     }
 
-    companion object {
-        private const val USER_AGENT = "Miaoli/0.3 (Android)"
+    private fun Request.Builder.tribuneHeaders(tribune: Tribune): Request.Builder = apply {
+        header("User-Agent", tribune.userAgent.ifBlank { Tribune.DEFAULT_USER_AGENT })
+        tribune.cookie.trim()
+            .takeIf { it.isNotEmpty() }
+            ?.let { header("Cookie", it) }
+    }
 
+    companion object {
         private fun defaultClient(): OkHttpClient = OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)

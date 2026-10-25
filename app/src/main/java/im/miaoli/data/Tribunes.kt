@@ -20,9 +20,9 @@ object Tribunes {
     /**
      * Tribune provided on miaoli.im for testing posting.
      *
-     * It is intentionally not part of [all], so the read-only Moules and
-     * LinuxFR feeds stay unchanged. Replace it with a real tribune once
-     * posting is wired into the final configuration.
+     * It is intentionally hidden from the feed by default, so the read-only
+     * Moules and LinuxFR feeds stay unchanged. It can be edited in the
+     * configuration screen like any other tribune.
      */
     val nativeTest = Tribune(
         id = "sikfart",
@@ -32,10 +32,9 @@ object Tribunes {
         format = FeedFormat.TSV,
         postUrl = "https://miaoli.im/@See/+6QbxZZANv8",
         postField = "message",
+        showInFeed = false,
     )
 
-    val all = listOf(moules, linuxfr)
-
-    /** Tribunes that can receive new messages, used by the composer's picker. */
-    val postable = listOf(nativeTest)
+    /** All built-in tribunes, including post-only tribunes. */
+    val defaults = listOf(moules, linuxfr, nativeTest)
 }
