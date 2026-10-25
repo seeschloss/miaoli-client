@@ -40,6 +40,7 @@ class MainActivity : ComponentActivity() {
                     onRefresh = viewModel::refresh,
                     onDraftChange = viewModel::updateDraft,
                     onSelectTribune = viewModel::selectTribune,
+                    onToggleTribune = viewModel::toggleTribune,
                     onPost = viewModel::post,
                 )
             }

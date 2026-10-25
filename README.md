@@ -12,6 +12,8 @@ shows one merged feed from two hardcoded tribunes:
 
 Messages are merged by server timestamp and each row is colored according to its
 tribune. The feed refreshes every 30 seconds while the app is in the foreground.
+Use the menu button in the top bar to open the tribune pane and show or hide each
+source; disabled sources are greyed out.
 
 ## Posting
 
@@ -70,8 +72,8 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 ## Structure
 
 - `data/` — tribune configuration, post model, TSV/XML parsers, fetching, merging and posting.
-- `ui/` — Compose feed screen, composer, post row, view model and Material 3 theme.
-- `app/src/test/` — parser, merge and posting request tests.
+- `ui/` — Compose feed screen, tribune side pane, composer, post row, view model and Material 3 theme.
+- `app/src/test/` — parser, merge, posting request and view model tests.
 
 ## Not implemented yet
 

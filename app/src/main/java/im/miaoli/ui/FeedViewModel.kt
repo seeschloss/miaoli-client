@@ -24,7 +24,10 @@ class FeedViewModel(
     private val postableTribunes: List<Tribune> = Tribunes.postable,
 ) : ViewModel() {
     private val _state = MutableStateFlow(
-        FeedUiState(selectedTribuneId = postableTribunes.firstOrNull()?.id.orEmpty()),
+        FeedUiState(
+            selectedTribuneId = postableTribunes.firstOrNull()?.id.orEmpty(),
+            enabledTribuneIds = tribunes.map { it.id }.toSet(),
+        ),
     )
     val state: StateFlow<FeedUiState> = _state.asStateFlow()
 
@@ -38,6 +41,17 @@ class FeedViewModel(
     fun selectTribune(id: String) {
         if (postableTribunes.any { it.id == id }) {
             _state.update { it.copy(selectedTribuneId = id) }
+        }
+    }
+
+    fun toggleTribune(id: String) {
+        if (tribunes.none { it.id == id }) return
+
+        _state.update { current ->
+            val enabled = current.enabledTribuneIds
+            current.copy(
+                enabledTribuneIds = if (id in enabled) enabled - id else enabled + id,
+            )
         }
     }
 

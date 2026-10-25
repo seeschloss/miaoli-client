@@ -1,6 +1,7 @@
 package im.miaoli.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,39 +21,52 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.fromHtml
@@ -61,6 +75,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import im.miaoli.data.Post
 import im.miaoli.data.Tribune
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,10 +86,17 @@ fun FeedScreen(
     onRefresh: () -> Unit,
     onDraftChange: (String) -> Unit,
     onSelectTribune: (String) -> Unit,
+    onToggleTribune: (String) -> Unit,
     onPost: () -> Unit,
 ) {
     val listState = rememberLazyListState()
-    val newestKey = state.posts.firstOrNull()?.key
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    val enabledTribunes = tribunes.filter { it.id in state.enabledTribuneIds }
+    val visiblePosts = state.posts.filter { it.tribune.id in state.enabledTribuneIds }
+    val enabledTitles = enabledTribunes.mapTo(mutableSetOf()) { it.title }
+    val visibleErrors = state.errors.filterKeys { it in enabledTitles }
+    val newestKey = visiblePosts.firstOrNull()?.key
 
     LaunchedEffect(newestKey) {
         if (newestKey != null && listState.firstVisibleItemIndex <= 1) {
@@ -82,93 +104,234 @@ fun FeedScreen(
         }
     }
 
-    Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .imePadding(),
-        topBar = {
-            TopAppBar(
-                title = { Text("Miaoli") },
-                actions = {
-                    if (state.isRefreshing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .padding(end = 16.dp)
-                                .size(22.dp),
-                            strokeWidth = 2.dp,
-                        )
-                    } else {
-                        IconButton(onClick = onRefresh) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Refresh")
-                        }
-                    }
-                },
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            TribunesDrawer(
+                tribunes = tribunes,
+                enabledTribuneIds = state.enabledTribuneIds,
+                onToggleTribune = onToggleTribune,
+                onClose = { scope.launch { drawerState.close() } },
             )
         },
-        bottomBar = {
-            if (postableTribunes.isNotEmpty()) {
-                PostComposer(
-                    state = state,
-                    tribunes = postableTribunes,
-                    onDraftChange = onDraftChange,
-                    onSelectTribune = onSelectTribune,
-                    onPost = onPost,
-                )
-            }
-        },
-    ) { innerPadding ->
-        Column(
+    ) {
+        Scaffold(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-        ) {
-            TribuneLegend(tribunes)
-
-            if (state.errors.isNotEmpty()) {
-                ErrorBanner(errors = state.errors, onRefresh = onRefresh)
-            }
-
-            when {
-                state.isLoading && state.posts.isEmpty() -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator()
-                    }
+                .imePadding(),
+            topBar = {
+                TopAppBar(
+                    title = { Text("Miaoli") },
+                    navigationIcon = {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(Icons.Default.Menu, contentDescription = "Show tribunes")
+                        }
+                    },
+                    actions = {
+                        if (state.isRefreshing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .padding(end = 16.dp)
+                                    .size(22.dp),
+                                strokeWidth = 2.dp,
+                            )
+                        } else {
+                            IconButton(onClick = onRefresh) {
+                                Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                            }
+                        }
+                    },
+                )
+            },
+            bottomBar = {
+                if (postableTribunes.isNotEmpty()) {
+                    PostComposer(
+                        state = state,
+                        tribunes = postableTribunes,
+                        onDraftChange = onDraftChange,
+                        onSelectTribune = onSelectTribune,
+                        onPost = onPost,
+                    )
+                }
+            },
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+            ) {
+                if (enabledTribunes.isNotEmpty()) {
+                    TribuneLegend(enabledTribunes)
                 }
 
-                state.posts.isEmpty() -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "No messages yet.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                if (visibleErrors.isNotEmpty()) {
+                    ErrorBanner(errors = visibleErrors, onRefresh = onRefresh)
                 }
 
-                else -> {
-                    LazyColumn(
-                        state = listState,
-                        reverseLayout = true,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        items(
-                            items = state.posts,
-                            key = { post -> post.key },
-                        ) { post ->
-                            PostRow(post)
+                when {
+                    state.isLoading && state.posts.isEmpty() -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+
+                    state.enabledTribuneIds.isEmpty() -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "No tribunes selected.",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+
+                    visiblePosts.isEmpty() -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = if (state.posts.isEmpty()) {
+                                    "No messages yet."
+                                } else {
+                                    "No messages from selected tribunes."
+                                },
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+
+                    else -> {
+                        LazyColumn(
+                            state = listState,
+                            reverseLayout = true,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            items(
+                                items = visiblePosts,
+                                key = { post -> post.key },
+                            ) { post ->
+                                PostRow(post)
+                            }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun TribunesDrawer(
+    tribunes: List<Tribune>,
+    enabledTribuneIds: Set<String>,
+    onToggleTribune: (String) -> Unit,
+    onClose: () -> Unit,
+) {
+    ModalDrawerSheet(modifier = Modifier.width(300.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxHeight()
+                .verticalScroll(rememberScrollState())
+                .padding(vertical = 8.dp),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 24.dp, end = 8.dp, top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Tribunes",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = onClose) {
+                    Icon(Icons.Default.Close, contentDescription = "Close")
+                }
+            }
+
+            Text(
+                text = "Choose what appears in the feed.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+            tribunes.forEach { tribune ->
+                TribuneToggleRow(
+                    tribune = tribune,
+                    enabled = tribune.id in enabledTribuneIds,
+                    onToggle = { onToggleTribune(tribune.id) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TribuneToggleRow(
+    tribune: Tribune,
+    enabled: Boolean,
+    onToggle: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(
+                value = enabled,
+                role = Role.Switch,
+                onValueChange = { onToggle() },
+            )
+            .padding(horizontal = 24.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(16.dp)
+                .clip(CircleShape)
+                .background(
+                    if (enabled) {
+                        Color(tribune.color)
+                    } else {
+                        MaterialTheme.colorScheme.outlineVariant
+                    },
+                )
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    shape = CircleShape,
+                ),
+        )
+
+        Spacer(Modifier.width(16.dp))
+
+        Text(
+            text = tribune.title,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (enabled) {
+                MaterialTheme.colorScheme.onSurface
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            modifier = Modifier.weight(1f),
+        )
+
+        Switch(
+            checked = enabled,
+            onCheckedChange = null,
+        )
     }
 }
 
