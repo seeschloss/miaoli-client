@@ -38,8 +38,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -76,18 +74,11 @@ fun FeedScreen(
     onPost: () -> Unit,
 ) {
     val listState = rememberLazyListState()
-    val snackbarHostState = remember { SnackbarHostState() }
     val newestKey = state.posts.firstOrNull()?.key
 
     LaunchedEffect(newestKey) {
         if (newestKey != null && listState.firstVisibleItemIndex <= 1) {
             listState.animateScrollToItem(0)
-        }
-    }
-
-    LaunchedEffect(state.sentCount) {
-        if (state.sentCount > 0) {
-            snackbarHostState.showSnackbar("Message sent")
         }
     }
 
@@ -125,7 +116,6 @@ fun FeedScreen(
                 )
             }
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -349,7 +339,6 @@ private fun PostComposer(
                         CircularProgressIndicator(
                             modifier = Modifier.size(18.dp),
                             strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary,
                         )
                     } else {
                         Icon(

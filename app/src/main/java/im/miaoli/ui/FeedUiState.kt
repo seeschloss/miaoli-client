@@ -11,5 +11,4 @@ data class FeedUiState(
     val selectedTribuneId: String = "",
     val isPosting: Boolean = false,
     val postError: String? = null,
-    val sentCount: Int = 0,
 )

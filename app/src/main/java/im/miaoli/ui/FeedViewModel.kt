@@ -62,7 +62,6 @@ class FeedViewModel(
                         isPosting = false,
                         draft = "",
                         postError = null,
-                        sentCount = it.sentCount + 1,
                     )
                 }
                 refresh(initial = false, showSpinner = false)
