@@ -12,4 +12,11 @@ data class Tribune(
     val color: Long,
     val backendUrl: String,
     val format: FeedFormat,
-)
+    /** Form endpoint accepting an application/x-www-form-urlencoded POST, if posting is supported. */
+    val postUrl: String? = null,
+    /** Name of the form field that carries the message body. */
+    val postField: String = "message",
+) {
+    val canPost: Boolean
+        get() = postUrl != null
+}

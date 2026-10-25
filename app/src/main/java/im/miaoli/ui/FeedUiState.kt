@@ -7,4 +7,9 @@ data class FeedUiState(
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
     val errors: Map<String, String> = emptyMap(),
+    val draft: String = "",
+    val selectedTribuneId: String = "",
+    val isPosting: Boolean = false,
+    val postError: String? = null,
+    val sentCount: Int = 0,
 )

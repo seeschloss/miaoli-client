@@ -21,12 +21,64 @@ import kotlinx.coroutines.sync.Mutex
 class FeedViewModel(
     private val repository: FeedRepository = FeedRepository(),
     private val tribunes: List<Tribune> = Tribunes.all,
+    private val postableTribunes: List<Tribune> = Tribunes.postable,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(FeedUiState())
+    private val _state = MutableStateFlow(
+        FeedUiState(selectedTribuneId = postableTribunes.firstOrNull()?.id.orEmpty()),
+    )
     val state: StateFlow<FeedUiState> = _state.asStateFlow()
 
     private val refreshMutex = Mutex()
     private var manualRefresh: Job? = null
+
+    fun updateDraft(text: String) {
+        _state.update { it.copy(draft = text, postError = null) }
+    }
+
+    fun selectTribune(id: String) {
+        if (postableTribunes.any { it.id == id }) {
+            _state.update { it.copy(selectedTribuneId = id) }
+        }
+    }
+
+    fun post() {
+        val current = _state.value
+        if (current.isPosting) return
+
+        val message = current.draft.trim()
+        if (message.isEmpty()) return
+
+        val tribune = postableTribunes.firstOrNull { it.id == current.selectedTribuneId }
+            ?: postableTribunes.firstOrNull()
+            ?: return
+
+        viewModelScope.launch {
+            _state.update { it.copy(isPosting = true, postError = null) }
+
+            try {
+                repository.post(tribune, message)
+                _state.update {
+                    it.copy(
+                        isPosting = false,
+                        draft = "",
+                        postError = null,
+                        sentCount = it.sentCount + 1,
+                    )
+                }
+                refresh(initial = false, showSpinner = false)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                _state.update {
+                    it.copy(
+                        isPosting = false,
+                        postError = "Could not send to ${tribune.title}: " +
+                            (error.message ?: "unknown error"),
+                    )
+                }
+            }
+        }
+    }
 
     /**
      * Polls while the caller's lifecycle is started. The caller cancels this
@@ -60,7 +112,7 @@ class FeedViewModel(
             val result = repository.fetch(tribunes)
 
             _state.update { current ->
-                FeedUiState(
+                current.copy(
                     posts = PostMerger.merge(current.posts, result.posts),
                     isLoading = false,
                     isRefreshing = false,

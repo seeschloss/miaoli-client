@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,40 +22,61 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.fromHtml
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.fromHtml
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import im.miaoli.data.Post
-import im.miaoli.data.Tribunes
+import im.miaoli.data.Tribune
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeedScreen(
     state: FeedUiState,
+    tribunes: List<Tribune>,
+    postableTribunes: List<Tribune>,
     onRefresh: () -> Unit,
+    onDraftChange: (String) -> Unit,
+    onSelectTribune: (String) -> Unit,
+    onPost: () -> Unit,
 ) {
     val listState = rememberLazyListState()
+    val snackbarHostState = remember { SnackbarHostState() }
     val newestKey = state.posts.firstOrNull()?.key
 
     LaunchedEffect(newestKey) {
@@ -62,7 +85,16 @@ fun FeedScreen(
         }
     }
 
+    LaunchedEffect(state.sentCount) {
+        if (state.sentCount > 0) {
+            snackbarHostState.showSnackbar("Message sent")
+        }
+    }
+
     Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding(),
         topBar = {
             TopAppBar(
                 title = { Text("Miaoli") },
@@ -82,13 +114,25 @@ fun FeedScreen(
                 },
             )
         },
+        bottomBar = {
+            if (postableTribunes.isNotEmpty()) {
+                PostComposer(
+                    state = state,
+                    tribunes = postableTribunes,
+                    onDraftChange = onDraftChange,
+                    onSelectTribune = onSelectTribune,
+                    onPost = onPost,
+                )
+            }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            TribuneLegend()
+            TribuneLegend(tribunes)
 
             if (state.errors.isNotEmpty()) {
                 ErrorBanner(errors = state.errors, onRefresh = onRefresh)
@@ -139,7 +183,7 @@ fun FeedScreen(
 }
 
 @Composable
-private fun TribuneLegend() {
+private fun TribuneLegend(tribunes: List<Tribune>) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -147,7 +191,7 @@ private fun TribuneLegend() {
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Tribunes.all.forEach { tribune ->
+        tribunes.forEach { tribune ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
@@ -188,6 +232,132 @@ private fun ErrorBanner(
             )
             TextButton(onClick = onRefresh) {
                 Text("Retry")
+            }
+        }
+    }
+}
+
+@Composable
+private fun PostComposer(
+    state: FeedUiState,
+    tribunes: List<Tribune>,
+    onDraftChange: (String) -> Unit,
+    onSelectTribune: (String) -> Unit,
+    onPost: () -> Unit,
+) {
+    val selected = tribunes.firstOrNull { it.id == state.selectedTribuneId } ?: tribunes.first()
+    val keyboard = LocalSoftwareKeyboardController.current
+    var expanded by remember { mutableStateOf(false) }
+
+    Surface(
+        tonalElevation = 3.dp,
+        shadowElevation = 8.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+        ) {
+            if (state.postError != null) {
+                Text(
+                    text = state.postError,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box {
+                    TextButton(
+                        onClick = { expanded = true },
+                        enabled = !state.isPosting,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(Color(selected.color)),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = selected.title,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = null,
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                    ) {
+                        tribunes.forEach { tribune ->
+                            DropdownMenuItem(
+                                text = { Text(tribune.title) },
+                                leadingIcon = {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(10.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(tribune.color)),
+                                    )
+                                },
+                                onClick = {
+                                    onSelectTribune(tribune.id)
+                                    expanded = false
+                                },
+                            )
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = state.draft,
+                    onValueChange = onDraftChange,
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("Message") },
+                    maxLines = 4,
+                    enabled = !state.isPosting,
+                    shape = RoundedCornerShape(24.dp),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(
+                        onSend = {
+                            keyboard?.hide()
+                            onPost()
+                        },
+                    ),
+                )
+
+                Spacer(Modifier.width(4.dp))
+
+                FilledIconButton(
+                    onClick = {
+                        keyboard?.hide()
+                        onPost()
+                    },
+                    enabled = state.draft.isNotBlank() && !state.isPosting,
+                ) {
+                    if (state.isPosting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "Send",
+                        )
+                    }
+                }
             }
         }
     }

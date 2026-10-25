@@ -13,6 +13,23 @@ shows one merged feed from two hardcoded tribunes:
 Messages are merged by server timestamp and each row is colored according to its
 tribune. The feed refreshes every 30 seconds while the app is in the foreground.
 
+## Posting
+
+The composer at the bottom of the feed sends plain text messages without
+authentication. It currently targets a temporary tribune created on miaoli.im:
+
+```text
+https://miaoli.im/tribune/native-client-test-20261025/post
+```
+
+The target is configured in `data/Tribunes.kt` (`Tribunes.nativeTest`). It is
+deliberately not part of the merged feed: the Moules and LinuxFR feeds are
+read-only and remain unchanged. Replace `nativeTest` with a permanent tribune
+when one is available.
+
+The request is an `application/x-www-form-urlencoded` POST with a `message`
+field, `Accept: application/json`, and the Miaoli user agent.
+
 ## Requirements
 
 - JDK 21
@@ -52,11 +69,11 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ## Structure
 
-- `data/` — tribune configuration, post model, TSV/XML parsers, fetching and merging.
-- `ui/` — Compose feed screen, post row, view model and Material 3 theme.
-- `app/src/test/` — parser and merge unit tests.
+- `data/` — tribune configuration, post model, TSV/XML parsers, fetching, merging and posting.
+- `ui/` — Compose feed screen, composer, post row, view model and Material 3 theme.
+- `app/src/test/` — parser, merge and posting request tests.
 
 ## Not implemented yet
 
-Posting, clocks/reference navigation, login/cookies, settings, adding tribunes,
+Clocks/reference navigation, login/cookies, settings, adding tribunes,
 persistence and navigation between individual tribunes.

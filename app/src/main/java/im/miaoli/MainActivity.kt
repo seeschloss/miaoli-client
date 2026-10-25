@@ -11,6 +11,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import im.miaoli.data.Tribunes
 import im.miaoli.ui.FeedScreen
 import im.miaoli.ui.FeedViewModel
 import im.miaoli.ui.theme.MiaoliTheme
@@ -34,7 +35,12 @@ class MainActivity : ComponentActivity() {
 
                 FeedScreen(
                     state = state,
+                    tribunes = Tribunes.all,
+                    postableTribunes = Tribunes.postable,
                     onRefresh = viewModel::refresh,
+                    onDraftChange = viewModel::updateDraft,
+                    onSelectTribune = viewModel::selectTribune,
+                    onPost = viewModel::post,
                 )
             }
         }

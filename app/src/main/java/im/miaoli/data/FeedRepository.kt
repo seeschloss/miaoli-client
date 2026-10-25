@@ -5,6 +5,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
@@ -58,6 +59,36 @@ class FeedRepository(
 
             val body = response.body.string()
             parsers.getValue(tribune.format).parse(body, tribune)
+        }
+    }
+
+    /**
+     * Posts [message] to [tribune] using its configured form endpoint.
+     *
+     * No credentials are sent. A non-2xx response is reported as an [IOException].
+     */
+    suspend fun post(tribune: Tribune, message: String) = withContext(Dispatchers.IO) {
+        val url = tribune.postUrl
+            ?: throw IllegalArgumentException("${tribune.title} does not support posting")
+        val body = message.trim()
+        require(body.isNotEmpty()) { "Message must not be empty" }
+
+        val form = FormBody.Builder()
+            .add(tribune.postField, body)
+            .build()
+
+        val request = Request.Builder()
+            .url(url)
+            .header("User-Agent", USER_AGENT)
+            .header("Accept", "application/json")
+            .header("Referer", tribune.backendUrl)
+            .post(form)
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw IOException("HTTP ${response.code}")
+            }
         }
     }
 
