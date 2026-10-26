@@ -93,9 +93,7 @@ internal object TribuneConfigJson {
                         color = item.optLong("color", 0xFF888888L),
                         backendUrl = item.optString("backendUrl"),
                         format = format,
-                        timeZoneId = item.optString("timeZoneId")
-                            .takeIf { it.isNotBlank() }
-                            ?: Tribunes.defaultTimeZoneFor(id),
+                        timeZoneId = item.optString("timeZoneId"),
                         postUrl = if (item.isNull("postUrl")) {
                             null
                         } else {

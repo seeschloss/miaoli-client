@@ -127,25 +127,10 @@ fun FeedSettingsScreen(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text("Polling interval (seconds)") },
-                    supportingText = {
-                        Text(
-                            pollingError
-                                ?: "Between ${TribuneConfig.MIN_POLLING_SECONDS} and " +
-                                    "${TribuneConfig.MAX_POLLING_SECONDS} seconds.",
-                        )
-                    },
+                    supportingText = errorSupportingText(pollingError),
                     isError = pollingError != null,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                )
-            }
-
-            item {
-                Text(
-                    text = "To configure a tribune, open the side pane and tap the " +
-                        "pencil next to it.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -270,16 +255,6 @@ private fun TribuneConfigurationContent(
                     onChange = ::updateDraft,
                 )
             }
-
-            item {
-                Text(
-                    text = "Posting uses the post URL and form field above. " +
-                        "Leave the post URL blank for a read-only tribune. " +
-                        "The cookie is optional and is sent only to this tribune.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
         }
     }
 }
@@ -352,13 +327,6 @@ private fun TribuneConfigCard(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f),
                 )
-                if (draft.postUrl.isNotBlank()) {
-                    Text(
-                        text = "Posting",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
             }
 
             OutlinedTextField(
@@ -408,7 +376,7 @@ private fun TribuneConfigCard(
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "Feed format",
+                    text = "Format",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -424,8 +392,7 @@ private fun TribuneConfigCard(
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Time zone") },
                 placeholder = { Text("Europe/Paris") },
-                supportingText = errorSupportingText(errors["timeZoneId"])
-                    ?: { Text("IANA time zone used for this tribune's timestamps.") },
+                supportingText = errorSupportingText(errors["timeZoneId"]),
                 isError = errors["timeZoneId"] != null,
                 singleLine = true,
             )
@@ -435,8 +402,9 @@ private fun TribuneConfigCard(
                 onValueChange = { value -> onChange { it.copy(postUrl = value) } },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Post URL") },
-                placeholder = { Text("Leave blank for read-only") },
-                supportingText = errorSupportingText(errors["postUrl"]),
+                placeholder = { Text("https://...") },
+                supportingText = errorSupportingText(errors["postUrl"])
+                    ?: { Text("Leave blank if read-only") },
                 isError = errors["postUrl"] != null,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
@@ -469,31 +437,11 @@ private fun TribuneConfigCard(
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Cookie") },
                 placeholder = { Text("Optional") },
-                supportingText = errorSupportingText(errors["cookie"]),
+                supportingText = errorSupportingText(errors["cookie"])
+                    ?: { Text("Optional, will only be sent to the post URL") },
                 isError = errors["cookie"] != null,
                 maxLines = 3,
             )
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Show in feed",
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        text = "Include this tribune's posts in the merged feed. " +
-                            "It stays available in the side pane either way.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(
-                    checked = draft.showInFeed,
-                    onCheckedChange = { value ->
-                        onChange { it.copy(showInFeed = value) }
-                    },
-                )
-            }
         }
     }
 }
@@ -547,9 +495,9 @@ private fun pollingErrorMessage(value: String): String? {
     val seconds = value.toIntOrNull()
     return if (
         seconds == null ||
-        seconds !in TribuneConfig.MIN_POLLING_SECONDS..TribuneConfig.MAX_POLLING_SECONDS
+        seconds < TribuneConfig.MIN_POLLING_SECONDS
     ) {
-        "Use ${TribuneConfig.MIN_POLLING_SECONDS}–${TribuneConfig.MAX_POLLING_SECONDS} seconds"
+        "Please do not hammer a tribune with an interval less than ${TribuneConfig.MIN_POLLING_SECONDS} seconds!"
     } else {
         null
     }
