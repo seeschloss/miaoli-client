@@ -15,13 +15,15 @@ messages are merged by their absolute UTC instant, so sources in different zones
 interleave correctly. Each row shows only that tribune's local clock, in full
 `HH:mm:ss` form. The feed refreshes every 30 seconds while the app is in the
 foreground.
-Use the menu button in the top bar to open the tribune pane and show or hide each
-source; disabled sources are greyed out.
+Use the menu button in the top bar to open the tribune pane. Each row has a switch
+for showing or hiding that source in the current session and a pencil icon for its
+configuration page. Disabled sources are greyed out, and tribunes hidden from the
+feed remain listed so they can be configured or re-enabled.
 
 ## Configuration
 
-Open the settings icon in the top bar, or choose **Configure tribunes** at the
-bottom of the side pane. Each tribune can be edited independently:
+Open the side pane and tap the pencil next to a tribune to edit that tribune's
+own settings page. Each tribune can be configured independently:
 
 - title and color (`#RRGGBB`)
 - backend URL and feed format (TSV or HTML-escaped XML)
@@ -31,10 +33,12 @@ bottom of the side pane. Each tribune can be edited independently:
 - optional cookie header
 - whether the tribune appears in the merged feed
 
-The polling interval is global and is measured in seconds. It defaults to 30
-seconds and is clamped to 5–3600 seconds. Settings are stored in app-private
-`SharedPreferences` and applied after pressing **Save**. Posting still works
-without authentication; a configured cookie is only sent as an optional header.
+The settings icon in the top bar, or **Feed settings** at the bottom of the side
+pane, opens the global polling setting. The interval is measured in seconds,
+defaults to 30 seconds, and is clamped to 5–3600 seconds. Settings are stored in
+app-private `SharedPreferences` and applied after pressing **Save**. Posting still
+works without authentication; a configured cookie is only sent as an optional
+header.
 
 ## Posting
 

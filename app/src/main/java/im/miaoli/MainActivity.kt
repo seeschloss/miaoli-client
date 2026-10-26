@@ -18,9 +18,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import im.miaoli.data.SharedPreferencesTribuneConfigStore
-import im.miaoli.ui.ConfigurationScreen
 import im.miaoli.ui.FeedScreen
+import im.miaoli.ui.FeedSettingsScreen
 import im.miaoli.ui.FeedViewModel
+import im.miaoli.ui.TribuneConfigurationScreen
 import im.miaoli.ui.theme.MiaoliTheme
 
 class MainActivity : ComponentActivity() {
@@ -41,7 +42,8 @@ class MainActivity : ComponentActivity() {
                 val state by viewModel.state.collectAsStateWithLifecycle()
                 val lifecycleOwner = LocalLifecycleOwner.current
                 val feedListState = rememberLazyListState()
-                var showConfiguration by rememberSaveable { mutableStateOf(false) }
+                var showFeedSettings by rememberSaveable { mutableStateOf(false) }
+                var configuredTribuneId by rememberSaveable { mutableStateOf<String?>(null) }
 
                 LaunchedEffect(lifecycleOwner, state.config.pollingSeconds) {
                     lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -49,25 +51,38 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                if (showConfiguration) {
-                    ConfigurationScreen(
+                val editingTribuneId = configuredTribuneId
+                when {
+                    editingTribuneId != null -> TribuneConfigurationScreen(
                         config = state.config,
-                        onBack = { showConfiguration = false },
+                        tribuneId = editingTribuneId,
+                        onBack = { configuredTribuneId = null },
                         onSave = { config ->
                             viewModel.saveConfig(config)
                             viewModel.refresh()
-                            showConfiguration = false
+                            configuredTribuneId = null
                         },
                     )
-                } else {
-                    FeedScreen(
+
+                    showFeedSettings -> FeedSettingsScreen(
+                        config = state.config,
+                        onBack = { showFeedSettings = false },
+                        onSave = { config ->
+                            viewModel.saveConfig(config)
+                            viewModel.refresh()
+                            showFeedSettings = false
+                        },
+                    )
+
+                    else -> FeedScreen(
                         state = state,
                         listState = feedListState,
                         onRefresh = viewModel::refresh,
                         onDraftChange = viewModel::updateDraft,
                         onSelectTribune = viewModel::selectTribune,
                         onToggleTribune = viewModel::toggleTribune,
-                        onOpenSettings = { showConfiguration = true },
+                        onOpenSettings = { showFeedSettings = true },
+                        onConfigureTribune = { configuredTribuneId = it },
                         onPost = viewModel::post,
                     )
                 }

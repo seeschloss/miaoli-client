@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -49,27 +48,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import im.miaoli.data.FeedFormat
+import im.miaoli.data.Tribune
 import im.miaoli.data.TribuneConfig
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ConfigurationScreen(
+fun FeedSettingsScreen(
     config: TribuneConfig,
     onBack: () -> Unit,
     onSave: (TribuneConfig) -> Unit,
 ) {
-    var draft by remember(config) { mutableStateOf(ConfigurationDraft.from(config)) }
-    var validation by remember(config) { mutableStateOf<ConfigurationValidation?>(null) }
-
-    fun updateDraft(transform: (ConfigurationDraft) -> ConfigurationDraft) {
-        draft = transform(draft)
-        validation = null
-    }
+    var pollingSeconds by remember(config) { mutableStateOf(config.pollingSeconds.toString()) }
+    var pollingError by remember(config) { mutableStateOf<String?>(null) }
 
     fun save() {
-        val result = draft.validate()
-        validation = result
-        result.config?.let(onSave)
+        val error = pollingErrorMessage(pollingSeconds)
+        pollingError = error
+        if (error == null) {
+            onSave(config.copy(pollingSeconds = pollingSeconds.toInt()))
+        }
     }
 
     BackHandler { onBack() }
@@ -80,7 +77,7 @@ fun ConfigurationScreen(
             .imePadding(),
         topBar = {
             TopAppBar(
-                title = { Text("Configuration") },
+                title = { Text("Feed settings") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -117,7 +114,151 @@ fun ConfigurationScreen(
                 )
             }
 
-            if (validation?.isValid == false) {
+            item {
+                Text(
+                    text = "Polling",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
+
+            item {
+                OutlinedTextField(
+                    value = pollingSeconds,
+                    onValueChange = { value ->
+                        pollingSeconds = value.filter(Char::isDigit)
+                        pollingError = null
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Polling interval (seconds)") },
+                    supportingText = {
+                        Text(
+                            pollingError
+                                ?: "Between ${TribuneConfig.MIN_POLLING_SECONDS} and " +
+                                    "${TribuneConfig.MAX_POLLING_SECONDS} seconds.",
+                        )
+                    },
+                    isError = pollingError != null,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
+            }
+
+            item {
+                Text(
+                    text = "To configure a tribune, open the side pane and tap the " +
+                        "pencil next to it.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TribuneConfigurationScreen(
+    config: TribuneConfig,
+    tribuneId: String,
+    onBack: () -> Unit,
+    onSave: (TribuneConfig) -> Unit,
+) {
+    val tribune = config.tribunes.firstOrNull { it.id == tribuneId }
+    if (tribune == null) {
+        MissingTribuneScreen(onBack = onBack)
+    } else {
+        TribuneConfigurationContent(
+            config = config,
+            tribune = tribune,
+            onBack = onBack,
+            onSave = onSave,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TribuneConfigurationContent(
+    config: TribuneConfig,
+    tribune: Tribune,
+    onBack: () -> Unit,
+    onSave: (TribuneConfig) -> Unit,
+) {
+    var draft by remember(config, tribune.id) { mutableStateOf(TribuneDraft.from(tribune)) }
+    var errors by remember(config, tribune.id) { mutableStateOf<Map<String, String>?>(null) }
+
+    fun updateDraft(transform: (TribuneDraft) -> TribuneDraft) {
+        draft = transform(draft)
+        errors = null
+    }
+
+    fun save() {
+        val fullDraft = ConfigurationDraft(
+            pollingSeconds = config.pollingSeconds.toString(),
+            tribunes = config.tribunes.map { existing ->
+                if (existing.id == tribune.id) draft else TribuneDraft.from(existing)
+            },
+        )
+        val tribuneErrors = fullDraft.validate().tribuneErrors[tribune.id].orEmpty()
+        errors = tribuneErrors
+        if (tribuneErrors.isEmpty()) {
+            val updated = draft.toTribune()
+            onSave(
+                config.copy(
+                    tribunes = config.tribunes.map { existing ->
+                        if (existing.id == tribune.id) updated else existing
+                    },
+                ),
+            )
+        }
+    }
+
+    BackHandler { onBack() }
+
+    Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding(),
+        topBar = {
+            TopAppBar(
+                title = { Text("Tribune settings") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                        )
+                    }
+                },
+                actions = {
+                    TextButton(onClick = ::save) {
+                        Text("Save")
+                    }
+                },
+            )
+        },
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = 16.dp,
+                bottom = 32.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item {
+                Text(
+                    text = "Changes apply after saving.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            if (errors?.isNotEmpty() == true) {
                 item {
                     Text(
                         text = "Check the highlighted fields.",
@@ -128,59 +269,10 @@ fun ConfigurationScreen(
             }
 
             item {
-                Text(
-                    text = "Polling",
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            }
-
-            item {
-                OutlinedTextField(
-                    value = draft.pollingSeconds,
-                    onValueChange = { value ->
-                        updateDraft {
-                            it.copy(pollingSeconds = value.filter(Char::isDigit))
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Polling interval (seconds)") },
-                    supportingText = {
-                        Text(
-                            validation?.pollingError
-                                ?: "Between ${TribuneConfig.MIN_POLLING_SECONDS} and " +
-                                    "${TribuneConfig.MAX_POLLING_SECONDS} seconds.",
-                        )
-                    },
-                    isError = validation?.pollingError != null,
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                )
-            }
-
-            item {
-                Text(
-                    text = "Tribunes",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-            }
-
-            items(
-                items = draft.tribunes,
-                key = { it.id },
-            ) { tribune ->
                 TribuneConfigCard(
-                    draft = tribune,
-                    errors = validation?.tribuneErrors?.get(tribune.id).orEmpty(),
-                    onChange = { transform ->
-                        updateDraft { current ->
-                            current.copy(
-                                tribunes = current.tribunes.map { item ->
-                                    if (item.id == tribune.id) transform(item) else item
-                                },
-                            )
-                        }
-                    },
+                    draft = draft,
+                    errors = errors.orEmpty(),
+                    onChange = ::updateDraft,
                 )
             }
 
@@ -188,11 +280,43 @@ fun ConfigurationScreen(
                 Text(
                     text = "Posting uses the post URL and form field above. " +
                         "Leave the post URL blank for a read-only tribune. " +
-                        "The cookie is optional and is sent only to that tribune.",
+                        "The cookie is optional and is sent only to this tribune.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MissingTribuneScreen(onBack: () -> Unit) {
+    BackHandler { onBack() }
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = { Text("Tribune settings") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                        )
+                    }
+                },
+            )
+        },
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text("Tribune not found.")
         }
     }
 }
@@ -363,7 +487,8 @@ private fun TribuneConfigCard(
                         style = MaterialTheme.typography.bodyLarge,
                     )
                     Text(
-                        text = "Include this tribune in the merged feed and side pane.",
+                        text = "Include this tribune's posts in the merged feed. " +
+                            "It stays available in the side pane either way.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -423,6 +548,18 @@ private val FeedFormat.label: String
         FeedFormat.TSV -> "TSV"
         FeedFormat.XML_HTML_ESCAPED -> "XML (HTML-escaped)"
     }
+
+private fun pollingErrorMessage(value: String): String? {
+    val seconds = value.toIntOrNull()
+    return if (
+        seconds == null ||
+        seconds !in TribuneConfig.MIN_POLLING_SECONDS..TribuneConfig.MAX_POLLING_SECONDS
+    ) {
+        "Use ${TribuneConfig.MIN_POLLING_SECONDS}–${TribuneConfig.MAX_POLLING_SECONDS} seconds"
+    } else {
+        null
+    }
+}
 
 private fun errorSupportingText(message: String?): (@Composable () -> Unit)? =
     message?.let { text -> { Text(text) } }

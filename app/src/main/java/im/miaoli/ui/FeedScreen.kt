@@ -34,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
@@ -90,6 +91,7 @@ fun FeedScreen(
     onSelectTribune: (String) -> Unit,
     onToggleTribune: (String) -> Unit,
     onOpenSettings: () -> Unit,
+    onConfigureTribune: (String) -> Unit,
     onPost: () -> Unit,
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -110,13 +112,21 @@ fun FeedScreen(
         drawerState = drawerState,
         drawerContent = {
             TribunesDrawer(
-                tribunes = state.feedTribunes,
+                tribunes = state.config.tribunes,
                 enabledTribuneIds = state.enabledTribuneIds,
                 onToggleTribune = onToggleTribune,
+                onConfigureTribune = { id ->
+                    scope.launch {
+                        drawerState.close()
+                        onConfigureTribune(id)
+                    }
+                },
                 onClose = { scope.launch { drawerState.close() } },
-                onConfigure = {
-                    scope.launch { drawerState.close() }
-                    onOpenSettings()
+                onOpenSettings = {
+                    scope.launch {
+                        drawerState.close()
+                        onOpenSettings()
+                    }
                 },
             )
         },
@@ -149,7 +159,7 @@ fun FeedScreen(
                         IconButton(onClick = onOpenSettings) {
                             Icon(
                                 imageVector = Icons.Default.Settings,
-                                contentDescription = "Configure tribunes",
+                                contentDescription = "Feed settings",
                             )
                         }
                     },
@@ -247,8 +257,9 @@ private fun TribunesDrawer(
     tribunes: List<Tribune>,
     enabledTribuneIds: Set<String>,
     onToggleTribune: (String) -> Unit,
+    onConfigureTribune: (String) -> Unit,
     onClose: () -> Unit,
-    onConfigure: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     ModalDrawerSheet(modifier = Modifier.width(300.dp)) {
         Column(
@@ -274,7 +285,8 @@ private fun TribunesDrawer(
             }
 
             Text(
-                text = "Choose what appears in the feed.",
+                text = "Use the switch to show or hide a tribune in this session. " +
+                    "Tap the pencil to configure it.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
@@ -287,6 +299,7 @@ private fun TribunesDrawer(
                     tribune = tribune,
                     enabled = tribune.id in enabledTribuneIds,
                     onToggle = { onToggleTribune(tribune.id) },
+                    onConfigure = { onConfigureTribune(tribune.id) },
                 )
             }
 
@@ -295,7 +308,7 @@ private fun TribunesDrawer(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClick = onConfigure)
+                    .clickable(onClick = onOpenSettings)
                     .padding(horizontal = 24.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -306,7 +319,7 @@ private fun TribunesDrawer(
                 )
                 Spacer(Modifier.width(16.dp))
                 Text(
-                    text = "Configure tribunes",
+                    text = "Feed settings",
                     style = MaterialTheme.typography.bodyLarge,
                 )
             }
@@ -319,53 +332,84 @@ private fun TribuneToggleRow(
     tribune: Tribune,
     enabled: Boolean,
     onToggle: () -> Unit,
+    onConfigure: () -> Unit,
 ) {
+    val active = tribune.showInFeed && enabled
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .toggleable(
-                value = enabled,
-                role = Role.Switch,
-                onValueChange = { onToggle() },
-            )
-            .padding(horizontal = 24.dp, vertical = 10.dp),
+            .padding(start = 24.dp, end = 8.dp, top = 2.dp, bottom = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
+        Row(
             modifier = Modifier
-                .size(16.dp)
-                .clip(CircleShape)
-                .background(
-                    if (enabled) {
-                        Color(tribune.color)
-                    } else {
-                        MaterialTheme.colorScheme.outlineVariant
-                    },
+                .weight(1f)
+                .toggleable(
+                    value = enabled,
+                    role = Role.Switch,
+                    onValueChange = { onToggle() },
+                    enabled = tribune.showInFeed,
                 )
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant,
-                    shape = CircleShape,
-                ),
-        )
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (active) {
+                            Color(tribune.color)
+                        } else {
+                            MaterialTheme.colorScheme.outlineVariant
+                        },
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                        shape = CircleShape,
+                    ),
+            )
 
-        Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.width(16.dp))
 
-        Text(
-            text = tribune.title,
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (enabled) {
-                MaterialTheme.colorScheme.onSurface
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
-            modifier = Modifier.weight(1f),
-        )
+            Text(
+                text = tribune.title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (active) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
 
-        Switch(
-            checked = enabled,
-            onCheckedChange = null,
-        )
+            if (!tribune.showInFeed) {
+                Text(
+                    text = "Hidden",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 6.dp),
+                )
+            }
+
+            Switch(
+                checked = enabled,
+                onCheckedChange = null,
+                enabled = tribune.showInFeed,
+            )
+        }
+
+        IconButton(onClick = onConfigure) {
+            Icon(
+                imageVector = Icons.Default.Edit,
+                contentDescription = "Configure ${tribune.title}",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
