@@ -11,7 +11,7 @@ data class FeedUiState(
     val errors: Map<String, String> = emptyMap(),
     val config: TribuneConfig = TribuneConfig(),
     val enabledTribuneIds: Set<String> = config.feedTribunes.map { it.id }.toSet(),
-    val draft: String = "",
+    val draft: DraftState = DraftState(),
     val selectedTribuneId: String = "",
     val isPosting: Boolean = false,
     val postError: String? = null,

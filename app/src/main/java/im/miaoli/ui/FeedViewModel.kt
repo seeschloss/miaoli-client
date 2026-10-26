@@ -1,5 +1,6 @@
 package im.miaoli.ui
 
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -39,37 +40,62 @@ class FeedViewModel(
     private val refreshMutex = Mutex()
     private var manualRefresh: Job? = null
 
-    fun updateDraft(text: String) {
-        _state.update { it.copy(draft = text, postError = null) }
-    }
-
-    /**
-     * Appends text such as a message clock to the draft, keeping a single
-     * separating space when the existing draft does not already end in one.
-     */
-    fun appendToDraft(text: String) {
-        if (text.isEmpty()) return
-
+    fun updateDraft(value: TextFieldValue) {
         _state.update { current ->
-            val needsSeparator = current.draft.isNotEmpty() &&
-                !current.draft.last().isWhitespace() &&
-                !text.first().isWhitespace()
-            val separator = if (needsSeparator) " " else ""
             current.copy(
-                draft = current.draft + separator + text,
+                draft = DraftEditor.updateValue(current.draft, value),
                 postError = null,
             )
         }
     }
 
     /**
-     * Selects a configured tribune as the composer target. This also permits
-     * read-only tribunes so tapping one of their messages can show that
-     * tribune as the origin; the composer disables sending in that case.
+     * Inserts a quoted clock at the current cursor/selection. A postable
+     * origin becomes the new destination; a read-only origin leaves the
+     * destination unchanged.
+     */
+    fun insertClock(clock: String, originTribuneId: String) {
+        _state.update { current ->
+            val origin = current.config.tribunes
+                .firstOrNull { it.id == originTribuneId }
+                ?: return@update current
+            val destinationId = if (origin.canPost) {
+                origin.id
+            } else {
+                current.selectedTribuneId
+            }
+
+            current.copy(
+                selectedTribuneId = destinationId,
+                draft = DraftEditor.insertClock(
+                    current = current.draft,
+                    clock = clock,
+                    origin = origin,
+                    destinationId = destinationId,
+                    config = current.config,
+                ),
+                postError = null,
+            )
+        }
+    }
+
+    /**
+     * Switches the composer destination. Only postable tribunes can be
+     * selected. Existing clocks are rewritten relative to the new destination.
      */
     fun selectTribune(id: String) {
-        if (_state.value.config.tribunes.any { it.id == id }) {
-            _state.update { it.copy(selectedTribuneId = id, postError = null) }
+        _state.update { current ->
+            if (id == current.selectedTribuneId) {
+                current.copy(postError = null)
+            } else if (current.config.postableTribunes.any { it.id == id }) {
+                current.copy(
+                    selectedTribuneId = id,
+                    draft = DraftEditor.rewriteClocks(current.draft, id, current.config),
+                    postError = null,
+                )
+            } else {
+                current
+            }
         }
     }
 
@@ -105,6 +131,10 @@ class FeedViewModel(
                 }
                 .mapTo(mutableSetOf()) { it.id }
             val tribunesById = normalized.tribunes.associateBy { it.id }
+            val newSelectedId = normalized.postableTribunes
+                .firstOrNull { it.id == current.selectedTribuneId }
+                ?.id
+                ?: normalized.postableTribunes.firstOrNull()?.id.orEmpty()
 
             current.copy(
                 config = normalized,
@@ -118,10 +148,12 @@ class FeedViewModel(
                 ),
                 enabledTribuneIds = (current.enabledTribuneIds intersect newFeedIds) +
                     (newFeedIds - previousFeedIds),
-                selectedTribuneId = normalized.postableTribunes
-                    .firstOrNull { it.id == current.selectedTribuneId }
-                    ?.id
-                    ?: normalized.postableTribunes.firstOrNull()?.id.orEmpty(),
+                selectedTribuneId = newSelectedId,
+                draft = if (newSelectedId != current.selectedTribuneId) {
+                    DraftEditor.rewriteClocks(current.draft, newSelectedId, normalized)
+                } else {
+                    current.draft
+                },
                 errors = emptyMap(),
                 postError = null,
             )
@@ -132,7 +164,7 @@ class FeedViewModel(
         val current = _state.value
         if (current.isPosting) return
 
-        val message = current.draft.trim()
+        val message = current.draft.text.trim()
         if (message.isEmpty()) return
 
         val tribune = current.postableTribunes
@@ -147,7 +179,7 @@ class FeedViewModel(
                 _state.update {
                     it.copy(
                         isPosting = false,
-                        draft = "",
+                        draft = DraftState(),
                         postError = null,
                     )
                 }

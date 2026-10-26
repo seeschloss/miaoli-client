@@ -16,6 +16,7 @@ class FeedViewModelTest {
             color = 0xFF000000,
             backendUrl = "https://example.test/a",
             format = FeedFormat.TSV,
+            postUrl = "https://example.test/a/post",
         ),
         Tribune(
             id = "b",
@@ -23,6 +24,7 @@ class FeedViewModelTest {
             color = 0xFFFFFFFF,
             backendUrl = "https://example.test/b",
             format = FeedFormat.TSV,
+            postUrl = "https://example.test/b/post",
         ),
     )
 
@@ -59,35 +61,85 @@ class FeedViewModelTest {
     }
 
     @Test
-    fun appendsClockToDraftWithSeparator() {
-        viewModel.updateDraft("hello")
+    fun insertClockSelectsPostableOrigin() {
+        viewModel.insertClock("12:34:56", "b")
 
-        viewModel.appendToDraft("12:34:56 ")
-
-        assertEquals("hello 12:34:56 ", viewModel.state.value.draft)
+        val state = viewModel.state.value
+        assertEquals("b", state.selectedTribuneId)
+        assertEquals("12:34:56 ", state.draft.text)
     }
 
     @Test
-    fun appendsClockWithoutExtraSeparatorAfterWhitespace() {
-        viewModel.updateDraft("hello ")
+    fun insertClockFromReadOnlyOriginKeepsDestination() {
+        val readOnly = Tribune(
+            id = "readonly",
+            title = "Readonly",
+            color = 0xFF888888,
+            backendUrl = "https://example.test/readonly",
+            format = FeedFormat.TSV,
+        )
+        val localViewModel = FeedViewModel(
+            configStore = FakeConfigStore(
+                TribuneConfig(tribunes = tribunes + readOnly, pollingSeconds = 30),
+            ),
+            repository = FeedRepository(),
+        )
 
-        viewModel.appendToDraft("12:34:56 ")
+        localViewModel.insertClock("12:34:56", "readonly")
 
-        assertEquals("hello 12:34:56 ", viewModel.state.value.draft)
+        val state = localViewModel.state.value
+        assertEquals("a", state.selectedTribuneId)
+        assertEquals("12:34:56@Readonly ", state.draft.text)
     }
 
     @Test
-    fun appendsClockToEmptyDraft() {
-        viewModel.appendToDraft("12:34:56 ")
+    fun selectReadOnlyTribuneDoesNotChangeDestination() {
+        val readOnly = Tribune(
+            id = "readonly",
+            title = "Readonly",
+            color = 0xFF888888,
+            backendUrl = "https://example.test/readonly",
+            format = FeedFormat.TSV,
+        )
+        val localViewModel = FeedViewModel(
+            configStore = FakeConfigStore(
+                TribuneConfig(tribunes = tribunes + readOnly, pollingSeconds = 30),
+            ),
+            repository = FeedRepository(),
+        )
 
-        assertEquals("12:34:56 ", viewModel.state.value.draft)
+        localViewModel.selectTribune("readonly")
+
+        assertEquals("a", localViewModel.state.value.selectedTribuneId)
     }
 
     @Test
-    fun selectsReadOnlyTribuneAsComposerTarget() {
-        viewModel.selectTribune("a")
+    fun switchingDestinationRewritesExistingClockSuffix() {
+        viewModel.insertClock("12:34:56", "a")
 
-        assertEquals("a", viewModel.state.value.selectedTribuneId)
+        viewModel.selectTribune("b")
+
+        val state = viewModel.state.value
+        assertEquals("b", state.selectedTribuneId)
+        assertEquals("12:34:56@A ", state.draft.text)
+    }
+
+    @Test
+    fun saveConfigRewritesClocksWhenSelectedDestinationChanges() {
+        viewModel.insertClock("12:34:56", "a")
+
+        viewModel.saveConfig(
+            TribuneConfig(
+                tribunes = tribunes.map { tribune ->
+                    if (tribune.id == "a") tribune.copy(postUrl = null) else tribune
+                },
+                pollingSeconds = 30,
+            ),
+        )
+
+        val state = viewModel.state.value
+        assertEquals("b", state.selectedTribuneId)
+        assertEquals("12:34:56@A ", state.draft.text)
     }
 
     @Test

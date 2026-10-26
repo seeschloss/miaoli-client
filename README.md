@@ -20,10 +20,15 @@ for showing or hiding that source in the current session and a pencil icon for i
 configuration page. Disabled sources are greyed out, and tribunes hidden from the
 feed remain listed so they can be configured or re-enabled.
 
-Tap any message to append its tribune-local clock to the composer, switch the
-composer target to that message's tribune, and focus the message field. If the
-origin tribune has no post URL, the composer shows it as read-only; choose a
-postable tribune to send.
+Tap any message to insert its tribune-local clock at the composer cursor,
+replacing the selection if there is one, and focus the message field. With an
+empty draft or before the field has a cursor, the clock goes at the end. A
+postable origin becomes the composer target; a read-only origin leaves the
+current target unchanged. When the target is not a clock's origin, that clock is
+shown with an `@Title` suffix, for example `12:34:56@Moules`. Suffixes are
+updated when a clock is inserted or the target changes. Each clock keeps its
+origin internally, and editing text that overlaps a clock turns it back into
+plain text.
 
 ## Configuration
 

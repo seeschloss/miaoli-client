@@ -79,6 +79,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.fromHtml
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import im.miaoli.data.Post
@@ -91,8 +92,8 @@ fun FeedScreen(
     state: FeedUiState,
     listState: LazyListState,
     onRefresh: () -> Unit,
-    onDraftChange: (String) -> Unit,
-    onAppendDraft: (String) -> Unit,
+    onDraftChange: (TextFieldValue) -> Unit,
+    onInsertClock: (String, String) -> Unit,
     onSelectTribune: (String) -> Unit,
     onToggleTribune: (String) -> Unit,
     onOpenSettings: () -> Unit,
@@ -263,8 +264,7 @@ fun FeedScreen(
                                     post = post,
                                     onClick = {
                                         if (!state.isPosting) {
-                                            onAppendDraft("${post.clock} ")
-                                            onSelectTribune(post.tribune.id)
+                                            onInsertClock(post.clock, post.tribune.id)
                                             composerFocusRequest++
                                         }
                                     },
@@ -499,14 +499,13 @@ private fun PostComposer(
     state: FeedUiState,
     tribunes: List<Tribune>,
     focusRequester: FocusRequester,
-    onDraftChange: (String) -> Unit,
+    onDraftChange: (TextFieldValue) -> Unit,
     onSelectTribune: (String) -> Unit,
     onPost: () -> Unit,
 ) {
     val selected = state.config.tribunes
         .firstOrNull { it.id == state.selectedTribuneId }
         ?: tribunes.first()
-    val canPost = selected.canPost
     val keyboard = LocalSoftwareKeyboardController.current
     var expanded by remember { mutableStateOf(false) }
 
@@ -524,15 +523,6 @@ private fun PostComposer(
                 Text(
                     text = state.postError,
                     color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                )
-            }
-
-            if (!canPost) {
-                Text(
-                    text = "${selected.title} is read-only. Choose a postable tribune to send.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
                 )
@@ -590,7 +580,7 @@ private fun PostComposer(
                 }
 
                 OutlinedTextField(
-                    value = state.draft,
+                    value = state.draft.value,
                     onValueChange = onDraftChange,
                     modifier = Modifier
                         .weight(1f)
@@ -600,14 +590,12 @@ private fun PostComposer(
                     enabled = !state.isPosting,
                     shape = RoundedCornerShape(24.dp),
                     keyboardOptions = KeyboardOptions(
-                        imeAction = if (canPost) ImeAction.Send else ImeAction.Default,
+                        imeAction = ImeAction.Send,
                     ),
                     keyboardActions = KeyboardActions(
                         onSend = {
-                            if (canPost) {
-                                keyboard?.hide()
-                                onPost()
-                            }
+                            keyboard?.hide()
+                            onPost()
                         },
                     ),
                 )
@@ -616,12 +604,10 @@ private fun PostComposer(
 
                 FilledIconButton(
                     onClick = {
-                        if (canPost) {
-                            keyboard?.hide()
-                            onPost()
-                        }
+                        keyboard?.hide()
+                        onPost()
                     },
-                    enabled = canPost && state.draft.isNotBlank() && !state.isPosting,
+                    enabled = state.draft.text.isNotBlank() && !state.isPosting,
                 ) {
                     if (state.isPosting) {
                         CircularProgressIndicator(

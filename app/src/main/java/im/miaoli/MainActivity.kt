@@ -79,7 +79,7 @@ class MainActivity : ComponentActivity() {
                         listState = feedListState,
                         onRefresh = viewModel::refresh,
                         onDraftChange = viewModel::updateDraft,
-                        onAppendDraft = viewModel::appendToDraft,
+                        onInsertClock = viewModel::insertClock,
                         onSelectTribune = viewModel::selectTribune,
                         onToggleTribune = viewModel::toggleTribune,
                         onOpenSettings = { showFeedSettings = true },
