@@ -13,7 +13,9 @@ shows one merged feed from two tribunes:
 Server timestamps are interpreted in each tribune's configured time zone and
 messages are merged by their absolute UTC instant, so sources in different zones
 interleave correctly. Each row shows only that tribune's local clock, in full
-`HH:mm:ss` form. The feed refreshes every 30 seconds while the app is in the
+`HH:mm:ss` form. Clock references in message text, including
+`YYYY-MM-dd HH:mm:ss` forms and optional `@Title` suffixes, are highlighted in
+the link colour. The feed refreshes every 30 seconds while the app is in the
 foreground.
 Use the menu button in the top bar to open the tribune pane. Each row has a switch
 for showing or hiding that source in the current session and a pencil icon for its
