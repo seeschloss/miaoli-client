@@ -56,7 +56,7 @@ class PostMergerTest {
     @Test
     fun sortsByAbsoluteUtcTimeAcrossTimeZones() {
         val paris = Tribunes.moules.copy(timeZoneId = "Europe/Paris")
-        val utc = Tribunes.nativeTest.copy(timeZoneId = "UTC")
+        val utc = Tribunes.miaoliandroid.copy(timeZoneId = "UTC")
 
         val merged = PostMerger.merge(
             existing = listOf(post("1", "20260701150000", paris)),

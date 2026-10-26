@@ -315,14 +315,6 @@ private fun TribunesDrawer(
                 }
             }
 
-            Text(
-                text = "Use the switch to show or hide a tribune in this session. " +
-                    "Tap the pencil to configure it.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
-            )
-
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
             tribunes.forEach { tribune ->
@@ -331,6 +323,19 @@ private fun TribunesDrawer(
                     enabled = tribune.id in enabledTribuneIds,
                     onToggle = { onToggleTribune(tribune.id) },
                     onConfigure = { onConfigureTribune(tribune.id) },
+                )
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = { onConfigureTribune("") })
+                    .padding(horizontal = 24.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "New tribune...",
+                    style = MaterialTheme.typography.bodyLarge,
                 )
             }
 
@@ -350,7 +355,7 @@ private fun TribunesDrawer(
                 )
                 Spacer(Modifier.width(16.dp))
                 Text(
-                    text = "Feed settings",
+                    text = "Settings",
                     style = MaterialTheme.typography.bodyLarge,
                 )
             }
