@@ -105,14 +105,6 @@ fun FeedSettingsScreen(
         ) {
             item {
                 Text(
-                    text = "Changes apply after saving.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            item {
-                Text(
                     text = "Polling",
                     style = MaterialTheme.typography.titleMedium,
                 )
@@ -126,7 +118,7 @@ fun FeedSettingsScreen(
                         pollingError = null
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Polling interval (seconds)") },
+                    label = { Text("Refresh interval (seconds)") },
                     supportingText = errorSupportingText(pollingError),
                     isError = pollingError != null,
                     singleLine = true,
@@ -230,14 +222,6 @@ private fun TribuneConfigurationContent(
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item {
-                Text(
-                    text = "Changes apply after saving.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
             if (errors?.isNotEmpty() == true) {
                 item {
                     Text(
