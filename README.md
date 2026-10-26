@@ -12,9 +12,9 @@ shows one merged feed from two tribunes:
 
 Server timestamps are interpreted in each tribune's configured time zone and
 messages are merged by their absolute UTC instant, so sources in different zones
-interleave correctly. Each row keeps the source tribune's local clock and shows a
-small UTC clock when the two differ. The feed refreshes every 30 seconds while the
-app is in the foreground.
+interleave correctly. Each row shows only that tribune's local clock, in full
+`HH:mm:ss` form. The feed refreshes every 30 seconds while the app is in the
+foreground.
 Use the menu button in the top bar to open the tribune pane and show or hide each
 source; disabled sources are greyed out.
 

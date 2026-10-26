@@ -23,7 +23,6 @@ class PostTest {
 
         assertEquals(Instant.parse("2026-07-01T13:00:00Z"), post.timestamp)
         assertEquals("15:00:00", post.clock)
-        assertEquals("13:00:00", post.utcClock)
     }
 
     @Test
@@ -40,7 +39,6 @@ class PostTest {
         val post = post("not-a-timestamp")
 
         assertNull(post.timestamp)
-        assertNull(post.utcClock)
         assertEquals("not-a-timestamp", post.clock)
     }
 
@@ -53,6 +51,5 @@ class PostTest {
         val updated = post.withTribune(utc)
 
         assertEquals(Instant.parse("2026-07-01T15:00:00Z"), updated.timestamp)
-        assertEquals("15:00:00", updated.utcClock)
     }
 }

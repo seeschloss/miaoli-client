@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -562,7 +563,7 @@ private fun PostRow(post: Post) {
     ) {
         Column(
             modifier = Modifier
-                .width(76.dp)
+                .widthIn(min = 76.dp)
                 .fillMaxHeight()
                 .background(MaterialTheme.colorScheme.surface)
                 .padding(horizontal = 6.dp, vertical = 6.dp),
@@ -573,18 +574,11 @@ private fun PostRow(post: Post) {
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
+                softWrap = false,
             )
-            val utcClock = post.utcClock
-            if (utcClock != null && utcClock != post.clock) {
-                Text(
-                    text = "${utcClock}Z",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
-            }
             Text(
                 text = post.author,
+                modifier = Modifier.widthIn(max = 76.dp),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
                 maxLines = 1,

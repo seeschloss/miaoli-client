@@ -23,7 +23,6 @@ class TsvFeedParserTest {
         assertEquals("nedflan", posts[0].author)
         assertEquals("<s>jean-paul huchon</s>", posts[0].message)
         assertEquals("15:52:41", posts[0].clock)
-        assertEquals("13:52:41", posts[0].utcClock)
         assertEquals("cbo", posts[1].author)
     }
 

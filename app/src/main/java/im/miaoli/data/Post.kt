@@ -3,7 +3,6 @@ package im.miaoli.data
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
-import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.ResolverStyle
 
@@ -29,10 +28,6 @@ data class Post(
             time
         }
 
-    /** Clock in UTC, or null when [time] could not be parsed. */
-    val utcClock: String?
-        get() = timestamp?.atZone(ZoneOffset.UTC)?.format(CLOCK_FORMAT)
-
     /**
      * Returns a copy carrying [tribune] and a timestamp recomputed with its
      * time zone. The generated data-class copy would keep the old timestamp.
@@ -51,7 +46,6 @@ data class Post(
         private val TIMESTAMP_FORMAT: DateTimeFormatter = DateTimeFormatter
             .ofPattern("uuuuMMddHHmmss")
             .withResolverStyle(ResolverStyle.STRICT)
-        private val CLOCK_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
 
         /** Parses a server-local timestamp using an IANA time zone. */
         fun parseTimestamp(time: String, timeZoneId: String): Instant? {

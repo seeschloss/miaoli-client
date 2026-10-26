@@ -36,7 +36,6 @@ class XmlFeedParserTest {
         assertEquals("20261024202430", first.time)
         assertEquals("Single", first.author)
         assertEquals("20:24:30", first.clock)
-        assertEquals("18:24:30", first.utcClock)
         assertEquals("20:22:16 Il a une <b>superbe</b> couronne", first.message)
     }
 
