@@ -17,6 +17,12 @@ interleave correctly. Each row shows only that tribune's local clock, in full
 `YYYY-MM-dd HH:mm:ss` forms and optional `@Title` suffixes, are highlighted in
 the link colour. The feed refreshes every 30 seconds while the app is in the
 foreground.
+
+App surfaces and text follow the system light or dark theme, including the
+status bar icons. Tribune row backgrounds keep their configured colours; message
+text switches between black and white, and link/clock accents use the readable
+blue variant, so they stay legible on those colours.
+
 Use the menu button in the top bar to open the tribune pane. Each row has a switch
 for showing or hiding that source in the current session and a pencil icon for its
 configuration page. Disabled sources are greyed out, and tribunes hidden from the
