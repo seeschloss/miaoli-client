@@ -506,6 +506,13 @@ private fun PostComposer(
         ?: tribunes.first()
     val keyboard = LocalSoftwareKeyboardController.current
     var expanded by remember { mutableStateOf(false) }
+    val linkColor = MaterialTheme.colorScheme.primary
+    val draftVisualTransformation = remember(linkColor) {
+        DraftVisualTransformation(
+            clockColor = linkColor,
+            linkColor = linkColor,
+        )
+    }
 
     Surface(
         tonalElevation = 3.dp,
@@ -587,6 +594,7 @@ private fun PostComposer(
                     maxLines = 4,
                     enabled = !state.isPosting,
                     shape = RoundedCornerShape(24.dp),
+                    visualTransformation = draftVisualTransformation,
                     keyboardOptions = KeyboardOptions(
                         imeAction = ImeAction.Send,
                     ),

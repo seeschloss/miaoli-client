@@ -55,7 +55,12 @@ header.
 ## Posting
 
 The composer at the bottom of the feed sends plain text messages without
-authentication. It currently targets this tribune on miaoli.im:
+authentication. It previews common tribune markup as you type: complete
+`<b>`, `<i>`, `<u>`, `<s>`, `<tt>`, and `<code>` pairs style their contents
+while the grey tags remain visible and part of the sent text. Attributes are
+preserved, and unclosed, uppercase, or unsupported tags stay plain text. Clock
+references, URLs, and `[:totoz]` tokens use the link colour; URLs are also
+underlined. It currently targets this tribune on miaoli.im:
 
 ```text
 https://miaoli.im/@See/+6QbxZZANv8
