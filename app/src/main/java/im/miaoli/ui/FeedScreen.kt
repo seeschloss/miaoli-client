@@ -648,7 +648,7 @@ private fun PostRow(
     val messageColor = readableTextColor(tribuneColor)
     val linkColor = readableLinkColor(tribuneColor)
     val message = remember(post.message, linkColor) {
-        renderMessage(post.message, clockColor = linkColor)
+        renderMessage(post.message, linkColor = linkColor)
     }
 
     Row(
