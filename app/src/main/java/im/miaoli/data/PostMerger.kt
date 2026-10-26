@@ -5,7 +5,8 @@ object PostMerger {
 
     /**
      * Merge two sets of posts, removing duplicates and returning the newest posts first.
-     * Newest-first ordering matches the reverse layout used by the feed.
+     * Newest-first ordering is based on each post's absolute UTC timestamp, so
+     * tribunes in different time zones interleave correctly.
      */
     fun merge(existing: Collection<Post>, incoming: Collection<Post>): List<Post> {
         val byKey = LinkedHashMap<String, Post>(existing.size + incoming.size)
@@ -14,7 +15,7 @@ object PostMerger {
 
         return byKey.values
             .sortedWith(
-                compareByDescending<Post> { it.time }
+                compareByDescending<Post> { it.timestamp?.toEpochMilli() ?: Long.MIN_VALUE }
                     .thenByDescending { it.id.toLongOrNull() ?: 0L },
             )
             .take(MAX_POSTS)

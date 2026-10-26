@@ -55,6 +55,7 @@ internal object TribuneConfigJson {
                     put("color", tribune.color)
                     put("backendUrl", tribune.backendUrl)
                     put("format", tribune.format.name)
+                    put("timeZoneId", tribune.timeZoneId)
                     put("postUrl", tribune.postUrl ?: JSONObject.NULL)
                     put("postField", tribune.postField)
                     put("userAgent", tribune.userAgent)
@@ -92,6 +93,9 @@ internal object TribuneConfigJson {
                         color = item.optLong("color", 0xFF888888L),
                         backendUrl = item.optString("backendUrl"),
                         format = format,
+                        timeZoneId = item.optString("timeZoneId")
+                            .takeIf { it.isNotBlank() }
+                            ?: Tribunes.defaultTimeZoneFor(id),
                         postUrl = if (item.isNull("postUrl")) {
                             null
                         } else {

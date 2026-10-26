@@ -1,21 +1,66 @@
 package im.miaoli.data
 
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.time.format.ResolverStyle
+
 data class Post(
     val id: String,
-    /** Server timestamp in yyyyMMddHHmmss form. */
+    /** Server timestamp in yyyyMMddHHmmss form, in [tribune]'s time zone. */
     val time: String,
     val author: String,
     /** Message body, possibly containing HTML markup. */
     val message: String,
     val tribune: Tribune,
+    /** Absolute instant parsed from [time] using [tribune.timeZoneId]. */
+    val timestamp: Instant? = parseTimestamp(time, tribune.timeZoneId),
 ) {
     val key: String
         get() = "${tribune.id}:$id"
 
+    /** Clock as written by the tribune, in that tribune's local time. */
     val clock: String
-        get() = if (time.length >= 14) {
+        get() = if (timestamp != null && time.length >= 14) {
             "${time.substring(8, 10)}:${time.substring(10, 12)}:${time.substring(12, 14)}"
         } else {
             time
         }
+
+    /** Clock in UTC, or null when [time] could not be parsed. */
+    val utcClock: String?
+        get() = timestamp?.atZone(ZoneOffset.UTC)?.format(CLOCK_FORMAT)
+
+    /**
+     * Returns a copy carrying [tribune] and a timestamp recomputed with its
+     * time zone. The generated data-class copy would keep the old timestamp.
+     */
+    fun withTribune(tribune: Tribune): Post =
+        if (tribune == this.tribune) {
+            this
+        } else {
+            copy(
+                tribune = tribune,
+                timestamp = parseTimestamp(time, tribune.timeZoneId),
+            )
+        }
+
+    companion object {
+        private val TIMESTAMP_FORMAT: DateTimeFormatter = DateTimeFormatter
+            .ofPattern("uuuuMMddHHmmss")
+            .withResolverStyle(ResolverStyle.STRICT)
+        private val CLOCK_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
+
+        /** Parses a server-local timestamp using an IANA time zone. */
+        fun parseTimestamp(time: String, timeZoneId: String): Instant? {
+            if (time.length < 14) return null
+            return runCatching {
+                LocalDateTime.parse(time.take(14), TIMESTAMP_FORMAT)
+                    .atZone(ZoneId.of(timeZoneId))
+                    .toInstant()
+            }.getOrNull()
+        }
+    }
 }

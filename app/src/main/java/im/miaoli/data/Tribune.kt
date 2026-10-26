@@ -12,6 +12,11 @@ data class Tribune(
     val color: Long,
     val backendUrl: String,
     val format: FeedFormat,
+    /**
+     * IANA time zone used to interpret the server's yyyyMMddHHmmss timestamps,
+     * for example "Europe/Paris" or "UTC".
+     */
+    val timeZoneId: String = DEFAULT_TIME_ZONE,
     /** Form endpoint accepting an application/x-www-form-urlencoded POST, if posting is supported. */
     val postUrl: String? = null,
     /** Name of the form field that carries the message body. */
@@ -28,5 +33,6 @@ data class Tribune(
 
     companion object {
         const val DEFAULT_USER_AGENT = "Miaoli/0.3 (Android)"
+        const val DEFAULT_TIME_ZONE = "UTC"
     }
 }

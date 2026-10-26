@@ -52,4 +52,28 @@ class PostMergerTest {
 
         assertEquals(listOf("2", "3", "1"), merged.map { it.id })
     }
+
+    @Test
+    fun sortsByAbsoluteUtcTimeAcrossTimeZones() {
+        val paris = Tribunes.moules.copy(timeZoneId = "Europe/Paris")
+        val utc = Tribunes.nativeTest.copy(timeZoneId = "UTC")
+
+        val merged = PostMerger.merge(
+            existing = listOf(post("1", "20260701150000", paris)),
+            incoming = listOf(post("2", "20260701140000", utc)),
+        )
+
+        // 15:00 Paris is 13:00 UTC, so the 14:00 UTC post is newer.
+        assertEquals(listOf("2", "1"), merged.map { it.id })
+    }
+
+    @Test
+    fun keepsPostsWithInvalidTimestampsLast() {
+        val merged = PostMerger.merge(
+            existing = listOf(post("1", "20260701120000")),
+            incoming = listOf(post("2", "not-a-time")),
+        )
+
+        assertEquals(listOf("1", "2"), merged.map { it.id })
+    }
 }

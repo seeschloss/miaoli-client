@@ -4,6 +4,7 @@ import im.miaoli.data.FeedFormat
 import im.miaoli.data.Tribune
 import im.miaoli.data.TribuneConfig
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import java.time.ZoneId
 import java.util.Locale
 
 /** Editable string form of a [Tribune]. */
@@ -13,6 +14,7 @@ internal data class TribuneDraft(
     val color: String,
     val backendUrl: String,
     val format: FeedFormat,
+    val timeZoneId: String,
     val postUrl: String,
     val postField: String,
     val userAgent: String,
@@ -28,6 +30,9 @@ internal data class TribuneDraft(
         }
         if (!backendUrl.trim().isValidHttpUrl()) {
             put("backendUrl", "Enter an http(s) URL")
+        }
+        if (!timeZoneId.trim().isValidTimeZone()) {
+            put("timeZoneId", "Use an IANA time zone, e.g. Europe/Paris")
         }
         if (postUrl.isNotBlank() && !postUrl.trim().isValidHttpUrl()) {
             put("postUrl", "Enter an http(s) URL or leave blank")
@@ -51,6 +56,7 @@ internal data class TribuneDraft(
         color = requireNotNull(parseHexColor(color)) { "Invalid color" },
         backendUrl = backendUrl.trim(),
         format = format,
+        timeZoneId = timeZoneId.trim(),
         postUrl = postUrl.trim().takeIf { it.isNotEmpty() },
         postField = postField.trim().ifBlank { "message" },
         userAgent = userAgent.trim(),
@@ -65,6 +71,7 @@ internal data class TribuneDraft(
             color = tribune.color.toHexColor(),
             backendUrl = tribune.backendUrl,
             format = tribune.format,
+            timeZoneId = tribune.timeZoneId,
             postUrl = tribune.postUrl.orEmpty(),
             postField = tribune.postField,
             userAgent = tribune.userAgent,
@@ -153,3 +160,6 @@ internal fun Long.toHexColor(): String =
     String.format(Locale.US, "#%06X", this and 0xFFFFFFL)
 
 internal fun String.isValidHttpUrl(): Boolean = trim().toHttpUrlOrNull() != null
+
+internal fun String.isValidTimeZone(): Boolean =
+    isNotBlank() && runCatching { ZoneId.of(trim()) }.isSuccess

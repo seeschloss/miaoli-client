@@ -7,6 +7,7 @@ object Tribunes {
         color = 0xFFFDE096,
         backendUrl = "https://moules.org/board/last.php?backend=tsv",
         format = FeedFormat.TSV,
+        timeZoneId = "Europe/Paris",
     )
 
     val linuxfr = Tribune(
@@ -15,6 +16,7 @@ object Tribunes {
         color = 0xFF67C6F2,
         backendUrl = "https://linuxfr.org/board/index.xml",
         format = FeedFormat.XML_HTML_ESCAPED,
+        timeZoneId = "Europe/Paris",
     )
 
     /**
@@ -30,6 +32,7 @@ object Tribunes {
         color = 0xFFB8E0C2,
         backendUrl = "https://miaoli.im/@See/+6QbxZZANv8/posts.tsv",
         format = FeedFormat.TSV,
+        timeZoneId = "UTC",
         postUrl = "https://miaoli.im/@See/+6QbxZZANv8",
         postField = "message",
         showInFeed = false,
@@ -37,4 +40,11 @@ object Tribunes {
 
     /** All built-in tribunes, including post-only tribunes. */
     val defaults = listOf(moules, linuxfr, nativeTest)
+
+    /**
+     * Time zone to use when loading a saved configuration from before
+     * per-tribune time zones existed. Unknown tribunes default to UTC.
+     */
+    fun defaultTimeZoneFor(id: String): String =
+        defaults.firstOrNull { it.id == id }?.timeZoneId ?: Tribune.DEFAULT_TIME_ZONE
 }

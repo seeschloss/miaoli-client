@@ -574,6 +574,15 @@ private fun PostRow(post: Post) {
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
             )
+            val utcClock = post.utcClock
+            if (utcClock != null && utcClock != post.clock) {
+                Text(
+                    text = "${utcClock}Z",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
             Text(
                 text = post.author,
                 style = MaterialTheme.typography.labelSmall,

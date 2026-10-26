@@ -19,6 +19,7 @@ class ConfigurationDraftTest {
                 color = 0xFFFDE096,
                 backendUrl = "https://example.test/a",
                 format = FeedFormat.TSV,
+                timeZoneId = "Europe/Paris",
             ),
             Tribune(
                 id = "b",
@@ -64,6 +65,21 @@ class ConfigurationDraftTest {
 
         assertFalse(result.isValid)
         assertNotNull(result.tribuneErrors["a"]?.get("backendUrl"))
+    }
+
+    @Test
+    fun rejectsInvalidTimeZone() {
+        val result = draftWith { it.copy(timeZoneId = "Mars/Olympus_Mons") }.validate()
+
+        assertFalse(result.isValid)
+        assertNotNull(result.tribuneErrors["a"]?.get("timeZoneId"))
+    }
+
+    @Test
+    fun acceptsUtcAndIanaTimeZones() {
+        assertTrue("UTC".isValidTimeZone())
+        assertTrue("Europe/Paris".isValidTimeZone())
+        assertFalse("not a time zone".isValidTimeZone())
     }
 
     @Test

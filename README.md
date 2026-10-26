@@ -5,13 +5,16 @@ A native Android client for [tribune](https://github.com/seeschloss/miaoli) chat
 This is a from-scratch Kotlin rewrite of the old React Native client. By default it
 shows one merged feed from two tribunes:
 
-| Tribune | Color | Backend |
-| --- | --- | --- |
-| Moules | `#FDE096` | `https://moules.org/board/last.php?backend=tsv` (TSV) |
-| LinuxFR | `#67C6F2` | `https://linuxfr.org/board/index.xml` (XML) |
+| Tribune | Color | Time zone | Backend |
+| --- | --- | --- | --- |
+| Moules | `#FDE096` | `Europe/Paris` | `https://moules.org/board/last.php?backend=tsv` (TSV) |
+| LinuxFR | `#67C6F2` | `Europe/Paris` | `https://linuxfr.org/board/index.xml` (XML) |
 
-Messages are merged by server timestamp and each row is colored according to its
-tribune. The feed refreshes every 30 seconds while the app is in the foreground.
+Server timestamps are interpreted in each tribune's configured time zone and
+messages are merged by their absolute UTC instant, so sources in different zones
+interleave correctly. Each row keeps the source tribune's local clock and shows a
+small UTC clock when the two differ. The feed refreshes every 30 seconds while the
+app is in the foreground.
 Use the menu button in the top bar to open the tribune pane and show or hide each
 source; disabled sources are greyed out.
 
@@ -22,6 +25,7 @@ bottom of the side pane. Each tribune can be edited independently:
 
 - title and color (`#RRGGBB`)
 - backend URL and feed format (TSV or HTML-escaped XML)
+- time zone (IANA ID, for example `Europe/Paris` or `UTC`)
 - optional post URL and form field name
 - user agent
 - optional cookie header

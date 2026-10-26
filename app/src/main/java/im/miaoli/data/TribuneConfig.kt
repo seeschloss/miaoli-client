@@ -1,5 +1,7 @@
 package im.miaoli.data
 
+import java.time.ZoneId
+
 /**
  * Persisted application configuration.
  *
@@ -29,6 +31,9 @@ data class TribuneConfig(
                 tribune.copy(
                     title = tribune.title.trim().ifBlank { tribune.id },
                     backendUrl = tribune.backendUrl.trim(),
+                    timeZoneId = tribune.timeZoneId.trim().takeIf { zone ->
+                        zone.isNotEmpty() && runCatching { ZoneId.of(zone) }.isSuccess
+                    } ?: Tribune.DEFAULT_TIME_ZONE,
                     postUrl = tribune.postUrl?.trim()?.takeIf { it.isNotEmpty() },
                     postField = tribune.postField.trim().ifBlank { "message" },
                     userAgent = tribune.userAgent

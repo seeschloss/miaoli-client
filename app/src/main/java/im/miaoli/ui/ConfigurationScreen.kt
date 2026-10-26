@@ -301,6 +301,18 @@ private fun TribuneConfigCard(
             }
 
             OutlinedTextField(
+                value = draft.timeZoneId,
+                onValueChange = { value -> onChange { it.copy(timeZoneId = value) } },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Time zone") },
+                placeholder = { Text("Europe/Paris") },
+                supportingText = errorSupportingText(errors["timeZoneId"])
+                    ?: { Text("IANA time zone used for this tribune's timestamps.") },
+                isError = errors["timeZoneId"] != null,
+                singleLine = true,
+            )
+
+            OutlinedTextField(
                 value = draft.postUrl,
                 onValueChange = { value -> onChange { it.copy(postUrl = value) } },
                 modifier = Modifier.fillMaxWidth(),

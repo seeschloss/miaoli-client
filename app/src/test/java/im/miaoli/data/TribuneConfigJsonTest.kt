@@ -15,6 +15,7 @@ class TribuneConfigJsonTest {
                     color = 0xFFFDE096,
                     backendUrl = "https://example.test/a",
                     format = FeedFormat.TSV,
+                    timeZoneId = "Europe/Paris",
                     postUrl = "https://example.test/post",
                     postField = "message",
                     userAgent = "Test/1.0",
@@ -61,6 +62,7 @@ class TribuneConfigJsonTest {
                   "color": 4294951062,
                   "backendUrl": " https://example.test/a ",
                   "format": "TSV",
+                  "timeZoneId": " Europe/Paris ",
                   "postUrl": "",
                   "postField": "",
                   "userAgent": "",
@@ -76,9 +78,66 @@ class TribuneConfigJsonTest {
         val tribune = decoded.tribunes.single()
         assertEquals("A", tribune.title)
         assertEquals("https://example.test/a", tribune.backendUrl)
+        assertEquals("Europe/Paris", tribune.timeZoneId)
         assertNull(tribune.postUrl)
         assertEquals("message", tribune.postField)
         assertEquals(Tribune.DEFAULT_USER_AGENT, tribune.userAgent)
         assertEquals("x", tribune.cookie)
+    }
+
+    @Test
+    fun defaultsMissingTimeZoneForBuiltInTribunes() {
+        val decoded = TribuneConfigJson.decode(
+            """
+            {
+              "pollingSeconds": 30,
+              "tribunes": [
+                {
+                  "id": "moules",
+                  "title": "Moules",
+                  "color": 4294951062,
+                  "backendUrl": "https://moules.org/board/last.php?backend=tsv",
+                  "format": "TSV"
+                },
+                {
+                  "id": "custom",
+                  "title": "Custom",
+                  "color": 4289374344,
+                  "backendUrl": "https://example.test/feed",
+                  "format": "TSV"
+                }
+              ]
+            }
+            """.trimIndent(),
+        )
+
+        assertEquals(
+            "Europe/Paris",
+            decoded.tribunes.first { it.id == "moules" }.timeZoneId,
+        )
+        assertEquals("UTC", decoded.tribunes.first { it.id == "custom" }.timeZoneId)
+    }
+
+    @Test
+    fun replacesInvalidStoredTimeZoneWithUtc() {
+        val decoded = TribuneConfigJson.decode(
+            """
+            {
+              "pollingSeconds": 30,
+              "tribunes": [
+                {
+                  "id": "custom",
+                  "title": "Custom",
+                  "color": 4289374344,
+                  "backendUrl": "https://example.test/feed",
+                  "format": "TSV",
+                  "timeZoneId": "Mars/Olympus_Mons"
+                }
+              ]
+            }
+            """.trimIndent(),
+        )
+
+        assertEquals("UTC", decoded.tribunes.single().timeZoneId)
     }
 }

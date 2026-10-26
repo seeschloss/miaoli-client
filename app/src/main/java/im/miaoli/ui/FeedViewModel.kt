@@ -84,11 +84,14 @@ class FeedViewModel(
 
             current.copy(
                 config = normalized,
-                posts = current.posts
-                    .filterNot { it.tribune.id in changedSources }
-                    .mapNotNull { post ->
-                        tribunesById[post.tribune.id]?.let { post.copy(tribune = it) }
-                    },
+                posts = PostMerger.merge(
+                    existing = current.posts
+                        .filterNot { it.tribune.id in changedSources }
+                        .mapNotNull { post ->
+                            tribunesById[post.tribune.id]?.let { post.withTribune(it) }
+                        },
+                    incoming = emptyList(),
+                ),
                 enabledTribuneIds = (current.enabledTribuneIds intersect newFeedIds) +
                     (newFeedIds - previousFeedIds),
                 selectedTribuneId = normalized.postableTribunes
@@ -188,7 +191,7 @@ class FeedViewModel(
                 }
 
                 val incoming = result.posts.mapNotNull { post ->
-                    currentTribuneFor(post.tribune)?.let { post.copy(tribune = it) }
+                    currentTribuneFor(post.tribune)?.let { post.withTribune(it) }
                 }
                 val errors = result.errors.mapNotNull { (fetched, message) ->
                     currentTribuneFor(fetched)?.let { it.title to message }
