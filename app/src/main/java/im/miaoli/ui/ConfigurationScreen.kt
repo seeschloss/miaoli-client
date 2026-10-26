@@ -24,7 +24,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,7 +34,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,7 +49,6 @@ import im.miaoli.data.FeedFormat
 import im.miaoli.data.Tribune
 import im.miaoli.data.TribuneConfig
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeedSettingsScreen(
     config: TribuneConfig,
@@ -76,7 +73,7 @@ fun FeedSettingsScreen(
             .fillMaxSize()
             .imePadding(),
         topBar = {
-            TopAppBar(
+            MiaoliTopAppBar(
                 title = { Text("Feed settings") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -155,7 +152,6 @@ fun FeedSettingsScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TribuneConfigurationScreen(
     config: TribuneConfig,
@@ -176,7 +172,6 @@ fun TribuneConfigurationScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TribuneConfigurationContent(
     config: TribuneConfig,
@@ -220,7 +215,7 @@ private fun TribuneConfigurationContent(
             .fillMaxSize()
             .imePadding(),
         topBar = {
-            TopAppBar(
+            MiaoliTopAppBar(
                 title = { Text("Tribune settings") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -289,7 +284,6 @@ private fun TribuneConfigurationContent(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MissingTribuneScreen(onBack: () -> Unit) {
     BackHandler { onBack() }
@@ -297,7 +291,7 @@ private fun MissingTribuneScreen(onBack: () -> Unit) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
+            MiaoliTopAppBar(
                 title = { Text("Tribune settings") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
