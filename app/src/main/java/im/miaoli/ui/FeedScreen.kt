@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +20,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -42,7 +45,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -56,7 +58,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -84,7 +85,6 @@ import im.miaoli.data.Post
 import im.miaoli.data.Tribune
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeedScreen(
     state: FeedUiState,
@@ -151,7 +151,7 @@ fun FeedScreen(
                 .fillMaxSize()
                 .imePadding(),
             topBar = {
-                TopAppBar(
+                MiaoliTopAppBar(
                     title = { Text("Miaoli") },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
@@ -285,10 +285,17 @@ private fun TribunesDrawer(
     onClose: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-    ModalDrawerSheet(modifier = Modifier.width(300.dp)) {
+    val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    ModalDrawerSheet(
+        modifier = Modifier
+            .width(300.dp)
+            .padding(top = statusBarTop),
+        windowInsets = WindowInsets(0, 0, 0, 0),
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxHeight()
+                .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(vertical = 8.dp),
         ) {
