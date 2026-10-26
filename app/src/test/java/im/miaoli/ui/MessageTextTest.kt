@@ -122,4 +122,22 @@ class MessageTextTest {
             rendered.spanStyles.map { TextRange(it.start, it.end) },
         )
     }
+
+    @Test
+    fun stylesLinksAndClocksWithTheSameColor() {
+        val text = "[url] at 12:34:56"
+        val builder = AnnotatedString.Builder(text)
+        builder.addLink(LinkAnnotation.Url("https://example.org"), 0, 5)
+
+        val rendered = highlightClocks(
+            highlightLinks(builder.toAnnotatedString(), Color.Red),
+            Color.Red,
+        )
+
+        assertEquals(
+            listOf(TextRange(0, 5), TextRange(9, 17)),
+            rendered.spanStyles.map { TextRange(it.start, it.end) },
+        )
+        assertTrue(rendered.spanStyles.all { it.item.color == Color.Red })
+    }
 }

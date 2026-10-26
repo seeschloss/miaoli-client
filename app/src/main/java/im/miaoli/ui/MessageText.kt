@@ -19,11 +19,24 @@ private val CLOCK_PATTERN = Regex(
     """(?<![\p{L}\p{N}_/:.-])(?:(?:${DATE_PATTERN} )?${TIME_PATTERN}${SUFFIX_PATTERN})(?![\p{L}\p{N}_:/.-])""",
 )
 
-/** Renders a message, colouring clock references the same way as links. */
-internal fun renderMessage(message: String, clockColor: Color): AnnotatedString {
+/** Renders a message, colouring links and clock references with [linkColor]. */
+internal fun renderMessage(message: String, linkColor: Color): AnnotatedString {
     val parsed = runCatching { AnnotatedString.fromHtml(message) }
         .getOrElse { AnnotatedString(message) }
-    return highlightClocks(parsed, clockColor)
+    return highlightClocks(highlightLinks(parsed, linkColor), linkColor)
+}
+
+/** Applies [color] to every link in [text]. */
+internal fun highlightLinks(text: AnnotatedString, color: Color): AnnotatedString {
+    val ranges = text.getLinkAnnotations(0, text.length)
+        .map { TextRange(it.start, it.end) }
+    if (ranges.isEmpty()) return text
+
+    return AnnotatedString.Builder(text).apply {
+        ranges.forEach { range ->
+            addStyle(SpanStyle(color = color), range.start, range.end)
+        }
+    }.toAnnotatedString()
 }
 
 /** Applies [color] to every clock reference that is not part of a link. */

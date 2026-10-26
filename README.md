@@ -20,8 +20,8 @@ foreground.
 
 App surfaces and text follow the system light or dark theme, including the
 status bar icons. Tribune row backgrounds keep their configured colours; message
-text switches between black and white, and link/clock accents use the readable
-blue variant, so they stay legible on those colours.
+text switches between black and white, and links and clock references share the
+readable blue variant that contrasts with each row's colour.
 
 Use the menu button in the top bar to open the tribune pane. Each row has a switch
 for showing or hiding that source in the current session and a pencil icon for its
