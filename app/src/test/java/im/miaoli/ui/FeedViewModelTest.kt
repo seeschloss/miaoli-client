@@ -59,6 +59,38 @@ class FeedViewModelTest {
     }
 
     @Test
+    fun appendsClockToDraftWithSeparator() {
+        viewModel.updateDraft("hello")
+
+        viewModel.appendToDraft("12:34:56 ")
+
+        assertEquals("hello 12:34:56 ", viewModel.state.value.draft)
+    }
+
+    @Test
+    fun appendsClockWithoutExtraSeparatorAfterWhitespace() {
+        viewModel.updateDraft("hello ")
+
+        viewModel.appendToDraft("12:34:56 ")
+
+        assertEquals("hello 12:34:56 ", viewModel.state.value.draft)
+    }
+
+    @Test
+    fun appendsClockToEmptyDraft() {
+        viewModel.appendToDraft("12:34:56 ")
+
+        assertEquals("12:34:56 ", viewModel.state.value.draft)
+    }
+
+    @Test
+    fun selectsReadOnlyTribuneAsComposerTarget() {
+        viewModel.selectTribune("a")
+
+        assertEquals("a", viewModel.state.value.selectedTribuneId)
+    }
+
+    @Test
     fun saveConfigAddsNewlyVisibleTribuneToEnabledSet() {
         val third = Tribune(
             id = "c",

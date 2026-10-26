@@ -20,6 +20,11 @@ for showing or hiding that source in the current session and a pencil icon for i
 configuration page. Disabled sources are greyed out, and tribunes hidden from the
 feed remain listed so they can be configured or re-enabled.
 
+Tap any message to append its tribune-local clock to the composer, switch the
+composer target to that message's tribune, and focus the message field. If the
+origin tribune has no post URL, the composer shows it as read-only; choose a
+postable tribune to send.
+
 ## Configuration
 
 Open the side pane and tap the pencil next to a tribune to edit that tribune's
@@ -103,5 +108,5 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ## Not implemented yet
 
-Clocks/reference navigation, adding or removing tribunes, interactive login, and
-navigation between individual tribunes.
+Adding or removing tribunes, interactive login, and navigation between individual
+tribunes.

@@ -61,13 +61,17 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
@@ -88,6 +92,7 @@ fun FeedScreen(
     listState: LazyListState,
     onRefresh: () -> Unit,
     onDraftChange: (String) -> Unit,
+    onAppendDraft: (String) -> Unit,
     onSelectTribune: (String) -> Unit,
     onToggleTribune: (String) -> Unit,
     onOpenSettings: () -> Unit,
@@ -96,6 +101,9 @@ fun FeedScreen(
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val keyboard = LocalSoftwareKeyboardController.current
+    val composerFocusRequester = remember { FocusRequester() }
+    var composerFocusRequest by remember { mutableIntStateOf(0) }
     val enabledTribunes = state.feedTribunes.filter { it.id in state.enabledTribuneIds }
     val visiblePosts = state.posts.filter { it.tribune.id in state.enabledTribuneIds }
     val enabledTitles = enabledTribunes.mapTo(mutableSetOf()) { it.title }
@@ -105,6 +113,14 @@ fun FeedScreen(
     LaunchedEffect(newestKey) {
         if (newestKey != null && listState.firstVisibleItemIndex <= 1) {
             listState.animateScrollToItem(0)
+        }
+    }
+
+    LaunchedEffect(composerFocusRequest) {
+        if (composerFocusRequest > 0 && state.postableTribunes.isNotEmpty()) {
+            composerFocusRequester.requestFocus()
+            withFrameNanos { }
+            keyboard?.show()
         }
     }
 
@@ -170,6 +186,7 @@ fun FeedScreen(
                     PostComposer(
                         state = state,
                         tribunes = state.postableTribunes,
+                        focusRequester = composerFocusRequester,
                         onDraftChange = onDraftChange,
                         onSelectTribune = onSelectTribune,
                         onPost = onPost,
@@ -242,7 +259,16 @@ fun FeedScreen(
                                 items = visiblePosts,
                                 key = { post -> post.key },
                             ) { post ->
-                                PostRow(post)
+                                PostRow(
+                                    post = post,
+                                    onClick = {
+                                        if (!state.isPosting) {
+                                            onAppendDraft("${post.clock} ")
+                                            onSelectTribune(post.tribune.id)
+                                            composerFocusRequest++
+                                        }
+                                    },
+                                )
                             }
                         }
                     }
@@ -472,11 +498,15 @@ private fun ErrorBanner(
 private fun PostComposer(
     state: FeedUiState,
     tribunes: List<Tribune>,
+    focusRequester: FocusRequester,
     onDraftChange: (String) -> Unit,
     onSelectTribune: (String) -> Unit,
     onPost: () -> Unit,
 ) {
-    val selected = tribunes.firstOrNull { it.id == state.selectedTribuneId } ?: tribunes.first()
+    val selected = state.config.tribunes
+        .firstOrNull { it.id == state.selectedTribuneId }
+        ?: tribunes.first()
+    val canPost = selected.canPost
     val keyboard = LocalSoftwareKeyboardController.current
     var expanded by remember { mutableStateOf(false) }
 
@@ -494,6 +524,15 @@ private fun PostComposer(
                 Text(
                     text = state.postError,
                     color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                )
+            }
+
+            if (!canPost) {
+                Text(
+                    text = "${selected.title} is read-only. Choose a postable tribune to send.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
                 )
@@ -553,16 +592,22 @@ private fun PostComposer(
                 OutlinedTextField(
                     value = state.draft,
                     onValueChange = onDraftChange,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .focusRequester(focusRequester),
                     placeholder = { Text("Message") },
                     maxLines = 4,
                     enabled = !state.isPosting,
                     shape = RoundedCornerShape(24.dp),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardOptions = KeyboardOptions(
+                        imeAction = if (canPost) ImeAction.Send else ImeAction.Default,
+                    ),
                     keyboardActions = KeyboardActions(
                         onSend = {
-                            keyboard?.hide()
-                            onPost()
+                            if (canPost) {
+                                keyboard?.hide()
+                                onPost()
+                            }
                         },
                     ),
                 )
@@ -571,10 +616,12 @@ private fun PostComposer(
 
                 FilledIconButton(
                     onClick = {
-                        keyboard?.hide()
-                        onPost()
+                        if (canPost) {
+                            keyboard?.hide()
+                            onPost()
+                        }
                     },
-                    enabled = state.draft.isNotBlank() && !state.isPosting,
+                    enabled = canPost && state.draft.isNotBlank() && !state.isPosting,
                 ) {
                     if (state.isPosting) {
                         CircularProgressIndicator(
@@ -594,7 +641,10 @@ private fun PostComposer(
 }
 
 @Composable
-private fun PostRow(post: Post) {
+private fun PostRow(
+    post: Post,
+    onClick: () -> Unit,
+) {
     val tribuneColor = Color(post.tribune.color)
     val message = remember(post.message) { renderMessage(post.message) }
 
@@ -603,7 +653,11 @@ private fun PostRow(post: Post) {
             .fillMaxWidth()
             .height(IntrinsicSize.Min)
             .clip(RoundedCornerShape(12.dp))
-            .background(tribuneColor),
+            .background(tribuneColor)
+            .clickable(
+                onClickLabel = "Insert ${post.clock} and reply to ${post.tribune.title}",
+                onClick = onClick,
+            ),
     ) {
         Column(
             modifier = Modifier

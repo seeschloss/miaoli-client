@@ -43,9 +43,33 @@ class FeedViewModel(
         _state.update { it.copy(draft = text, postError = null) }
     }
 
+    /**
+     * Appends text such as a message clock to the draft, keeping a single
+     * separating space when the existing draft does not already end in one.
+     */
+    fun appendToDraft(text: String) {
+        if (text.isEmpty()) return
+
+        _state.update { current ->
+            val needsSeparator = current.draft.isNotEmpty() &&
+                !current.draft.last().isWhitespace() &&
+                !text.first().isWhitespace()
+            val separator = if (needsSeparator) " " else ""
+            current.copy(
+                draft = current.draft + separator + text,
+                postError = null,
+            )
+        }
+    }
+
+    /**
+     * Selects a configured tribune as the composer target. This also permits
+     * read-only tribunes so tapping one of their messages can show that
+     * tribune as the origin; the composer disables sending in that case.
+     */
     fun selectTribune(id: String) {
-        if (_state.value.config.postableTribunes.any { it.id == id }) {
-            _state.update { it.copy(selectedTribuneId = id) }
+        if (_state.value.config.tribunes.any { it.id == id }) {
+            _state.update { it.copy(selectedTribuneId = id, postError = null) }
         }
     }
 
@@ -113,7 +137,6 @@ class FeedViewModel(
 
         val tribune = current.postableTribunes
             .firstOrNull { it.id == current.selectedTribuneId }
-            ?: current.postableTribunes.firstOrNull()
             ?: return
 
         viewModelScope.launch {
