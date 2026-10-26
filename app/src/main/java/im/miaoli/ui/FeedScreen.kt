@@ -645,7 +645,8 @@ private fun PostRow(
     onClick: () -> Unit,
 ) {
     val tribuneColor = Color(post.tribune.color)
-    val linkColor = MaterialTheme.colorScheme.primary
+    val messageColor = readableTextColor(tribuneColor)
+    val linkColor = readableLinkColor(tribuneColor)
     val message = remember(post.message, linkColor) {
         renderMessage(post.message, clockColor = linkColor)
     }
@@ -673,6 +674,7 @@ private fun PostRow(
                 text = post.clock,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 softWrap = false,
             )
@@ -694,7 +696,7 @@ private fun PostRow(
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF1A1A1A),
+                color = messageColor,
             )
         }
     }
