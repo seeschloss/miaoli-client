@@ -75,9 +75,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.fromHtml
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
@@ -632,7 +630,10 @@ private fun PostRow(
     onClick: () -> Unit,
 ) {
     val tribuneColor = Color(post.tribune.color)
-    val message = remember(post.message) { renderMessage(post.message) }
+    val linkColor = MaterialTheme.colorScheme.primary
+    val message = remember(post.message, linkColor) {
+        renderMessage(post.message, clockColor = linkColor)
+    }
 
     Row(
         modifier = Modifier
@@ -683,7 +684,3 @@ private fun PostRow(
         }
     }
 }
-
-private fun renderMessage(message: String): AnnotatedString =
-    runCatching { AnnotatedString.fromHtml(message) }
-        .getOrElse { AnnotatedString(message) }
