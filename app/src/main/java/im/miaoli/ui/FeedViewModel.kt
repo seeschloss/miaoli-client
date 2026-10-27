@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import im.miaoli.data.FeedDataSource
 import im.miaoli.data.FeedRepository
 import im.miaoli.data.PostMerger
 import im.miaoli.data.Tribune
@@ -22,10 +23,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class FeedViewModel(
     private val configStore: TribuneConfigStore,
-    private val repository: FeedRepository = FeedRepository(),
+    private val repository: FeedDataSource = FeedRepository(),
 ) : ViewModel() {
     private val initialConfig = configStore.load().normalized()
     private val _state = MutableStateFlow(
@@ -102,13 +104,18 @@ class FeedViewModel(
     fun toggleTribune(id: Long) {
         val current = _state.value
         val tribune = current.config.tribunes.firstOrNull { it.id == id } ?: return
+        val enabled = !tribune.enabled
         val updatedConfig = current.config.copy(
             tribunes = current.config.tribunes.map {
-                if (it.id == tribune.id) it.copy(enabled = !it.enabled) else it
+                if (it.id == tribune.id) it.copy(enabled = enabled) else it
             },
         )
         configStore.save(updatedConfig)
         _state.update { it.copy(config = updatedConfig) }
+
+        if (enabled) {
+            viewModelScope.launch { reloadTribune(tribune.id) }
+        }
     }
 
     /**
@@ -241,6 +248,68 @@ class FeedViewModel(
         if (manualRefresh?.isActive == true) return
         manualRefresh = viewModelScope.launch {
             refresh(initial = false, showSpinner = true)
+        }
+    }
+
+    /**
+     * Fetches one just-enabled tribune so its messages appear without waiting
+     * for the next scheduled poll.
+     */
+    private suspend fun reloadTribune(id: Long) {
+        refreshMutex.withLock {
+            val tribune = _state.value.config.tribunes
+                .firstOrNull { it.id == id }
+                ?.takeIf { it.enabled }
+                ?: return@withLock
+
+            try {
+                val result = repository.fetch(listOf(tribune))
+                _state.update { current ->
+                    val currentTribune = current.config.tribunes
+                        .firstOrNull { it.id == id }
+                    if (currentTribune == null ||
+                        !currentTribune.enabled ||
+                        currentTribune.backendUrl != tribune.backendUrl ||
+                        currentTribune.format != tribune.format
+                    ) {
+                        return@update current
+                    }
+
+                    val incoming = result.posts.mapNotNull { post ->
+                        if (post.tribune.backendUrl == tribune.backendUrl &&
+                            post.tribune.format == tribune.format
+                        ) {
+                            post.withTribune(currentTribune)
+                        } else {
+                            null
+                        }
+                    }
+                    val errors = current.errors.toMutableMap()
+                    errors.remove(currentTribune.title)
+                    result.errors[tribune]?.let { message ->
+                        errors[currentTribune.title] = message
+                    }
+
+                    current.copy(
+                        posts = PostMerger.merge(current.posts, incoming),
+                        errors = errors,
+                    )
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                _state.update { current ->
+                    val currentTribune = current.config.tribunes
+                        .firstOrNull { it.id == id }
+                        ?: return@update current
+                    current.copy(
+                        errors = current.errors + (
+                            currentTribune.title to
+                                (error.message ?: "Unknown error")
+                            ),
+                    )
+                }
+            }
         }
     }
 

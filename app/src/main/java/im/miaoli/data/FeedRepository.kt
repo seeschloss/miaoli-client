@@ -22,14 +22,19 @@ data class PostReceipt(
     val postId: String? = null,
 )
 
+interface FeedDataSource {
+    suspend fun fetch(tribunes: List<Tribune>): FetchResult
+    suspend fun post(tribune: Tribune, message: String): PostReceipt
+}
+
 class FeedRepository(
     private val client: OkHttpClient = defaultClient(),
     private val parsers: Map<FeedFormat, FeedParser> = mapOf(
         FeedFormat.TSV to TsvFeedParser(),
         FeedFormat.XML_HTML_ESCAPED to XmlFeedParser(),
     ),
-) {
-    suspend fun fetch(tribunes: List<Tribune>): FetchResult = coroutineScope {
+) : FeedDataSource {
+    override suspend fun fetch(tribunes: List<Tribune>): FetchResult = coroutineScope {
         val results = tribunes
             .map { tribune ->
                 async(Dispatchers.IO) {
@@ -74,7 +79,7 @@ class FeedRepository(
      * header. A non-2xx response is reported as an [IOException]. The tribune
      * may return the new post's ID in the `X-Post-Id` response header.
      */
-    suspend fun post(tribune: Tribune, message: String): PostReceipt =
+    override suspend fun post(tribune: Tribune, message: String): PostReceipt =
         withContext(Dispatchers.IO) {
             val url = tribune.postUrl?.takeIf { it.isNotBlank() }
                 ?: throw IllegalArgumentException("${tribune.title} does not support posting")
