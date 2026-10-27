@@ -95,7 +95,7 @@ class FeedRepository(
                 .url(url)
                 .tribuneHeaders(tribune)
                 .postCookie(tribune)
-                .header("Accept", "application/json")
+                .header("Accept", "*/*")
                 .header("Referer", tribune.backendUrl)
                 .post(form)
                 .build()
