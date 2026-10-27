@@ -6,8 +6,8 @@ import java.time.ZoneId
  * Persisted application configuration.
  *
  * [tribunes] contains every configured tribune, including post-only entries
- * such as the default Sikfart target. [feedTribunes] and [postableTribunes]
- * expose the subsets used by the feed and composer.
+ * such as the default Miaoli Android target. [feedTribunes] and
+ * [postableTribunes] expose the subsets used by the feed and composer.
  */
 data class TribuneConfig(
     val tribunes: List<Tribune> = Tribunes.defaults,
@@ -19,6 +19,10 @@ data class TribuneConfig(
     val postableTribunes: List<Tribune>
         get() = tribunes.filter { it.canPost }
 
+    /** Returns an unused local numeric ID for a new tribune. */
+    fun nextTribuneId(): Long =
+        (tribunes.maxOfOrNull { it.id } ?: 0L) + 1L
+
     /**
      * Clamp and clean values loaded from storage or supplied by the UI. This
      * keeps a corrupt preference file from breaking the feed or posting.
@@ -26,10 +30,10 @@ data class TribuneConfig(
     fun normalized(): TribuneConfig = copy(
         pollingSeconds = pollingSeconds.coerceIn(MIN_POLLING_SECONDS, MAX_POLLING_SECONDS),
         tribunes = tribunes
-            .filter { it.id.isNotBlank() && it.backendUrl.isNotBlank() }
+            .filter { it.id > 0L && it.backendUrl.isNotBlank() }
             .map { tribune ->
                 tribune.copy(
-                    title = tribune.title.trim().ifBlank { tribune.id },
+                    title = tribune.title.trim().ifBlank { tribune.id.toString() },
                     backendUrl = tribune.backendUrl.trim(),
                     timeZoneId = tribune.timeZoneId.trim().takeIf { zone ->
                         zone.isNotEmpty() && runCatching { ZoneId.of(zone) }.isSuccess

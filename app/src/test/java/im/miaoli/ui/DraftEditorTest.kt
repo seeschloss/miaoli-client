@@ -11,14 +11,14 @@ import org.junit.Test
 
 class DraftEditorTest {
     private val moules = Tribune(
-        id = "moules",
+        id = 1L,
         title = "Moules",
         color = 0xFFFDE096,
         backendUrl = "https://example.test/moules",
         format = FeedFormat.TSV,
     )
     private val linuxfr = Tribune(
-        id = "linuxfr",
+        id = 2L,
         title = "LinuxFR",
         color = 0xFF67C6F2,
         backendUrl = "https://example.test/linuxfr",
@@ -41,7 +41,7 @@ class DraftEditorTest {
     private fun insert(
         current: DraftState,
         origin: Tribune,
-        destination: String,
+        destination: Long?,
         clock: String = "12:34:56",
     ): DraftState = DraftEditor.insertClock(
         current = current,

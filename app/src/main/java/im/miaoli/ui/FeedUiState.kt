@@ -10,9 +10,9 @@ data class FeedUiState(
     val isRefreshing: Boolean = false,
     val errors: Map<String, String> = emptyMap(),
     val config: TribuneConfig = TribuneConfig(),
-    val enabledTribuneIds: Set<String> = config.feedTribunes.map { it.id }.toSet(),
+    val enabledTribuneIds: Set<Long> = config.feedTribunes.map { it.id }.toSet(),
     val draft: DraftState = DraftState(),
-    val selectedTribuneId: String = "",
+    val selectedTribuneId: Long? = null,
     val isPosting: Boolean = false,
     val postError: String? = null,
     /** One-shot request to bring a newly sent post, or the bottom of the feed, into view. */

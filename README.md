@@ -9,6 +9,7 @@ shows one merged feed from two tribunes:
 | --- | --- | --- | --- |
 | Moules | `#FDE096` | `Europe/Paris` | `https://moules.org/board/last.php?backend=tsv` (TSV) |
 | LinuxFR | `#67C6F2` | `Europe/Paris` | `https://linuxfr.org/board/index.xml` (XML) |
+| Miaoli Android | `#B8E0C2` | `UTC` | `https://miaoli.im/@See/miaoli-android/posts.tsv` (TSV, post-capable, hidden from the feed by default) |
 
 Server timestamps are interpreted in each tribune's configured time zone and
 messages are merged by their absolute UTC instant, so sources in different zones
@@ -41,7 +42,9 @@ plain text.
 ## Configuration
 
 Open the side pane and tap the pencil next to a tribune to edit that tribune's
-own settings page. Each tribune can be configured independently:
+own settings page. **New tribune...** opens a blank page; saving it appends the
+tribune with a new local numeric ID and enables it in the feed. Each tribune can
+be configured independently:
 
 - title and color (`#RRGGBB`)
 - backend URL and feed format (TSV or HTML-escaped XML)
@@ -73,13 +76,12 @@ scrolls to the newest end of the feed. It currently targets this tribune on
 miaoli.im:
 
 ```text
-https://miaoli.im/@See/+6QbxZZANv8
+https://miaoli.im/@See/miaoli-android
 ```
 
-The default target is defined in `data/Tribunes.kt` (`Tribunes.nativeTest`) and
-can be changed from the configuration screen. It is deliberately hidden from the
-merged feed by default: the Moules and LinuxFR feeds are read-only and remain
-unchanged. Enable **Show in feed** for Sikfart if you want to see its posts too.
+The default target is defined in `data/Tribunes.kt` (`Tribunes.miaoliandroid`) and
+can be changed from the configuration screen. It is hidden from the merged feed
+by default: the Moules and LinuxFR feeds are read-only and remain unchanged.
 
 The request is an `application/x-www-form-urlencoded` POST using the configured
 form field (default `message`), `Accept: application/json`, the tribune's user

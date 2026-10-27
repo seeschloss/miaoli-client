@@ -11,7 +11,7 @@ import androidx.compose.ui.text.input.TextFieldValue
  * when an edit overlaps it.
  */
 data class DraftClock(
-    val originTribuneId: String,
+    val originTribuneId: Long,
     val clock: String,
     val text: String,
     val start: Int,

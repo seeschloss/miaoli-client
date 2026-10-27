@@ -10,7 +10,7 @@ class TribuneConfigJsonTest {
         val config = TribuneConfig(
             tribunes = listOf(
                 Tribune(
-                    id = "a",
+                    id = 1L,
                     title = "A",
                     color = 0xFFFDE096,
                     backendUrl = "https://example.test/a",
@@ -23,7 +23,7 @@ class TribuneConfigJsonTest {
                     showInFeed = true,
                 ),
                 Tribune(
-                    id = "b",
+                    id = 2L,
                     title = "B",
                     color = 0xFF67C6F2,
                     backendUrl = "https://example.test/b",
@@ -57,7 +57,7 @@ class TribuneConfigJsonTest {
               "pollingSeconds": 1,
               "tribunes": [
                 {
-                  "id": "a",
+                  "id": 4,
                   "title": "  A  ",
                   "color": 4294951062,
                   "backendUrl": " https://example.test/a ",
@@ -76,6 +76,7 @@ class TribuneConfigJsonTest {
 
         assertEquals(TribuneConfig.MIN_POLLING_SECONDS, decoded.pollingSeconds)
         val tribune = decoded.tribunes.single()
+        assertEquals(4L, tribune.id)
         assertEquals("A", tribune.title)
         assertEquals("https://example.test/a", tribune.backendUrl)
         assertEquals("Europe/Paris", tribune.timeZoneId)

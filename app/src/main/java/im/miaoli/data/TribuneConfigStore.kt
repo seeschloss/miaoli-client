@@ -79,8 +79,8 @@ internal object TribuneConfigJson {
         val tribunes = buildList {
             for (index in 0 until array.length()) {
                 val item = array.optJSONObject(index) ?: continue
-                val id = item.optString("id").trim()
-                if (id.isEmpty()) continue
+                val id = item.optLong("id")
+                if (id <= 0L) continue
 
                 val format = runCatching {
                     FeedFormat.valueOf(item.optString("format"))
@@ -89,7 +89,7 @@ internal object TribuneConfigJson {
                 add(
                     Tribune(
                         id = id,
-                        title = item.optString("title", id),
+                        title = item.optString("title", id.toString()),
                         color = item.optLong("color", 0xFF888888L),
                         backendUrl = item.optString("backendUrl"),
                         format = format,

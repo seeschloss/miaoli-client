@@ -72,7 +72,7 @@ internal object DraftEditor {
         current: DraftState,
         clock: String,
         origin: Tribune,
-        destinationId: String,
+        destinationId: Long?,
         config: TribuneConfig,
     ): DraftState {
         val oldValue = current.value
@@ -147,7 +147,7 @@ internal object DraftEditor {
      */
     fun rewriteClocks(
         current: DraftState,
-        destinationId: String,
+        destinationId: Long?,
         config: TribuneConfig,
     ): DraftState {
         if (current.clocks.isEmpty()) return current
@@ -319,15 +319,15 @@ internal object DraftEditor {
 
     private fun clockToken(
         clock: String,
-        originTribuneId: String,
-        destinationId: String,
+        originTribuneId: Long,
+        destinationId: Long?,
         config: TribuneConfig,
     ): String {
         if (destinationId == originTribuneId) return clock
         val title = config.tribunes
             .firstOrNull { it.id == originTribuneId }
             ?.title
-            ?: originTribuneId
+            ?: originTribuneId.toString()
         return "$clock@$title"
     }
 }

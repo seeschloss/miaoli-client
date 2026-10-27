@@ -132,17 +132,31 @@ fun FeedSettingsScreen(
 @Composable
 fun TribuneConfigurationScreen(
     config: TribuneConfig,
-    tribuneId: String,
+    tribuneId: Long,
     onBack: () -> Unit,
     onSave: (TribuneConfig) -> Unit,
+    isNew: Boolean = false,
 ) {
-    val tribune = config.tribunes.firstOrNull { it.id == tribuneId }
+    val tribune = if (isNew) {
+        Tribune(
+            id = tribuneId,
+            title = "",
+            color = Tribune.DEFAULT_NEW_COLOR,
+            backendUrl = "",
+            format = FeedFormat.TSV,
+            timeZoneId = Tribune.DEFAULT_TIME_ZONE,
+            showInFeed = true,
+        )
+    } else {
+        config.tribunes.firstOrNull { it.id == tribuneId }
+    }
     if (tribune == null) {
         MissingTribuneScreen(onBack = onBack)
     } else {
         TribuneConfigurationContent(
             config = config,
             tribune = tribune,
+            isNew = isNew,
             onBack = onBack,
             onSave = onSave,
         )
@@ -153,6 +167,7 @@ fun TribuneConfigurationScreen(
 private fun TribuneConfigurationContent(
     config: TribuneConfig,
     tribune: Tribune,
+    isNew: Boolean,
     onBack: () -> Unit,
     onSave: (TribuneConfig) -> Unit,
 ) {
@@ -165,11 +180,16 @@ private fun TribuneConfigurationContent(
     }
 
     fun save() {
+        val existingDrafts = config.tribunes.map { existing ->
+            if (!isNew && existing.id == tribune.id) {
+                draft
+            } else {
+                TribuneDraft.from(existing)
+            }
+        }
         val fullDraft = ConfigurationDraft(
             pollingSeconds = config.pollingSeconds.toString(),
-            tribunes = config.tribunes.map { existing ->
-                if (existing.id == tribune.id) draft else TribuneDraft.from(existing)
-            },
+            tribunes = if (isNew) existingDrafts + draft else existingDrafts,
         )
         val tribuneErrors = fullDraft.validate().tribuneErrors[tribune.id].orEmpty()
         errors = tribuneErrors
@@ -177,8 +197,12 @@ private fun TribuneConfigurationContent(
             val updated = draft.toTribune()
             onSave(
                 config.copy(
-                    tribunes = config.tribunes.map { existing ->
-                        if (existing.id == tribune.id) updated else existing
+                    tribunes = if (isNew) {
+                        config.tribunes + updated
+                    } else {
+                        config.tribunes.map { existing ->
+                            if (existing.id == tribune.id) updated else existing
+                        }
                     },
                 ),
             )
@@ -193,7 +217,7 @@ private fun TribuneConfigurationContent(
             .imePadding(),
         topBar = {
             MiaoliTopAppBar(
-                title = { Text("Tribune settings") },
+                title = { Text(if (isNew) "New tribune" else "Tribune settings") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
