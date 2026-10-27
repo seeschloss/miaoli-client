@@ -5,6 +5,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.TextRange
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -142,6 +143,14 @@ class MessageTextTest {
 
         assertEquals("12:34:56@Miaoli", reference.text)
         assertEquals("Miaoli", reference.tribuneTitle)
+    }
+
+    @Test
+    fun cachesRenderedMessagesByMessageAndColor() {
+        val first = renderedMessage("at 12:34:56 now", Color.Red)
+        val second = renderedMessage("at 12:34:56 now", Color.Red)
+
+        assertSame(first, second)
     }
 
     @Test

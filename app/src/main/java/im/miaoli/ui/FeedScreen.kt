@@ -132,13 +132,23 @@ fun FeedScreen(
     var selectedPostKey by remember { mutableStateOf<String?>(null) }
     var filteredPostKeys by remember { mutableStateOf<Set<String>?>(null) }
     val enabledTribunes = state.feedTribunes
-    val enabledTribuneIds = enabledTribunes.mapTo(mutableSetOf()) { it.id }
-    val visiblePosts = state.posts.filter { it.tribune.id in enabledTribuneIds }
-    val displayedPosts = filteredPostKeys?.let { keys ->
-        visiblePosts.filter { it.key in keys }
-    } ?: visiblePosts
-    val enabledTitles = enabledTribunes.mapTo(mutableSetOf()) { it.title }
-    val visibleErrors = state.errors.filterKeys { it == "Feed" || it in enabledTitles }
+    val enabledTribuneIds = remember(enabledTribunes) {
+        enabledTribunes.mapTo(mutableSetOf()) { it.id }
+    }
+    val visiblePosts = remember(state.posts, enabledTribuneIds) {
+        state.posts.filter { it.tribune.id in enabledTribuneIds }
+    }
+    val displayedPosts = remember(visiblePosts, filteredPostKeys) {
+        filteredPostKeys?.let { keys ->
+            visiblePosts.filter { it.key in keys }
+        } ?: visiblePosts
+    }
+    val enabledTitles = remember(enabledTribunes) {
+        enabledTribunes.mapTo(mutableSetOf()) { it.title }
+    }
+    val visibleErrors = remember(state.errors, enabledTitles) {
+        state.errors.filterKeys { it == "Feed" || it in enabledTitles }
+    }
     val newestVisibleKey = visiblePosts.firstOrNull()?.key
     val latestDisplayedPosts by rememberUpdatedState(displayedPosts)
     val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
@@ -804,15 +814,11 @@ private fun PostRow(
     val latestOnClockClick by rememberUpdatedState(onClockClick)
     val latestOnClockLongClick by rememberUpdatedState(onClockLongClick)
     var textLayout by remember { mutableStateOf<TextLayoutResult?>(null) }
-    val message = remember(post.message, linkColor) {
-        renderMessage(post.message, linkColor = linkColor)
+    val rendered = remember(post.message, linkColor) {
+        renderedMessage(post.message, linkColor)
     }
-    val clockRefs = remember(message) {
-        clockReferences(message.text)
-            .filterNot { reference ->
-                message.hasLinkAnnotations(reference.start, reference.end)
-            }
-    }
+    val message = rendered.text
+    val clockRefs = rendered.clockReferences
 
     Row(
         modifier = Modifier
