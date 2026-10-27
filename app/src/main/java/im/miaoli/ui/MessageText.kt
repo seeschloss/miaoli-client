@@ -30,11 +30,54 @@ internal data class ClockReference(
     val end: Int,
 )
 
-/** Renders a message, colouring links and clock references with [linkColor]. */
-internal fun renderMessage(message: String, linkColor: Color): AnnotatedString {
-    val parsed = parseMessage(message)
-    return highlightClocks(highlightLinks(parsed, linkColor), linkColor)
+/** A styled message and its non-link clock references. */
+internal data class RenderedMessage(
+    val text: AnnotatedString,
+    val clockReferences: List<ClockReference>,
+)
+
+private data class MessageRenderKey(
+    val message: String,
+    val linkColor: Color,
+)
+
+private const val RENDER_CACHE_SIZE = 256
+private val renderCacheLock = Any()
+private val renderCache = object : LinkedHashMap<MessageRenderKey, RenderedMessage>(
+    RENDER_CACHE_SIZE,
+    0.75f,
+    true,
+) {
+    override fun removeEldestEntry(
+        eldest: MutableMap.MutableEntry<MessageRenderKey, RenderedMessage>,
+    ): Boolean = size > RENDER_CACHE_SIZE
 }
+
+/** Returns a cached styled message and its clock references. */
+internal fun renderedMessage(message: String, linkColor: Color): RenderedMessage {
+    val key = MessageRenderKey(message, linkColor)
+    synchronized(renderCacheLock) {
+        renderCache[key]?.let { return it }
+    }
+
+    val parsed = parseMessage(message)
+    val styled = highlightClocks(highlightLinks(parsed, linkColor), linkColor)
+    val result = RenderedMessage(
+        text = styled,
+        clockReferences = clockReferences(styled.text)
+            .filterNot { reference ->
+                styled.hasLinkAnnotations(reference.start, reference.end)
+            },
+    )
+    synchronized(renderCacheLock) {
+        renderCache[key] = result
+    }
+    return result
+}
+
+/** Renders a message, colouring links and clock references with [linkColor]. */
+internal fun renderMessage(message: String, linkColor: Color): AnnotatedString =
+    renderedMessage(message, linkColor).text
 
 /** Parses HTML markup in a message into its visible text. */
 internal fun parseMessage(message: String): AnnotatedString =
