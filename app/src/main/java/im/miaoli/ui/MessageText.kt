@@ -46,7 +46,7 @@ private data class MessageRenderKey(
     val linkColor: Color,
 )
 
-private const val RENDER_CACHE_SIZE = 600
+private const val RENDER_CACHE_SIZE = 5000
 private val renderCacheLock = Any()
 private val renderCache = object : LinkedHashMap<MessageRenderKey, RenderedMessage>(
     RENDER_CACHE_SIZE,

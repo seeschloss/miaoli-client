@@ -80,7 +80,7 @@ fun FeedSettingsScreen(
             .imePadding(),
         topBar = {
             MiaoliTopAppBar(
-                title = { Text(stringResource(R.string.feed_settings)) },
+                title = { Text(stringResource(R.string.global_settings)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
