@@ -5,6 +5,7 @@ import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -18,6 +19,9 @@ class FeedRepositoryPostTest {
 
     @Volatile
     private var responseCode = 200
+
+    @Volatile
+    private var responsePostId: String? = null
 
     @Volatile
     private var lastMethod = ""
@@ -58,6 +62,9 @@ class FeedRepositoryPostTest {
 
             val response = """{"posts":[]}""".toByteArray()
             exchange.responseHeaders.add("Content-Type", "application/json")
+            responsePostId?.let { postId ->
+                exchange.responseHeaders.add("x-post-id", postId)
+            }
             exchange.sendResponseHeaders(responseCode, response.size.toLong())
             exchange.responseBody.use { it.write(response) }
         }
@@ -90,6 +97,22 @@ class FeedRepositoryPostTest {
     }
 
     @Test
+    fun returnsPostIdHeader() = runBlocking {
+        responsePostId = " 62963 "
+
+        val receipt = repository.post(tribune(), "hello")
+
+        assertEquals("62963", receipt.postId)
+    }
+
+    @Test
+    fun returnsNullPostIdWhenHeaderIsMissing() = runBlocking {
+        val receipt = repository.post(tribune(), "hello")
+
+        assertNull(receipt.postId)
+    }
+
+    @Test
     fun sendsConfiguredUserAgentAndCookie() = runBlocking {
         repository.post(
             tribune().copy(
@@ -111,18 +134,18 @@ class FeedRepositoryPostTest {
     }
 
     @Test(expected = IOException::class)
-    fun throwsOnHttpError() = runBlocking {
+    fun throwsOnHttpError(): Unit = runBlocking {
         responseCode = 500
         repository.post(tribune(), "hello")
     }
 
     @Test(expected = IllegalArgumentException::class)
-    fun rejectsBlankMessage() = runBlocking {
+    fun rejectsBlankMessage(): Unit = runBlocking {
         repository.post(tribune(), "   ")
     }
 
     @Test(expected = IllegalArgumentException::class)
-    fun rejectsReadOnlyTribune() = runBlocking {
+    fun rejectsReadOnlyTribune(): Unit = runBlocking {
         repository.post(tribune().copy(postUrl = null), "hello")
     }
 

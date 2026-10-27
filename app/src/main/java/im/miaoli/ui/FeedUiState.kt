@@ -15,6 +15,8 @@ data class FeedUiState(
     val selectedTribuneId: String = "",
     val isPosting: Boolean = false,
     val postError: String? = null,
+    /** One-shot request to bring a newly sent post, or the bottom of the feed, into view. */
+    val scrollRequest: FeedScrollRequest? = null,
 ) {
     val feedTribunes: List<Tribune>
         get() = config.feedTribunes
@@ -22,3 +24,9 @@ data class FeedUiState(
     val postableTribunes: List<Tribune>
         get() = config.postableTribunes
 }
+
+data class FeedScrollRequest(
+    val id: Long,
+    /** Key of the post to reveal, or null to reveal the newest end of the feed. */
+    val postKey: String? = null,
+)

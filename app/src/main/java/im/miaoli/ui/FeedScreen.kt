@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -66,7 +67,9 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,6 +77,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -83,7 +87,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import im.miaoli.data.Post
 import im.miaoli.data.Tribune
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+
+private const val SCROLL_TARGET_TIMEOUT_MS = 2_000L
 
 @Composable
 fun FeedScreen(
@@ -97,6 +105,7 @@ fun FeedScreen(
     onOpenSettings: () -> Unit,
     onConfigureTribune: (String) -> Unit,
     onPost: () -> Unit,
+    onScrollRequestHandled: (Long) -> Unit,
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -108,11 +117,37 @@ fun FeedScreen(
     val enabledTitles = enabledTribunes.mapTo(mutableSetOf()) { it.title }
     val visibleErrors = state.errors.filterKeys { it == "Feed" || it in enabledTitles }
     val newestKey = visiblePosts.firstOrNull()?.key
+    val latestVisiblePosts by rememberUpdatedState(visiblePosts)
+    val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
 
     LaunchedEffect(newestKey) {
         if (newestKey != null && listState.firstVisibleItemIndex <= 1) {
             listState.animateScrollToItem(0)
         }
+    }
+
+    // A post can arrive while the keyboard is still hiding. Wait for the IME
+    // inset animation to finish so the final scroll uses the settled viewport.
+    LaunchedEffect(state.scrollRequest?.id, imeVisible) {
+        val request = state.scrollRequest ?: return@LaunchedEffect
+        if (imeVisible) return@LaunchedEffect
+
+        withFrameNanos { }
+
+        val targetIndex = if (request.postKey == null) {
+            0
+        } else {
+            withTimeoutOrNull(SCROLL_TARGET_TIMEOUT_MS) {
+                snapshotFlow {
+                    latestVisiblePosts.indexOfFirst { it.key == request.postKey }
+                }.first { it >= 0 }
+            } ?: 0
+        }
+
+        if (latestVisiblePosts.isNotEmpty()) {
+            listState.animateScrollToItem(targetIndex)
+        }
+        onScrollRequestHandled(request.id)
     }
 
     LaunchedEffect(composerFocusRequest) {

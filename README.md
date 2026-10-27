@@ -66,7 +66,11 @@ authentication. It previews common tribune markup as you type: complete
 while the grey tags remain visible and part of the sent text. Attributes are
 preserved, and unclosed, uppercase, or unsupported tags stay plain text. Clock
 references, URLs, and `[:totoz]` tokens use the link colour; URLs are also
-underlined. It currently targets this tribune on miaoli.im:
+underlined. After a successful post the feed waits for the keyboard to finish
+closing and scrolls the new message into view. When the tribune returns an
+`X-Post-Id` response header the app targets that exact post; otherwise it
+scrolls to the newest end of the feed. It currently targets this tribune on
+miaoli.im:
 
 ```text
 https://miaoli.im/@See/+6QbxZZANv8

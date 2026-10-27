@@ -85,6 +85,7 @@ class MainActivity : ComponentActivity() {
                         onOpenSettings = { showFeedSettings = true },
                         onConfigureTribune = { configuredTribuneId = it },
                         onPost = viewModel::post,
+                        onScrollRequestHandled = viewModel::consumeScrollRequest,
                     )
                 }
             }
