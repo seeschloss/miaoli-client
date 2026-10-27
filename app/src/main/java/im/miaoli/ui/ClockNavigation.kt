@@ -52,6 +52,41 @@ internal fun resolveClockTarget(
         ?: ClockTargetResult.NoMessage(reference)
 }
 
+/**
+ * Returns the origin plus every message reachable from the clicked reference.
+ * Only the first reference is taken from [origin]; subsequent clocks are
+ * followed from the referenced messages. Unresolved references are ignored.
+ */
+internal fun reachableClockPostKeys(
+    origin: Post,
+    reference: ClockReference,
+    tribunes: List<Tribune>,
+    posts: List<Post>,
+): Set<String> {
+    val included = linkedSetOf(origin.key)
+    val queue = ArrayDeque<Post>()
+
+    fun follow(source: Post, clock: ClockReference) {
+        val target = (resolveClockTarget(source, clock, tribunes, posts)
+            as? ClockTargetResult.Found)
+            ?.post
+            ?: return
+        if (included.add(target.key)) {
+            queue.add(target)
+        }
+    }
+
+    follow(origin, reference)
+    while (queue.isNotEmpty()) {
+        val post = queue.removeFirst()
+        messageClockReferences(post.message).forEach { clock ->
+            follow(post, clock)
+        }
+    }
+
+    return included
+}
+
 private fun matchesDate(post: Post, date: String?): Boolean {
     if (date == null) return true
     val compactDate = date.replace("-", "")

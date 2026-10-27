@@ -5,6 +5,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -82,11 +85,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
@@ -122,13 +129,17 @@ fun FeedScreen(
     val composerFocusRequester = remember { FocusRequester() }
     var composerFocusRequest by remember { mutableIntStateOf(0) }
     var selectedPostKey by remember { mutableStateOf<String?>(null) }
+    var filteredPostKeys by remember { mutableStateOf<Set<String>?>(null) }
     val enabledTribunes = state.feedTribunes
     val enabledTribuneIds = enabledTribunes.mapTo(mutableSetOf()) { it.id }
     val visiblePosts = state.posts.filter { it.tribune.id in enabledTribuneIds }
+    val displayedPosts = filteredPostKeys?.let { keys ->
+        visiblePosts.filter { it.key in keys }
+    } ?: visiblePosts
     val enabledTitles = enabledTribunes.mapTo(mutableSetOf()) { it.title }
     val visibleErrors = state.errors.filterKeys { it == "Feed" || it in enabledTitles }
-    val newestKey = visiblePosts.firstOrNull()?.key
-    val latestVisiblePosts by rememberUpdatedState(visiblePosts)
+    val newestVisibleKey = visiblePosts.firstOrNull()?.key
+    val latestDisplayedPosts by rememberUpdatedState(displayedPosts)
     val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     val isAtBottom by remember(listState) {
         derivedStateOf {
@@ -137,12 +148,16 @@ fun FeedScreen(
         }
     }
 
-    BackHandler(enabled = selectedPostKey != null) {
+    BackHandler(enabled = filteredPostKeys != null || selectedPostKey != null) {
+        filteredPostKeys = null
         selectedPostKey = null
     }
 
-    LaunchedEffect(newestKey) {
-        if (newestKey != null && listState.firstVisibleItemIndex <= 1) {
+    LaunchedEffect(newestVisibleKey) {
+        if (filteredPostKeys == null &&
+            newestVisibleKey != null &&
+            listState.firstVisibleItemIndex <= 1
+        ) {
             listState.animateScrollToItem(0)
         }
     }
@@ -160,12 +175,12 @@ fun FeedScreen(
         } else {
             withTimeoutOrNull(SCROLL_TARGET_TIMEOUT_MS) {
                 snapshotFlow {
-                    latestVisiblePosts.indexOfFirst { it.key == request.postKey }
+                    latestDisplayedPosts.indexOfFirst { it.key == request.postKey }
                 }.first { it >= 0 }
             } ?: 0
         }
 
-        if (latestVisiblePosts.isNotEmpty()) {
+        if (latestDisplayedPosts.isNotEmpty()) {
             listState.animateScrollToItem(targetIndex)
         }
         onScrollRequestHandled(request.id)
@@ -186,11 +201,11 @@ fun FeedScreen(
                 origin = origin,
                 reference = reference,
                 tribunes = state.config.tribunes,
-                posts = visiblePosts,
+                posts = displayedPosts,
             )
         ) {
             is ClockTargetResult.Found -> {
-                val index = visiblePosts.indexOfFirst { it.key == result.post.key }
+                val index = displayedPosts.indexOfFirst { it.key == result.post.key }
                 if (index >= 0) {
                     selectedPostKey = result.post.key
                     scope.launch { listState.animateScrollToItem(index) }
@@ -215,6 +230,16 @@ fun FeedScreen(
                 Toast.LENGTH_LONG,
             ).show()
         }
+    }
+
+    fun filterToClock(origin: Post, reference: ClockReference) {
+        selectedPostKey = null
+        filteredPostKeys = reachableClockPostKeys(
+            origin = origin,
+            reference = reference,
+            tribunes = state.config.tribunes,
+            posts = visiblePosts,
+        )
     }
 
     ModalNavigationDrawer(
@@ -286,7 +311,7 @@ fun FeedScreen(
                 }
             },
             floatingActionButton = {
-                if (visiblePosts.isNotEmpty() && !isAtBottom) {
+                if (displayedPosts.isNotEmpty() && !isAtBottom) {
                     SmallFloatingActionButton(
                         onClick = {
                             scope.launch { listState.animateScrollToItem(0) }
@@ -364,7 +389,7 @@ fun FeedScreen(
                             verticalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             items(
-                                items = visiblePosts,
+                                items = displayedPosts,
                                 key = { post -> post.key },
                             ) { post ->
                                 PostRow(
@@ -378,6 +403,9 @@ fun FeedScreen(
                                     },
                                     onClockClick = { reference ->
                                         openClockReference(post, reference)
+                                    },
+                                    onClockLongClick = { reference ->
+                                        filterToClock(post, reference)
                                     },
                                 )
                             }
@@ -744,22 +772,44 @@ private fun PostComposer(
     }
 }
 
+private fun clockAt(
+    layout: TextLayoutResult,
+    position: Offset,
+    references: List<ClockReference>,
+): ClockReference? {
+    if (position.x < 0f || position.y < 0f ||
+        position.x > layout.size.width.toFloat() ||
+        position.y > layout.size.height.toFloat()
+    ) {
+        return null
+    }
+    val offset = layout.getOffsetForPosition(position)
+    return references.firstOrNull { offset in it.start until it.end }
+}
+
 @Composable
 private fun PostRow(
     post: Post,
     selected: Boolean,
     onClick: () -> Unit,
     onClockClick: (ClockReference) -> Unit,
+    onClockLongClick: (ClockReference) -> Unit,
 ) {
     val tribuneColor = Color(post.tribune.color)
     val messageColor = readableTextColor(tribuneColor)
     val linkColor = readableLinkColor(tribuneColor)
     val selectedOverlay = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
     val latestOnClockClick by rememberUpdatedState(onClockClick)
+    val latestOnClockLongClick by rememberUpdatedState(onClockLongClick)
+    var textLayout by remember { mutableStateOf<TextLayoutResult?>(null) }
     val message = remember(post.message, linkColor) {
-        renderMessage(post.message, linkColor = linkColor) { reference ->
-            latestOnClockClick(reference)
-        }
+        renderMessage(post.message, linkColor = linkColor)
+    }
+    val clockRefs = remember(message) {
+        clockReferences(message.text)
+            .filterNot { reference ->
+                message.hasLinkAnnotations(reference.start, reference.end)
+            }
     }
 
     Row(
@@ -814,6 +864,37 @@ private fun PostRow(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
                 color = messageColor,
+                onTextLayout = { textLayout = it },
+                modifier = Modifier.pointerInput(message) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        val layout = textLayout ?: return@awaitEachGesture
+                        val reference = clockAt(layout, down.position, clockRefs)
+                            ?: return@awaitEachGesture
+                        val longPress = awaitLongPressOrCancellation(down.id)
+
+                        if (longPress != null) {
+                            longPress.consume()
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                event.changes.forEach { it.consume() }
+                                if (event.changes.none { it.pressed }) break
+                            }
+                            latestOnClockLongClick(reference)
+                        } else {
+                            val up = currentEvent.changes
+                                .firstOrNull { it.id == down.id }
+                            if (up != null &&
+                                !up.isConsumed &&
+                                up.changedToUpIgnoreConsumed() &&
+                                clockAt(layout, up.position, clockRefs) == reference
+                            ) {
+                                up.consume()
+                                latestOnClockClick(reference)
+                            }
+                        }
+                    }
+                },
             )
         }
     }

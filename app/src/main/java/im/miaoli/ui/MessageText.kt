@@ -2,12 +2,9 @@ package im.miaoli.ui
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.fromHtml
-import androidx.compose.ui.text.style.TextDecoration
 
 private const val DATE_PATTERN = """\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])"""
 private const val TIME_PATTERN = """(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d"""
@@ -34,42 +31,23 @@ internal data class ClockReference(
 )
 
 /** Renders a message, colouring links and clock references with [linkColor]. */
-internal fun renderMessage(
-    message: String,
-    linkColor: Color,
-    onClockClick: ((ClockReference) -> Unit)? = null,
-): AnnotatedString {
-    val parsed = runCatching { AnnotatedString.fromHtml(message) }
+internal fun renderMessage(message: String, linkColor: Color): AnnotatedString {
+    val parsed = parseMessage(message)
+    return highlightClocks(highlightLinks(parsed, linkColor), linkColor)
+}
+
+/** Parses HTML markup in a message into its visible text. */
+internal fun parseMessage(message: String): AnnotatedString =
+    runCatching { AnnotatedString.fromHtml(message) }
         .getOrElse { AnnotatedString(message) }
-    val styled = highlightClocks(highlightLinks(parsed, linkColor), linkColor)
-    if (onClockClick == null) return styled
 
-    val references = clockReferences(styled.text)
+/** Returns clock references that are not themselves part of an HTML link. */
+internal fun messageClockReferences(message: String): List<ClockReference> {
+    val parsed = parseMessage(message)
+    return clockReferences(parsed.text)
         .filterNot { reference ->
-            styled.hasLinkAnnotations(reference.start, reference.end)
+            parsed.hasLinkAnnotations(reference.start, reference.end)
         }
-    if (references.isEmpty()) return styled
-
-    val clockLinkStyles = TextLinkStyles(
-        style = SpanStyle(
-            color = linkColor,
-            textDecoration = TextDecoration.None,
-        ),
-    )
-
-    return AnnotatedString.Builder(styled).apply {
-        references.forEach { reference ->
-            addLink(
-                LinkAnnotation.Clickable(
-                    tag = reference.text,
-                    styles = clockLinkStyles,
-                    linkInteractionListener = { onClockClick(reference) },
-                ),
-                reference.start,
-                reference.end,
-            )
-        }
-    }.toAnnotatedString()
 }
 
 /** Applies [color] to every link in [text]. */

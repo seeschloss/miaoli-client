@@ -19,7 +19,9 @@ interleave correctly. Each row shows only that tribune's local clock, in full
 the link colour. Tapping a highlighted clock reference jumps to the referenced
 message: the origin tribune for a bare clock, or the enabled tribune named after
 `@`. Dates are matched when present; otherwise the closest older matching message
-is used. The feed refreshes every 30 seconds while the app is in the foreground.
+is used. Long-pressing a clock filters the feed to the origin message plus the
+messages reachable from that clock reference; Back clears the filter. The feed
+refreshes every 30 seconds while the app is in the foreground.
 
 App surfaces and text follow the system light or dark theme, including the
 status bar icons. Tribune row backgrounds keep their configured colours; message

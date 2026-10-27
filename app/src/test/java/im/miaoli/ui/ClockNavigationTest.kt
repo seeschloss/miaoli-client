@@ -92,6 +92,68 @@ class ClockNavigationTest {
         assertTrue(result is ClockTargetResult.NoMessage)
     }
 
+    @Test
+    fun closureIncludesOriginAndTransitiveReferences() {
+        val origin = post(
+            id = "origin",
+            time = "20260103120000",
+            tribune = originTribune,
+            message = "see 2026-01-02 12:00:00 and 2026-01-04 12:00:00",
+        )
+        val target = post(
+            id = "target",
+            time = "20260102120000",
+            tribune = originTribune,
+            message = "see 2026-01-01 12:00:00 and 2026-01-05 12:00:00",
+        )
+        val transitive = post(
+            id = "transitive",
+            time = "20260101120000",
+            tribune = originTribune,
+            message = "back to 2026-01-03 12:00:00",
+        )
+        val unrelated = post(
+            id = "unrelated",
+            time = "20260104120000",
+            tribune = originTribune,
+        )
+
+        val keys = reachableClockPostKeys(
+            origin = origin,
+            reference = reference(
+                text = "2026-01-02 12:00:00",
+                time = "12:00:00",
+                date = "2026-01-02",
+            ),
+            tribunes = listOf(originTribune),
+            posts = listOf(origin, target, transitive, unrelated),
+        )
+
+        assertEquals(setOf(origin.key, target.key, transitive.key), keys)
+    }
+
+    @Test
+    fun closureWithUnresolvedInitialReferenceContainsOrigin() {
+        val origin = post(
+            id = "origin",
+            time = "20260101120010",
+            tribune = originTribune,
+        )
+
+        val keys = reachableClockPostKeys(
+            origin = origin,
+            reference = reference(
+                text = "2026-01-02 12:00:00",
+                time = "12:00:00",
+                date = "2026-01-02",
+            ),
+            tribunes = listOf(originTribune),
+            posts = listOf(origin),
+        )
+
+        assertEquals(setOf(origin.key), keys)
+    }
+
     private fun tribune(
         id: Long,
         title: String,
@@ -105,11 +167,16 @@ class ClockNavigationTest {
         enabled = enabled,
     )
 
-    private fun post(id: String, time: String, tribune: Tribune) = Post(
+    private fun post(
+        id: String,
+        time: String,
+        tribune: Tribune,
+        message: String = "message",
+    ) = Post(
         id = id,
         time = time,
         author = "author",
-        message = "message",
+        message = message,
         tribune = tribune,
     )
 
