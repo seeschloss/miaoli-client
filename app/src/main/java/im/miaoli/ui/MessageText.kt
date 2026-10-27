@@ -5,6 +5,11 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.fromHtml
+import im.miaoli.data.Post
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.withContext
 
 private const val DATE_PATTERN = """\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])"""
 private const val TIME_PATTERN = """(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d"""
@@ -41,7 +46,7 @@ private data class MessageRenderKey(
     val linkColor: Color,
 )
 
-private const val RENDER_CACHE_SIZE = 256
+private const val RENDER_CACHE_SIZE = 600
 private val renderCacheLock = Any()
 private val renderCache = object : LinkedHashMap<MessageRenderKey, RenderedMessage>(
     RENDER_CACHE_SIZE,
@@ -78,6 +83,19 @@ internal fun renderedMessage(message: String, linkColor: Color): RenderedMessage
 /** Renders a message, colouring links and clock references with [linkColor]. */
 internal fun renderMessage(message: String, linkColor: Color): AnnotatedString =
     renderedMessage(message, linkColor).text
+
+/** Warms the render cache without doing HTML parsing on the main thread. */
+internal suspend fun prefetchRenderedMessages(posts: List<Post>) {
+    withContext(Dispatchers.Default) {
+        posts.forEach { post ->
+            currentCoroutineContext().ensureActive()
+            renderedMessage(
+                message = post.message,
+                linkColor = readableLinkColor(Color(post.tribune.color)),
+            )
+        }
+    }
+}
 
 /** Parses HTML markup in a message into its visible text. */
 internal fun parseMessage(message: String): AnnotatedString =

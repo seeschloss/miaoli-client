@@ -164,6 +164,10 @@ fun FeedScreen(
         selectedPostKey = null
     }
 
+    LaunchedEffect(displayedPosts) {
+        prefetchRenderedMessages(displayedPosts)
+    }
+
     LaunchedEffect(newestVisibleKey) {
         if (filteredPostKeys == null &&
             newestVisibleKey != null &&
