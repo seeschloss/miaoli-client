@@ -1,8 +1,18 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+}
+
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { stream ->
+            load(stream)
+        }
+    }
 }
 
 android {
@@ -22,12 +32,38 @@ android {
         targetSdk {
             version = release(37)
         }
-        versionCode = 1
-        versionName = "0.1"
+        versionCode = 8
+        versionName = "0.3"
+    }
+
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            create("release") {
+                storeFile = rootProject.file(
+                    requireNotNull(keystoreProperties.getProperty("storeFile")) {
+                        "storeFile is missing from keystore.properties"
+                    },
+                )
+                storePassword = requireNotNull(
+                    keystoreProperties.getProperty("storePassword"),
+                ) {
+                    "storePassword is missing from keystore.properties"
+                }
+                keyAlias = requireNotNull(keystoreProperties.getProperty("keyAlias")) {
+                    "keyAlias is missing from keystore.properties"
+                }
+                keyPassword = requireNotNull(
+                    keystoreProperties.getProperty("keyPassword"),
+                ) {
+                    "keyPassword is missing from keystore.properties"
+                }
+            }
+        }
     }
 
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
