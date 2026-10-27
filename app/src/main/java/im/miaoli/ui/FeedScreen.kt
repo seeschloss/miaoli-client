@@ -1,6 +1,7 @@
 package im.miaoli.ui
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -75,6 +76,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -116,6 +118,7 @@ fun FeedScreen(
     val keyboard = LocalSoftwareKeyboardController.current
     val composerFocusRequester = remember { FocusRequester() }
     var composerFocusRequest by remember { mutableIntStateOf(0) }
+    var selectedPostKey by remember { mutableStateOf<String?>(null) }
     val enabledTribunes = state.feedTribunes
     val enabledTribuneIds = enabledTribunes.mapTo(mutableSetOf()) { it.id }
     val visiblePosts = state.posts.filter { it.tribune.id in enabledTribuneIds }
@@ -124,6 +127,10 @@ fun FeedScreen(
     val newestKey = visiblePosts.firstOrNull()?.key
     val latestVisiblePosts by rememberUpdatedState(visiblePosts)
     val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+
+    BackHandler(enabled = selectedPostKey != null) {
+        selectedPostKey = null
+    }
 
     LaunchedEffect(newestKey) {
         if (newestKey != null && listState.firstVisibleItemIndex <= 1) {
@@ -164,6 +171,7 @@ fun FeedScreen(
     }
 
     fun openClockReference(origin: Post, reference: ClockReference) {
+        selectedPostKey = null
         when (
             val result = resolveClockTarget(
                 origin = origin,
@@ -175,6 +183,7 @@ fun FeedScreen(
             is ClockTargetResult.Found -> {
                 val index = visiblePosts.indexOfFirst { it.key == result.post.key }
                 if (index >= 0) {
+                    selectedPostKey = result.post.key
                     scope.launch { listState.animateScrollToItem(index) }
                 } else {
                     Toast.makeText(
@@ -335,6 +344,7 @@ fun FeedScreen(
                             ) { post ->
                                 PostRow(
                                     post = post,
+                                    selected = post.key == selectedPostKey,
                                     onClick = {
                                         if (!state.isPosting) {
                                             onInsertClock(post.clock, post.tribune.id)
@@ -712,12 +722,14 @@ private fun PostComposer(
 @Composable
 private fun PostRow(
     post: Post,
+    selected: Boolean,
     onClick: () -> Unit,
     onClockClick: (ClockReference) -> Unit,
 ) {
     val tribuneColor = Color(post.tribune.color)
     val messageColor = readableTextColor(tribuneColor)
     val linkColor = readableLinkColor(tribuneColor)
+    val selectedOverlay = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
     val latestOnClockClick by rememberUpdatedState(onClockClick)
     val message = remember(post.message, linkColor) {
         renderMessage(post.message, linkColor = linkColor) { reference ->
@@ -731,6 +743,12 @@ private fun PostRow(
             .height(IntrinsicSize.Min)
             .clip(RoundedCornerShape(12.dp))
             .background(tribuneColor)
+            .drawWithContent {
+                drawContent()
+                if (selected) {
+                    drawRect(selectedOverlay)
+                }
+            }
             .clickable(
                 onClickLabel = "Insert ${post.clock} and reply to ${post.tribune.title}",
                 onClick = onClick,
