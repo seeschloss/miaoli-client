@@ -90,7 +90,7 @@ class FeedRepositoryPostTest {
         assertEquals("/tribune/test/post", lastPath)
         assertEquals("message=Hello+%26+goodbye", lastBody)
         assertTrue(lastContentType.startsWith("application/x-www-form-urlencoded"))
-        assertEquals("application/json", lastAccept)
+        assertEquals("*/*", lastAccept)
         assertEquals("Miaoli/0.3 (Android)", lastUserAgent)
         assertEquals("", lastCookie)
         assertEquals(tribune().backendUrl, lastReferer)
