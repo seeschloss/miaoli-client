@@ -92,7 +92,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontWeight
@@ -100,6 +102,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import im.miaoli.R
 import im.miaoli.data.Post
 import im.miaoli.data.Tribune
 import kotlinx.coroutines.flow.first
@@ -126,6 +129,7 @@ fun FeedScreen(
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val resources = LocalResources.current
     val keyboard = LocalSoftwareKeyboardController.current
     val composerFocusRequester = remember { FocusRequester() }
     var composerFocusRequest by remember { mutableIntStateOf(0) }
@@ -227,7 +231,7 @@ fun FeedScreen(
                 } else {
                     Toast.makeText(
                         context,
-                        "But where is ${reference.text}?",
+                        resources.getString(R.string.clock_not_found, reference.text),
                         Toast.LENGTH_LONG,
                     ).show()
                 }
@@ -235,13 +239,13 @@ fun FeedScreen(
 
             is ClockTargetResult.NoTribune -> Toast.makeText(
                 context,
-                "No tribune exists with the name ${result.title}",
+                resources.getString(R.string.clock_tribune_not_found, result.title),
                 Toast.LENGTH_LONG,
             ).show()
 
             is ClockTargetResult.NoMessage -> Toast.makeText(
                 context,
-                "But where is ${result.reference.text}?",
+                resources.getString(R.string.clock_not_found, result.reference.text),
                 Toast.LENGTH_LONG,
             ).show()
         }
@@ -291,10 +295,13 @@ fun FeedScreen(
                 .imePadding(),
             topBar = {
                 MiaoliTopAppBar(
-                    title = { Text("Miaoli") },
+                    title = { Text(stringResource(R.string.app_name)) },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Default.Menu, contentDescription = "Show tribunes")
+                            Icon(
+                                Icons.Default.Menu,
+                                contentDescription = stringResource(R.string.show_tribunes),
+                            )
                         }
                     },
                     actions = {
@@ -307,7 +314,10 @@ fun FeedScreen(
                             )
                         } else {
                             IconButton(onClick = onRefresh) {
-                                Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                                Icon(
+                                    Icons.Default.Refresh,
+                                    contentDescription = stringResource(R.string.refresh),
+                                )
                             }
                         }
                     },
@@ -336,7 +346,7 @@ fun FeedScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Scroll to bottom",
+                            contentDescription = stringResource(R.string.scroll_to_bottom),
                         )
                     }
                 }
@@ -371,7 +381,7 @@ fun FeedScreen(
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
-                                text = "No tribunes enabled.",
+                                text = stringResource(R.string.no_tribunes_enabled),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -385,9 +395,9 @@ fun FeedScreen(
                         ) {
                             Text(
                                 text = if (state.posts.isEmpty()) {
-                                    "No messages yet."
+                                    stringResource(R.string.no_messages_yet)
                                 } else {
-                                    "No messages from enabled tribunes."
+                                    stringResource(R.string.no_messages_from_enabled_tribunes)
                                 },
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -462,12 +472,15 @@ private fun TribunesDrawer(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Tribunes",
+                    text = stringResource(R.string.tribunes),
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(onClick = onClose) {
-                    Icon(Icons.Default.Close, contentDescription = "Close")
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = stringResource(R.string.close),
+                    )
                 }
             }
 
@@ -489,7 +502,7 @@ private fun TribunesDrawer(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "New tribune...",
+                    text = stringResource(R.string.new_tribune_ellipsis),
                     style = MaterialTheme.typography.bodyLarge,
                 )
             }
@@ -510,7 +523,7 @@ private fun TribunesDrawer(
                 )
                 Spacer(Modifier.width(16.dp))
                 Text(
-                    text = "Settings",
+                    text = stringResource(R.string.settings),
                     style = MaterialTheme.typography.bodyLarge,
                 )
             }
@@ -585,7 +598,10 @@ private fun TribuneToggleRow(
         IconButton(onClick = onConfigure) {
             Icon(
                 imageVector = Icons.Default.Edit,
-                contentDescription = "Configure ${tribune.title}",
+                contentDescription = stringResource(
+                    R.string.configure_tribune,
+                    tribune.title,
+                ),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -624,6 +640,19 @@ private fun ErrorBanner(
     errors: Map<String, String>,
     onRefresh: () -> Unit,
 ) {
+    val resources = LocalResources.current
+    val errorText = errors.entries.joinToString("\n") { (tribune, error) ->
+        val label = if (tribune == "Feed") {
+            resources.getString(R.string.feed)
+        } else {
+            tribune
+        }
+        resources.getString(
+            R.string.error_entry,
+            label,
+            error.ifBlank { resources.getString(R.string.unknown_error) },
+        )
+    }
     Surface(
         color = MaterialTheme.colorScheme.errorContainer,
         contentColor = MaterialTheme.colorScheme.onErrorContainer,
@@ -634,14 +663,12 @@ private fun ErrorBanner(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = errors.entries.joinToString("\n") { (tribune, error) ->
-                    "$tribune: $error"
-                },
+                text = errorText,
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodySmall,
             )
             TextButton(onClick = onRefresh) {
-                Text("Retry")
+                Text(stringResource(R.string.retry))
             }
         }
     }
@@ -680,8 +707,15 @@ private fun PostComposer(
                 .padding(horizontal = 8.dp, vertical = 6.dp),
         ) {
             if (state.postError != null) {
+                val detail = state.postError.detail
+                    ?.takeIf { it.isNotBlank() }
+                    ?: stringResource(R.string.unknown_error)
                 Text(
-                    text = state.postError,
+                    text = stringResource(
+                        R.string.post_failed,
+                        state.postError.tribuneTitle,
+                        detail,
+                    ),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
@@ -745,7 +779,7 @@ private fun PostComposer(
                     modifier = Modifier
                         .weight(1f)
                         .focusRequester(focusRequester),
-                    placeholder = { Text("Message") },
+                    placeholder = { Text(stringResource(R.string.message_placeholder)) },
                     maxLines = 4,
                     enabled = !state.isPosting,
                     shape = RoundedCornerShape(24.dp),
@@ -778,7 +812,7 @@ private fun PostComposer(
                     } else {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "Send",
+                            contentDescription = stringResource(R.string.send),
                         )
                     }
                 }
@@ -823,6 +857,11 @@ private fun PostRow(
     }
     val message = rendered.text
     val clockRefs = rendered.clockReferences
+    val insertClockLabel = stringResource(
+        R.string.insert_clock_and_reply,
+        post.clock,
+        post.tribune.title,
+    )
 
     Row(
         modifier = Modifier
@@ -837,7 +876,7 @@ private fun PostRow(
                 }
             }
             .clickable(
-                onClickLabel = "Insert ${post.clock} and reply to ${post.tribune.title}",
+                onClickLabel = insertClockLabel,
                 onClick = onClick,
             ),
     ) {

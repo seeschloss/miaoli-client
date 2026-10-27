@@ -1,11 +1,19 @@
 package im.miaoli.ui
 
+import androidx.annotation.StringRes
+import im.miaoli.R
 import im.miaoli.data.FeedFormat
 import im.miaoli.data.Tribune
 import im.miaoli.data.TribuneConfig
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.time.ZoneId
 import java.util.Locale
+
+/** A localized validation message, resolved by the UI. */
+internal data class ValidationMessage(
+    @param:StringRes val resourceId: Int,
+    val formatArgs: List<Any> = emptyList(),
+)
 
 /** Editable string form of a [Tribune]. */
 internal data class TribuneDraft(
@@ -22,35 +30,35 @@ internal data class TribuneDraft(
     val cookie: String,
     val enabled: Boolean,
 ) {
-    fun validate(): Map<String, String> = buildMap {
+    fun validate(): Map<String, ValidationMessage> = buildMap {
         if (title.isBlank()) {
-            put("title", "Title is required")
+            put("title", ValidationMessage(R.string.validation_title_required))
         }
         if (parseHexColor(color) == null) {
-            put("color", "Use a #RRGGBB color")
+            put("color", ValidationMessage(R.string.validation_color_format))
         }
         if (!backendUrl.trim().isValidHttpUrl()) {
-            put("backendUrl", "Enter an http(s) URL")
+            put("backendUrl", ValidationMessage(R.string.validation_http_url))
         }
         if (!timeZoneId.trim().isValidTimeZone()) {
-            put("timeZoneId", "Use an IANA time zone, e.g. Europe/Paris")
+            put("timeZoneId", ValidationMessage(R.string.validation_time_zone))
         }
         if (postUrl.isNotBlank() && !postUrl.trim().isValidHttpUrl()) {
-            put("postUrl", "Enter an http(s) URL or leave blank")
+            put("postUrl", ValidationMessage(R.string.validation_http_url_optional))
         }
         if (loginUrl.isNotBlank() && !loginUrl.trim().isValidHttpUrl()) {
-            put("loginUrl", "Enter an http(s) URL or leave blank")
+            put("loginUrl", ValidationMessage(R.string.validation_http_url_optional))
         }
         if (postUrl.isNotBlank() && postField.isBlank()) {
-            put("postField", "Form field is required when posting")
+            put("postField", ValidationMessage(R.string.validation_post_field_required))
         }
         if (userAgent.isBlank()) {
-            put("userAgent", "User agent is required")
+            put("userAgent", ValidationMessage(R.string.validation_user_agent_required))
         } else if (userAgent.contains('\r') || userAgent.contains('\n')) {
-            put("userAgent", "User agent cannot contain line breaks")
+            put("userAgent", ValidationMessage(R.string.validation_user_agent_line_breaks))
         }
         if (cookie.contains('\r') || cookie.contains('\n')) {
-            put("cookie", "Cookie cannot contain line breaks")
+            put("cookie", ValidationMessage(R.string.validation_cookie_line_breaks))
         }
     }
 
@@ -98,7 +106,13 @@ internal data class ConfigurationDraft(
             seconds == null ||
             seconds !in TribuneConfig.MIN_POLLING_SECONDS..TribuneConfig.MAX_POLLING_SECONDS
         ) {
-            "Use ${TribuneConfig.MIN_POLLING_SECONDS}–${TribuneConfig.MAX_POLLING_SECONDS} seconds"
+            ValidationMessage(
+                resourceId = R.string.validation_polling_range,
+                formatArgs = listOf(
+                    TribuneConfig.MIN_POLLING_SECONDS,
+                    TribuneConfig.MAX_POLLING_SECONDS,
+                ),
+            )
         } else {
             null
         }
@@ -115,7 +129,7 @@ internal data class ConfigurationDraft(
             .associate { tribune ->
                 val errors = tribune.validate().toMutableMap()
                 if (tribune.id in duplicateTitleIds) {
-                    errors["title"] = "Titles must be unique"
+                    errors["title"] = ValidationMessage(R.string.validation_titles_unique)
                 }
                 tribune.id to errors
             }
@@ -146,8 +160,8 @@ internal data class ConfigurationDraft(
 }
 
 internal data class ConfigurationValidation(
-    val pollingError: String?,
-    val tribuneErrors: Map<Long, Map<String, String>>,
+    val pollingError: ValidationMessage?,
+    val tribuneErrors: Map<Long, Map<String, ValidationMessage>>,
     val config: TribuneConfig?,
 ) {
     val isValid: Boolean

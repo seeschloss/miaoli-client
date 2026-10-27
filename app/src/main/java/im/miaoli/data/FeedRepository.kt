@@ -48,7 +48,7 @@ class FeedRepository(
             errors = results
                 .mapNotNull { (tribune, result) ->
                     result.exceptionOrNull()?.let { error ->
-                        tribune to (error.message ?: error::class.simpleName ?: "Unknown error")
+                        tribune to error.message.orEmpty()
                     }
                 }
                 .toMap(),

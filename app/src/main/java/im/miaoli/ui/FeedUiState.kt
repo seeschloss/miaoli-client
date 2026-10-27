@@ -13,7 +13,7 @@ data class FeedUiState(
     val draft: DraftState = DraftState(),
     val selectedTribuneId: Long? = null,
     val isPosting: Boolean = false,
-    val postError: String? = null,
+    val postError: PostError? = null,
     /** One-shot request to bring a newly sent post, or the bottom of the feed, into view. */
     val scrollRequest: FeedScrollRequest? = null,
 ) {
@@ -28,4 +28,9 @@ data class FeedScrollRequest(
     val id: Long,
     /** Key of the post to reveal, or null to reveal the newest end of the feed. */
     val postKey: String? = null,
+)
+
+data class PostError(
+    val tribuneTitle: String,
+    val detail: String?,
 )

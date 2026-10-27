@@ -2,6 +2,7 @@ package im.miaoli.ui
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -45,8 +46,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import im.miaoli.R
 import im.miaoli.data.FeedFormat
 import im.miaoli.data.Tribune
 import im.miaoli.data.TribuneConfig
@@ -58,7 +62,7 @@ fun FeedSettingsScreen(
     onSave: (TribuneConfig) -> Unit,
 ) {
     var pollingSeconds by remember(config) { mutableStateOf(config.pollingSeconds.toString()) }
-    var pollingError by remember(config) { mutableStateOf<String?>(null) }
+    var pollingError by remember(config) { mutableStateOf<ValidationMessage?>(null) }
 
     fun save() {
         val error = pollingErrorMessage(pollingSeconds)
@@ -76,18 +80,18 @@ fun FeedSettingsScreen(
             .imePadding(),
         topBar = {
             MiaoliTopAppBar(
-                title = { Text("Feed settings") },
+                title = { Text(stringResource(R.string.feed_settings)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.back),
                         )
                     }
                 },
                 actions = {
                     TextButton(onClick = ::save) {
-                        Text("Save")
+                        Text(stringResource(R.string.save))
                     }
                 },
             )
@@ -107,7 +111,7 @@ fun FeedSettingsScreen(
         ) {
             item {
                 Text(
-                    text = "Polling",
+                    text = stringResource(R.string.polling),
                     style = MaterialTheme.typography.titleMedium,
                 )
             }
@@ -120,7 +124,7 @@ fun FeedSettingsScreen(
                         pollingError = null
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Refresh interval (seconds)") },
+                    label = { Text(stringResource(R.string.refresh_interval_seconds)) },
                     supportingText = errorSupportingText(pollingError),
                     isError = pollingError != null,
                     singleLine = true,
@@ -177,13 +181,19 @@ private fun TribuneConfigurationContent(
     onLoginCookies: (Long, String) -> Unit,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     var draft by remember(tribune.id) { mutableStateOf(TribuneDraft.from(tribune)) }
-    var errors by remember(tribune.id) { mutableStateOf<Map<String, String>?>(null) }
+    var errors by remember(tribune.id) {
+        mutableStateOf<Map<String, ValidationMessage>?>(null)
+    }
     var showLogin by remember(tribune.id) { mutableStateOf(false) }
 
     if (showLogin) {
         TribuneLoginScreen(
-            title = "${draft.title.ifBlank { "Tribune" }} login",
+            title = stringResource(
+                R.string.login_title,
+                draft.title.ifBlank { stringResource(R.string.tribune) },
+            ),
             loginUrl = draft.loginUrl.trim(),
             cookieUrl = draft.postUrl.trim().takeIf { it.isValidHttpUrl() }
                 ?: draft.loginUrl.trim(),
@@ -198,9 +208,9 @@ private fun TribuneConfigurationContent(
                 Toast.makeText(
                     context,
                     if (isNew) {
-                        "Cookies captured. Press Save to create the tribune."
+                        resources.getString(R.string.cookies_captured_new)
                     } else {
-                        "Cookies saved."
+                        resources.getString(R.string.cookies_saved)
                     },
                     Toast.LENGTH_SHORT,
                 ).show()
@@ -252,18 +262,24 @@ private fun TribuneConfigurationContent(
             .imePadding(),
         topBar = {
             MiaoliTopAppBar(
-                title = { Text(if (isNew) "New tribune" else "Tribune settings") },
+                title = {
+                    Text(
+                        stringResource(
+                            if (isNew) R.string.new_tribune else R.string.tribune_settings,
+                        ),
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.back),
                         )
                     }
                 },
                 actions = {
                     TextButton(onClick = ::save) {
-                        Text("Save")
+                        Text(stringResource(R.string.save))
                     }
                 },
             )
@@ -284,7 +300,7 @@ private fun TribuneConfigurationContent(
             if (errors?.isNotEmpty() == true) {
                 item {
                     Text(
-                        text = "Check the highlighted fields.",
+                        text = stringResource(R.string.check_highlighted_fields),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error,
                     )
@@ -311,12 +327,12 @@ private fun MissingTribuneScreen(onBack: () -> Unit) {
         modifier = Modifier.fillMaxSize(),
         topBar = {
             MiaoliTopAppBar(
-                title = { Text("Tribune settings") },
+                title = { Text(stringResource(R.string.tribune_settings)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.back),
                         )
                     }
                 },
@@ -329,7 +345,7 @@ private fun MissingTribuneScreen(onBack: () -> Unit) {
                 .padding(innerPadding),
             contentAlignment = Alignment.Center,
         ) {
-            Text("Tribune not found.")
+            Text(stringResource(R.string.tribune_not_found))
         }
     }
 }
@@ -337,7 +353,7 @@ private fun MissingTribuneScreen(onBack: () -> Unit) {
 @Composable
 private fun TribuneConfigCard(
     draft: TribuneDraft,
-    errors: Map<String, String>,
+    errors: Map<String, ValidationMessage>,
     onChange: ((TribuneDraft) -> TribuneDraft) -> Unit,
     onLogin: () -> Unit,
 ) {
@@ -368,7 +384,9 @@ private fun TribuneConfigCard(
                 )
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    text = draft.title.ifBlank { "Untitled tribune" },
+                    text = draft.title.ifBlank {
+                        stringResource(R.string.untitled_tribune)
+                    },
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f),
                 )
@@ -378,7 +396,7 @@ private fun TribuneConfigCard(
                 value = draft.title,
                 onValueChange = { value -> onChange { it.copy(title = value) } },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Title") },
+                label = { Text(stringResource(R.string.title_label)) },
                 supportingText = errorSupportingText(errors["title"]),
                 isError = errors["title"] != null,
                 singleLine = true,
@@ -388,8 +406,8 @@ private fun TribuneConfigCard(
                 value = draft.color,
                 onValueChange = { value -> onChange { it.copy(color = value) } },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Color") },
-                placeholder = { Text("#RRGGBB") },
+                label = { Text(stringResource(R.string.color_label)) },
+                placeholder = { Text(stringResource(R.string.color_placeholder)) },
                 leadingIcon = {
                     Box(
                         modifier = Modifier
@@ -412,7 +430,7 @@ private fun TribuneConfigCard(
                 value = draft.backendUrl,
                 onValueChange = { value -> onChange { it.copy(backendUrl = value) } },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Backend URL") },
+                label = { Text(stringResource(R.string.backend_url_label)) },
                 supportingText = errorSupportingText(errors["backendUrl"]),
                 isError = errors["backendUrl"] != null,
                 singleLine = true,
@@ -421,7 +439,7 @@ private fun TribuneConfigCard(
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "Format",
+                    text = stringResource(R.string.format_label),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -435,8 +453,8 @@ private fun TribuneConfigCard(
                 value = draft.timeZoneId,
                 onValueChange = { value -> onChange { it.copy(timeZoneId = value) } },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Time zone") },
-                placeholder = { Text("Europe/Paris") },
+                label = { Text(stringResource(R.string.time_zone_label)) },
+                placeholder = { Text(stringResource(R.string.time_zone_placeholder)) },
                 supportingText = errorSupportingText(errors["timeZoneId"]),
                 isError = errors["timeZoneId"] != null,
                 singleLine = true,
@@ -446,10 +464,10 @@ private fun TribuneConfigCard(
                 value = draft.postUrl,
                 onValueChange = { value -> onChange { it.copy(postUrl = value) } },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Post URL") },
-                placeholder = { Text("https://...") },
+                label = { Text(stringResource(R.string.post_url_label)) },
+                placeholder = { Text(stringResource(R.string.url_placeholder)) },
                 supportingText = errorSupportingText(errors["postUrl"])
-                    ?: { Text("Leave blank if read-only") },
+                    ?: { Text(stringResource(R.string.post_url_supporting)) },
                 isError = errors["postUrl"] != null,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
@@ -459,9 +477,9 @@ private fun TribuneConfigCard(
                 value = draft.postField,
                 onValueChange = { value -> onChange { it.copy(postField = value) } },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Post form field") },
+                label = { Text(stringResource(R.string.post_form_field_label)) },
                 supportingText = errorSupportingText(errors["postField"])
-                    ?: { Text("Used when a post URL is set.") },
+                    ?: { Text(stringResource(R.string.post_form_field_supporting)) },
                 isError = errors["postField"] != null,
                 singleLine = true,
             )
@@ -470,10 +488,10 @@ private fun TribuneConfigCard(
                 value = draft.loginUrl,
                 onValueChange = { value -> onChange { it.copy(loginUrl = value) } },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Login URL") },
-                placeholder = { Text("https://...") },
+                label = { Text(stringResource(R.string.login_url_label)) },
+                placeholder = { Text(stringResource(R.string.url_placeholder)) },
                 supportingText = errorSupportingText(errors["loginUrl"])
-                    ?: { Text("Optional; opens an in-app browser to capture cookies") },
+                    ?: { Text(stringResource(R.string.login_url_supporting)) },
                 isError = errors["loginUrl"] != null,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
@@ -484,14 +502,14 @@ private fun TribuneConfigCard(
                 enabled = draft.loginUrl.trim().isValidHttpUrl(),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Log in")
+                Text(stringResource(R.string.log_in))
             }
 
             OutlinedTextField(
                 value = draft.userAgent,
                 onValueChange = { value -> onChange { it.copy(userAgent = value) } },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("User agent") },
+                label = { Text(stringResource(R.string.user_agent_label)) },
                 supportingText = errorSupportingText(errors["userAgent"]),
                 isError = errors["userAgent"] != null,
                 singleLine = true,
@@ -501,10 +519,10 @@ private fun TribuneConfigCard(
                 value = draft.cookie,
                 onValueChange = { value -> onChange { it.copy(cookie = value) } },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Cookie") },
-                placeholder = { Text("Optional") },
+                label = { Text(stringResource(R.string.cookie_label)) },
+                placeholder = { Text(stringResource(R.string.optional)) },
                 supportingText = errorSupportingText(errors["cookie"])
-                    ?: { Text("Optional, will only be sent to the post URL") },
+                    ?: { Text(stringResource(R.string.cookie_supporting)) },
                 isError = errors["cookie"] != null,
                 maxLines = 3,
             )
@@ -525,7 +543,7 @@ private fun FormatSelector(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(
-                text = format.label,
+                text = stringResource(format.labelRes()),
                 modifier = Modifier.weight(1f),
             )
             Icon(
@@ -540,7 +558,7 @@ private fun FormatSelector(
         ) {
             FeedFormat.entries.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(option.label) },
+                    text = { Text(stringResource(option.labelRes())) },
                     onClick = {
                         onFormatChange(option)
                         expanded = false
@@ -551,23 +569,37 @@ private fun FormatSelector(
     }
 }
 
-private val FeedFormat.label: String
-    get() = when (this) {
-        FeedFormat.TSV -> "TSV"
-        FeedFormat.XML_HTML_ESCAPED -> "XML (HTML-escaped)"
-    }
+@StringRes
+private fun FeedFormat.labelRes(): Int = when (this) {
+    FeedFormat.TSV -> R.string.format_tsv
+    FeedFormat.XML_HTML_ESCAPED -> R.string.format_xml_html_escaped
+}
 
-private fun pollingErrorMessage(value: String): String? {
+private fun pollingErrorMessage(value: String): ValidationMessage? {
     val seconds = value.toIntOrNull()
     return if (
         seconds == null ||
         seconds < TribuneConfig.MIN_POLLING_SECONDS
     ) {
-        "Please do not hammer a tribune with an interval less than ${TribuneConfig.MIN_POLLING_SECONDS} seconds!"
+        ValidationMessage(
+            resourceId = R.string.polling_interval_error,
+            formatArgs = listOf(TribuneConfig.MIN_POLLING_SECONDS),
+        )
     } else {
         null
     }
 }
 
-private fun errorSupportingText(message: String?): (@Composable () -> Unit)? =
-    message?.let { text -> { Text(text) } }
+@Composable
+private fun errorSupportingText(
+    message: ValidationMessage?,
+): (@Composable () -> Unit)? = message?.let { error ->
+    {
+        Text(
+            stringResource(
+                error.resourceId,
+                *error.formatArgs.toTypedArray(),
+            ),
+        )
+    }
+}
