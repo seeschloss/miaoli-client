@@ -4,12 +4,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.fromHtml
+import androidx.compose.ui.text.style.TextDecoration
 
 private const val DATE_PATTERN = """\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])"""
 private const val TIME_PATTERN = """(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d"""
-private const val SUFFIX_PATTERN = """(?:@[0-9A-Za-z]+)?"""
+private val SUFFIX_PATTERN = Regex("""@[^\s]+""")
 
 /**
  * Matches a clock reference, optionally prefixed by a date. The suffix is
@@ -48,11 +50,19 @@ internal fun renderMessage(
         }
     if (references.isEmpty()) return styled
 
+    val clockLinkStyles = TextLinkStyles(
+        style = SpanStyle(
+            color = linkColor,
+            textDecoration = TextDecoration.None,
+        ),
+    )
+
     return AnnotatedString.Builder(styled).apply {
         references.forEach { reference ->
             addLink(
                 LinkAnnotation.Clickable(
                     tag = reference.text,
+                    styles = clockLinkStyles,
                     linkInteractionListener = { onClockClick(reference) },
                 ),
                 reference.start,
