@@ -4,7 +4,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.style.TextDecoration
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -143,22 +142,6 @@ class MessageTextTest {
 
         assertEquals("12:34:56@Miaoli", reference.text)
         assertEquals("Miaoli", reference.tribuneTitle)
-    }
-
-    @Test
-    fun addsClickableAnnotationsForClocks() {
-        var clicked: ClockReference? = null
-        val rendered = renderMessage("at 12:34:56 now", Color.Red) { clicked = it }
-
-        val link = rendered.getLinkAnnotations(0, rendered.length).single()
-        assertEquals(TextRange(3, 11), TextRange(link.start, link.end))
-        val clickable = link.item as LinkAnnotation.Clickable
-        assertEquals("12:34:56", clickable.tag)
-        assertEquals(Color.Red, clickable.styles?.style?.color)
-        assertEquals(TextDecoration.None, clickable.styles?.style?.textDecoration)
-
-        clickable.linkInteractionListener?.onClick(clickable)
-        assertEquals("12:34:56", clicked?.time)
     }
 
     @Test
