@@ -10,7 +10,6 @@ data class FeedUiState(
     val isRefreshing: Boolean = false,
     val errors: Map<String, String> = emptyMap(),
     val config: TribuneConfig = TribuneConfig(),
-    val enabledTribuneIds: Set<Long> = config.feedTribunes.map { it.id }.toSet(),
     val draft: DraftState = DraftState(),
     val selectedTribuneId: Long? = null,
     val isPosting: Boolean = false,

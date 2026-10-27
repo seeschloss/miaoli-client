@@ -6,6 +6,8 @@ import im.miaoli.data.Tribune
 import im.miaoli.data.TribuneConfig
 import im.miaoli.data.TribuneConfigStore
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FeedViewModelTest {
@@ -39,25 +41,36 @@ class FeedViewModelTest {
 
     @Test
     fun startsWithEveryFeedTribuneEnabled() {
-        assertEquals(setOf(1L, 2L), viewModel.state.value.enabledTribuneIds)
+        assertEquals(setOf(1L, 2L), enabledFeedIds(viewModel))
     }
 
     @Test
     fun togglesTribuneVisibility() {
         viewModel.toggleTribune(1L)
 
-        assertEquals(setOf(2L), viewModel.state.value.enabledTribuneIds)
+        assertEquals(setOf(2L), enabledFeedIds(viewModel))
+        assertFalse(store.config.tribunes.first { it.id == 1L }.enabled)
 
         viewModel.toggleTribune(1L)
 
-        assertEquals(setOf(1L, 2L), viewModel.state.value.enabledTribuneIds)
+        assertEquals(setOf(1L, 2L), enabledFeedIds(viewModel))
+        assertTrue(store.config.tribunes.first { it.id == 1L }.enabled)
+    }
+
+    @Test
+    fun persistsDisabledTribuneAcrossRuns() {
+        viewModel.toggleTribune(1L)
+
+        val reloaded = FeedViewModel(configStore = store, repository = FeedRepository())
+
+        assertEquals(setOf(2L), enabledFeedIds(reloaded))
     }
 
     @Test
     fun ignoresUnknownTribune() {
         viewModel.toggleTribune(99L)
 
-        assertEquals(setOf(1L, 2L), viewModel.state.value.enabledTribuneIds)
+        assertEquals(setOf(1L, 2L), enabledFeedIds(viewModel))
     }
 
     @Test
@@ -143,7 +156,7 @@ class FeedViewModelTest {
     }
 
     @Test
-    fun saveConfigAddsNewlyVisibleTribuneToEnabledSet() {
+    fun saveConfigAddsEnabledTribuneToFeed() {
         val third = Tribune(
             id = 3L,
             title = "C",
@@ -156,17 +169,18 @@ class FeedViewModelTest {
             TribuneConfig(tribunes = tribunes + third, pollingSeconds = 30),
         )
 
-        assertEquals(setOf(1L, 2L, 3L), viewModel.state.value.enabledTribuneIds)
+        assertEquals(setOf(1L, 2L, 3L), enabledFeedIds(viewModel))
         assertEquals(3L, viewModel.state.value.config.tribunes.last().id)
+        assertTrue(viewModel.state.value.config.tribunes.last().enabled)
     }
 
     @Test
-    fun saveConfigPreservesHiddenTribuneAndUpdatesMetadata() {
+    fun saveConfigPreservesDisabledTribuneAndUpdatesMetadata() {
         viewModel.toggleTribune(1L)
 
         viewModel.saveConfig(
             TribuneConfig(
-                tribunes = tribunes.map { tribune ->
+                tribunes = viewModel.state.value.config.tribunes.map { tribune ->
                     if (tribune.id == 1L) {
                         tribune.copy(title = "Renamed", color = 0xFF123456)
                     } else {
@@ -178,10 +192,11 @@ class FeedViewModelTest {
         )
 
         val state = viewModel.state.value
-        assertEquals(setOf(2L), state.enabledTribuneIds)
+        assertEquals(setOf(2L), enabledFeedIds(viewModel))
         assertEquals(45, state.config.pollingSeconds)
         assertEquals("Renamed", state.config.tribunes.first { it.id == 1L }.title)
         assertEquals(0xFF123456, state.config.tribunes.first { it.id == 1L }.color)
+        assertFalse(state.config.tribunes.first { it.id == 1L }.enabled)
         assertEquals(state.config, store.config)
     }
 
@@ -196,6 +211,9 @@ class FeedViewModelTest {
             viewModel.state.value.config.pollingSeconds,
         )
     }
+
+    private fun enabledFeedIds(viewModel: FeedViewModel): Set<Long> =
+        viewModel.state.value.feedTribunes.mapTo(mutableSetOf()) { it.id }
 
     private class FakeConfigStore(var config: TribuneConfig) : TribuneConfigStore {
         override fun load(): TribuneConfig = config

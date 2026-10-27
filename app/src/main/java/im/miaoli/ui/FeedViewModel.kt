@@ -32,7 +32,6 @@ class FeedViewModel(
         FeedUiState(
             config = initialConfig,
             selectedTribuneId = initialConfig.postableTribunes.firstOrNull()?.id,
-            enabledTribuneIds = initialConfig.feedTribunes.map { it.id }.toSet(),
         ),
     )
     val state: StateFlow<FeedUiState> = _state.asStateFlow()
@@ -101,15 +100,15 @@ class FeedViewModel(
     }
 
     fun toggleTribune(id: Long) {
-        val feedIds = _state.value.config.feedTribunes.mapTo(mutableSetOf()) { it.id }
-        if (id !in feedIds) return
-
-        _state.update { current ->
-            val enabled = current.enabledTribuneIds
-            current.copy(
-                enabledTribuneIds = if (id in enabled) enabled - id else enabled + id,
-            )
-        }
+        val current = _state.value
+        val tribune = current.config.tribunes.firstOrNull { it.id == id } ?: return
+        val updatedConfig = current.config.copy(
+            tribunes = current.config.tribunes.map {
+                if (it.id == tribune.id) it.copy(enabled = !it.enabled) else it
+            },
+        )
+        configStore.save(updatedConfig)
+        _state.update { it.copy(config = updatedConfig) }
     }
 
     /**
@@ -122,8 +121,6 @@ class FeedViewModel(
         configStore.save(normalized)
 
         _state.update { current ->
-            val previousFeedIds = current.config.feedTribunes.mapTo(mutableSetOf()) { it.id }
-            val newFeedIds = normalized.feedTribunes.mapTo(mutableSetOf()) { it.id }
             val changedSources = normalized.tribunes
                 .filter { new ->
                     val old = current.config.tribunes.firstOrNull { it.id == new.id }
@@ -147,8 +144,6 @@ class FeedViewModel(
                         },
                     incoming = emptyList(),
                 ),
-                enabledTribuneIds = (current.enabledTribuneIds intersect newFeedIds) +
-                    (newFeedIds - previousFeedIds),
                 selectedTribuneId = newSelectedId,
                 draft = if (newSelectedId != current.selectedTribuneId) {
                     DraftEditor.rewriteClocks(current.draft, newSelectedId, normalized)
@@ -186,7 +181,11 @@ class FeedViewModel(
                 }
                 refresh(initial = false, showSpinner = false)
 
-                val postKey = if (_state.value.enabledTribuneIds.contains(tribune.id)) {
+                val postKey = if (
+                    _state.value.config.tribunes
+                        .firstOrNull { it.id == tribune.id }
+                        ?.enabled == true
+                ) {
                     receipt.postId?.let { postId -> "${tribune.id}:$postId" }
                 } else {
                     null

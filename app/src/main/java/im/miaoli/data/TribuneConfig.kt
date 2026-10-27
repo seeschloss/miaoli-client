@@ -5,16 +5,15 @@ import java.time.ZoneId
 /**
  * Persisted application configuration.
  *
- * [tribunes] contains every configured tribune, including post-only entries
- * such as the default Miaoli Android target. [feedTribunes] and
- * [postableTribunes] expose the subsets used by the feed and composer.
+ * [tribunes] contains every configured tribune. [feedTribunes] exposes the
+ * enabled subset and [postableTribunes] the entries with a post URL.
  */
 data class TribuneConfig(
     val tribunes: List<Tribune> = Tribunes.defaults,
     val pollingSeconds: Int = DEFAULT_POLLING_SECONDS,
 ) {
     val feedTribunes: List<Tribune>
-        get() = tribunes.filter { it.showInFeed }
+        get() = tribunes.filter { it.enabled }
 
     val postableTribunes: List<Tribune>
         get() = tribunes.filter { it.canPost }

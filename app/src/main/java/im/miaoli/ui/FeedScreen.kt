@@ -113,8 +113,9 @@ fun FeedScreen(
     val keyboard = LocalSoftwareKeyboardController.current
     val composerFocusRequester = remember { FocusRequester() }
     var composerFocusRequest by remember { mutableIntStateOf(0) }
-    val enabledTribunes = state.feedTribunes.filter { it.id in state.enabledTribuneIds }
-    val visiblePosts = state.posts.filter { it.tribune.id in state.enabledTribuneIds }
+    val enabledTribunes = state.feedTribunes
+    val enabledTribuneIds = enabledTribunes.mapTo(mutableSetOf()) { it.id }
+    val visiblePosts = state.posts.filter { it.tribune.id in enabledTribuneIds }
     val enabledTitles = enabledTribunes.mapTo(mutableSetOf()) { it.title }
     val visibleErrors = state.errors.filterKeys { it == "Feed" || it in enabledTitles }
     val newestKey = visiblePosts.firstOrNull()?.key
@@ -164,7 +165,6 @@ fun FeedScreen(
         drawerContent = {
             TribunesDrawer(
                 tribunes = state.config.tribunes,
-                enabledTribuneIds = state.enabledTribuneIds,
                 onToggleTribune = onToggleTribune,
                 onConfigureTribune = { id ->
                     scope.launch {
@@ -258,13 +258,13 @@ fun FeedScreen(
                         }
                     }
 
-                    state.enabledTribuneIds.isEmpty() -> {
+                    enabledTribunes.isEmpty() -> {
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
-                                text = "No tribunes selected.",
+                                text = "No tribunes enabled.",
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -280,7 +280,7 @@ fun FeedScreen(
                                 text = if (state.posts.isEmpty()) {
                                     "No messages yet."
                                 } else {
-                                    "No messages from selected tribunes."
+                                    "No messages from enabled tribunes."
                                 },
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -321,7 +321,6 @@ fun FeedScreen(
 @Composable
 private fun TribunesDrawer(
     tribunes: List<Tribune>,
-    enabledTribuneIds: Set<Long>,
     onToggleTribune: (Long) -> Unit,
     onConfigureTribune: (Long) -> Unit,
     onAddTribune: () -> Unit,
@@ -363,7 +362,6 @@ private fun TribunesDrawer(
             tribunes.forEach { tribune ->
                 TribuneToggleRow(
                     tribune = tribune,
-                    enabled = tribune.id in enabledTribuneIds,
                     onToggle = { onToggleTribune(tribune.id) },
                     onConfigure = { onConfigureTribune(tribune.id) },
                 )
@@ -409,11 +407,10 @@ private fun TribunesDrawer(
 @Composable
 private fun TribuneToggleRow(
     tribune: Tribune,
-    enabled: Boolean,
     onToggle: () -> Unit,
     onConfigure: () -> Unit,
 ) {
-    val active = tribune.showInFeed && enabled
+    val active = tribune.enabled
 
     Row(
         modifier = Modifier
@@ -425,10 +422,9 @@ private fun TribuneToggleRow(
             modifier = Modifier
                 .weight(1f)
                 .toggleable(
-                    value = enabled,
+                    value = tribune.enabled,
                     role = Role.Switch,
                     onValueChange = { onToggle() },
-                    enabled = tribune.showInFeed,
                 )
                 .padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -466,19 +462,9 @@ private fun TribuneToggleRow(
                 overflow = TextOverflow.Ellipsis,
             )
 
-            if (!tribune.showInFeed) {
-                Text(
-                    text = "Hidden",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 6.dp),
-                )
-            }
-
             Switch(
-                checked = enabled,
+                checked = tribune.enabled,
                 onCheckedChange = null,
-                enabled = tribune.showInFeed,
             )
         }
 

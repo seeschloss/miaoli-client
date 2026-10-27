@@ -25,8 +25,8 @@ data class Tribune(
     val userAgent: String = DEFAULT_USER_AGENT,
     /** Optional Cookie header value sent for this tribune's requests. */
     val cookie: String = "",
-    /** Whether this tribune is included in the merged feed and its side pane. */
-    val showInFeed: Boolean = true,
+    /** Whether this tribune is enabled in the merged feed. */
+    val enabled: Boolean = true,
 ) {
     val canPost: Boolean
         get() = !postUrl.isNullOrBlank()

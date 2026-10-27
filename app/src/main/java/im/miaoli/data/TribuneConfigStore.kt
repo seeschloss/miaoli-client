@@ -60,7 +60,7 @@ internal object TribuneConfigJson {
                     put("postField", tribune.postField)
                     put("userAgent", tribune.userAgent)
                     put("cookie", tribune.cookie)
-                    put("showInFeed", tribune.showInFeed)
+                    put("enabled", tribune.enabled)
                 },
             )
         }
@@ -102,7 +102,7 @@ internal object TribuneConfigJson {
                         postField = item.optString("postField", "message"),
                         userAgent = item.optString("userAgent", Tribune.DEFAULT_USER_AGENT),
                         cookie = item.optString("cookie", ""),
-                        showInFeed = item.optBoolean("showInFeed", true),
+                        enabled = item.optBoolean("enabled", true),
                     ),
                 )
             }

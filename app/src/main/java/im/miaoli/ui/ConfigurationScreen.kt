@@ -145,7 +145,7 @@ fun TribuneConfigurationScreen(
             backendUrl = "",
             format = FeedFormat.TSV,
             timeZoneId = Tribune.DEFAULT_TIME_ZONE,
-            showInFeed = true,
+            enabled = true,
         )
     } else {
         config.tribunes.firstOrNull { it.id == tribuneId }
