@@ -17,6 +17,11 @@ data class FetchResult(
     val errors: Map<Tribune, String>,
 )
 
+data class PostReceipt(
+    /** ID returned by the tribune in the `X-Post-Id` response header, if any. */
+    val postId: String? = null,
+)
+
 class FeedRepository(
     private val client: OkHttpClient = defaultClient(),
     private val parsers: Map<FeedFormat, FeedParser> = mapOf(
@@ -66,32 +71,40 @@ class FeedRepository(
      * Posts [message] to [tribune] using its configured form endpoint.
      *
      * No credentials are required. A configured cookie is sent as an optional
-     * header. A non-2xx response is reported as an [IOException].
+     * header. A non-2xx response is reported as an [IOException]. The tribune
+     * may return the new post's ID in the `X-Post-Id` response header.
      */
-    suspend fun post(tribune: Tribune, message: String) = withContext(Dispatchers.IO) {
-        val url = tribune.postUrl?.takeIf { it.isNotBlank() }
-            ?: throw IllegalArgumentException("${tribune.title} does not support posting")
-        val body = message.trim()
-        require(body.isNotEmpty()) { "Message must not be empty" }
+    suspend fun post(tribune: Tribune, message: String): PostReceipt =
+        withContext(Dispatchers.IO) {
+            val url = tribune.postUrl?.takeIf { it.isNotBlank() }
+                ?: throw IllegalArgumentException("${tribune.title} does not support posting")
+            val body = message.trim()
+            require(body.isNotEmpty()) { "Message must not be empty" }
 
-        val form = FormBody.Builder()
-            .add(tribune.postField, body)
-            .build()
+            val form = FormBody.Builder()
+                .add(tribune.postField, body)
+                .build()
 
-        val request = Request.Builder()
-            .url(url)
-            .tribuneHeaders(tribune)
-            .header("Accept", "application/json")
-            .header("Referer", tribune.backendUrl)
-            .post(form)
-            .build()
+            val request = Request.Builder()
+                .url(url)
+                .tribuneHeaders(tribune)
+                .header("Accept", "application/json")
+                .header("Referer", tribune.backendUrl)
+                .post(form)
+                .build()
 
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                throw IOException("HTTP ${response.code}")
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    throw IOException("HTTP ${response.code}")
+                }
+
+                PostReceipt(
+                    postId = response.header("X-Post-Id")
+                        ?.trim()
+                        ?.takeIf { it.isNotEmpty() },
+                )
             }
         }
-    }
 
     private fun Request.Builder.tribuneHeaders(tribune: Tribune): Request.Builder = apply {
         header("User-Agent", tribune.userAgent.ifBlank { Tribune.DEFAULT_USER_AGENT })

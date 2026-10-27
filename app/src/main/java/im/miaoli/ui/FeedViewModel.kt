@@ -39,6 +39,7 @@ class FeedViewModel(
 
     private val refreshMutex = Mutex()
     private var manualRefresh: Job? = null
+    private var nextScrollRequestId = 0L
 
     fun updateDraft(value: TextFieldValue) {
         _state.update { current ->
@@ -175,7 +176,7 @@ class FeedViewModel(
             _state.update { it.copy(isPosting = true, postError = null) }
 
             try {
-                repository.post(tribune, message)
+                val receipt = repository.post(tribune, message)
                 _state.update {
                     it.copy(
                         isPosting = false,
@@ -184,6 +185,21 @@ class FeedViewModel(
                     )
                 }
                 refresh(initial = false, showSpinner = false)
+
+                val postKey = if (_state.value.enabledTribuneIds.contains(tribune.id)) {
+                    receipt.postId?.let { postId -> "${tribune.id}:$postId" }
+                } else {
+                    null
+                }
+                val requestId = ++nextScrollRequestId
+                _state.update {
+                    it.copy(
+                        scrollRequest = FeedScrollRequest(
+                            id = requestId,
+                            postKey = postKey,
+                        ),
+                    )
+                }
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
@@ -194,6 +210,17 @@ class FeedViewModel(
                             (error.message ?: "unknown error"),
                     )
                 }
+            }
+        }
+    }
+
+    /** Clears a scroll request after the feed has handled it. */
+    fun consumeScrollRequest(id: Long) {
+        _state.update { current ->
+            if (current.scrollRequest?.id == id) {
+                current.copy(scrollRequest = null)
+            } else {
+                current
             }
         }
     }
