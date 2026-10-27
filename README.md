@@ -16,8 +16,10 @@ are merged by their absolute UTC instant, so sources in different zones
 interleave correctly. Each row shows only that tribune's local clock, in full
 `HH:mm:ss` form. Clock references in message text, including
 `YYYY-MM-dd HH:mm:ss` forms and optional `@Title` suffixes, are highlighted in
-the link colour. The feed refreshes every 30 seconds while the app is in the
-foreground.
+the link colour. Tapping a highlighted clock reference jumps to the referenced
+message: the origin tribune for a bare clock, or the enabled tribune named after
+`@`. Dates are matched when present; otherwise the closest older matching message
+is used. The feed refreshes every 30 seconds while the app is in the foreground.
 
 App surfaces and text follow the system light or dark theme, including the
 status bar icons. Tribune row backgrounds keep their configured colours; message

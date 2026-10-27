@@ -124,6 +124,40 @@ class MessageTextTest {
     }
 
     @Test
+    fun parsesClockReferenceFields() {
+        val reference = clockReferences("at 2026-10-25 23:30:03@Moules now")
+            .single()
+
+        assertEquals("2026-10-25 23:30:03@Moules", reference.text)
+        assertEquals("2026-10-25", reference.date)
+        assertEquals("23:30:03", reference.time)
+        assertEquals("Moules", reference.tribuneTitle)
+        assertEquals(3, reference.start)
+    }
+
+    @Test
+    fun clockSuffixStopsAtFirstSpace() {
+        val reference = clockReferences("at 12:34:56@Miaoli Android now")
+            .single()
+
+        assertEquals("12:34:56@Miaoli", reference.text)
+        assertEquals("Miaoli", reference.tribuneTitle)
+    }
+
+    @Test
+    fun addsClickableAnnotationsForClocks() {
+        var clicked: ClockReference? = null
+        val rendered = renderMessage("at 12:34:56 now", Color.Red) { clicked = it }
+
+        val link = rendered.getLinkAnnotations(0, rendered.length).single()
+        assertEquals(TextRange(3, 11), TextRange(link.start, link.end))
+        assertEquals("12:34:56", (link.item as LinkAnnotation.Clickable).tag)
+
+        link.item.linkInteractionListener?.onClick(link.item)
+        assertEquals("12:34:56", clicked?.time)
+    }
+
+    @Test
     fun stylesLinksAndClocksWithTheSameColor() {
         val text = "[url] at 12:34:56"
         val builder = AnnotatedString.Builder(text)

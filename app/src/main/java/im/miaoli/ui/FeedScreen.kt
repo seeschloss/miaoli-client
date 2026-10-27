@@ -1,5 +1,6 @@
 package im.miaoli.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -77,6 +78,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
@@ -110,6 +112,7 @@ fun FeedScreen(
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val keyboard = LocalSoftwareKeyboardController.current
     val composerFocusRequester = remember { FocusRequester() }
     var composerFocusRequest by remember { mutableIntStateOf(0) }
@@ -157,6 +160,42 @@ fun FeedScreen(
             composerFocusRequester.requestFocus()
             withFrameNanos { }
             keyboard?.show()
+        }
+    }
+
+    fun openClockReference(origin: Post, reference: ClockReference) {
+        when (
+            val result = resolveClockTarget(
+                origin = origin,
+                reference = reference,
+                tribunes = state.config.tribunes,
+                posts = visiblePosts,
+            )
+        ) {
+            is ClockTargetResult.Found -> {
+                val index = visiblePosts.indexOfFirst { it.key == result.post.key }
+                if (index >= 0) {
+                    scope.launch { listState.animateScrollToItem(index) }
+                } else {
+                    Toast.makeText(
+                        context,
+                        "But where is ${reference.text}?",
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
+            }
+
+            is ClockTargetResult.NoTribune -> Toast.makeText(
+                context,
+                "No tribune exists with the name ${result.title}",
+                Toast.LENGTH_LONG,
+            ).show()
+
+            is ClockTargetResult.NoMessage -> Toast.makeText(
+                context,
+                "But where is ${result.reference.text}?",
+                Toast.LENGTH_LONG,
+            ).show()
         }
     }
 
@@ -301,6 +340,9 @@ fun FeedScreen(
                                             onInsertClock(post.clock, post.tribune.id)
                                             composerFocusRequest++
                                         }
+                                    },
+                                    onClockClick = { reference ->
+                                        openClockReference(post, reference)
                                     },
                                 )
                             }
@@ -671,12 +713,16 @@ private fun PostComposer(
 private fun PostRow(
     post: Post,
     onClick: () -> Unit,
+    onClockClick: (ClockReference) -> Unit,
 ) {
     val tribuneColor = Color(post.tribune.color)
     val messageColor = readableTextColor(tribuneColor)
     val linkColor = readableLinkColor(tribuneColor)
+    val latestOnClockClick by rememberUpdatedState(onClockClick)
     val message = remember(post.message, linkColor) {
-        renderMessage(post.message, linkColor = linkColor)
+        renderMessage(post.message, linkColor = linkColor) { reference ->
+            latestOnClockClick(reference)
+        }
     }
 
     Row(
