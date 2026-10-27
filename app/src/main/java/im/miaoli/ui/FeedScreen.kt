@@ -7,7 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -88,7 +88,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -874,27 +873,33 @@ private fun PostRow(
                         val layout = textLayout ?: return@awaitEachGesture
                         val reference = clockAt(layout, down.position, clockRefs)
                             ?: return@awaitEachGesture
-                        val longPress = awaitLongPressOrCancellation(down.id)
+                        // Claim the gesture so the row's click handler cannot also
+                        // treat a clock tap or long press as a reply action.
+                        down.consume()
 
-                        if (longPress != null) {
-                            longPress.consume()
+                        var canceled = false
+                        val up = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                            waitForUpOrCancellation().also { change ->
+                                if (change == null) {
+                                    canceled = true
+                                }
+                            }
+                        }
+
+                        if (up != null) {
+                            if (!up.isConsumed &&
+                                clockAt(layout, up.position, clockRefs) == reference
+                            ) {
+                                up.consume()
+                                latestOnClockClick(reference)
+                            }
+                        } else if (!canceled) {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             latestOnClockLongClick(reference)
                             while (true) {
                                 val event = awaitPointerEvent()
                                 event.changes.forEach { it.consume() }
                                 if (event.changes.none { it.pressed }) break
-                            }
-                        } else {
-                            val up = currentEvent.changes
-                                .firstOrNull { it.id == down.id }
-                            if (up != null &&
-                                !up.isConsumed &&
-                                up.changedToUpIgnoreConsumed() &&
-                                clockAt(layout, up.position, clockRefs) == reference
-                            ) {
-                                up.consume()
-                                latestOnClockClick(reference)
                             }
                         }
                     }
