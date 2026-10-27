@@ -213,12 +213,6 @@ fun FeedScreen(
                                 Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                             }
                         }
-                        IconButton(onClick = onOpenSettings) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = "Feed settings",
-                            )
-                        }
                     },
                 )
             },
