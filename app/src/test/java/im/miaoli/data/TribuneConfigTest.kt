@@ -1,9 +1,15 @@
 package im.miaoli.data
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TribuneConfigTest {
+    @Test
+    fun allDefaultTribunesAreEnabled() {
+        assertTrue(Tribunes.defaults.all { it.enabled })
+    }
+
     @Test
     fun allocatesNextIdAfterTheHighestExistingId() {
         val config = TribuneConfig(

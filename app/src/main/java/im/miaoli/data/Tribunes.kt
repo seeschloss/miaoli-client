@@ -28,7 +28,6 @@ object Tribunes {
         timeZoneId = "UTC",
         postUrl = "https://miaoli.im/@See/miaoli-android",
         postField = "message",
-        showInFeed = false,
     )
 
     val defaults = listOf(moules, linuxfr, miaoliandroid)

@@ -2,6 +2,7 @@ package im.miaoli.data
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TribuneConfigJsonTest {
@@ -20,7 +21,7 @@ class TribuneConfigJsonTest {
                     postField = "message",
                     userAgent = "Test/1.0",
                     cookie = "session=abc",
-                    showInFeed = true,
+                    enabled = true,
                 ),
                 Tribune(
                     id = 2L,
@@ -28,7 +29,7 @@ class TribuneConfigJsonTest {
                     color = 0xFF67C6F2,
                     backendUrl = "https://example.test/b",
                     format = FeedFormat.XML_HTML_ESCAPED,
-                    showInFeed = false,
+                    enabled = false,
                 ),
             ),
             pollingSeconds = 45,
@@ -67,7 +68,7 @@ class TribuneConfigJsonTest {
                   "postField": "",
                   "userAgent": "",
                   "cookie": "  x  ",
-                  "showInFeed": true
+                  "enabled": true
                 }
               ]
             }
@@ -84,5 +85,6 @@ class TribuneConfigJsonTest {
         assertEquals("message", tribune.postField)
         assertEquals(Tribune.DEFAULT_USER_AGENT, tribune.userAgent)
         assertEquals("x", tribune.cookie)
+        assertTrue(tribune.enabled)
     }
 }

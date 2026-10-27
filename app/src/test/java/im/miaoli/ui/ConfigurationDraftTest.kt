@@ -30,7 +30,7 @@ class ConfigurationDraftTest {
                 postUrl = "https://example.test/post",
                 userAgent = "Custom/1.0",
                 cookie = "session=abc",
-                showInFeed = false,
+                enabled = false,
             ),
         ),
         pollingSeconds = 45,

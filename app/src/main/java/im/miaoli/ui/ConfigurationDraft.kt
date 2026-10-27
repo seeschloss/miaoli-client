@@ -19,7 +19,7 @@ internal data class TribuneDraft(
     val postField: String,
     val userAgent: String,
     val cookie: String,
-    val showInFeed: Boolean,
+    val enabled: Boolean,
 ) {
     fun validate(): Map<String, String> = buildMap {
         if (title.isBlank()) {
@@ -61,7 +61,7 @@ internal data class TribuneDraft(
         postField = postField.trim().ifBlank { "message" },
         userAgent = userAgent.trim(),
         cookie = cookie.trim(),
-        showInFeed = showInFeed,
+        enabled = enabled,
     )
 
     companion object {
@@ -76,7 +76,7 @@ internal data class TribuneDraft(
             postField = tribune.postField,
             userAgent = tribune.userAgent,
             cookie = tribune.cookie,
-            showInFeed = tribune.showInFeed,
+            enabled = tribune.enabled,
         )
     }
 }

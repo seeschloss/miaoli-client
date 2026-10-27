@@ -3,15 +3,16 @@
 A native Android client for [tribune](https://github.com/seeschloss/miaoli) chat spaces.
 
 This is a from-scratch Kotlin rewrite of the old React Native client. By default it
-shows one merged feed from two tribunes:
+shows a merged feed from three tribunes:
 
 | Tribune | Color | Time zone | Backend |
 | --- | --- | --- | --- |
 | Moules | `#FDE096` | `Europe/Paris` | `https://moules.org/board/last.php?backend=tsv` (TSV) |
 | LinuxFR | `#67C6F2` | `Europe/Paris` | `https://linuxfr.org/board/index.xml` (XML) |
-| Miaoli Android | `#B8E0C2` | `UTC` | `https://miaoli.im/@See/miaoli-android/posts.tsv` (TSV, post-capable, hidden from the feed by default) |
+| Miaoli Android | `#B8E0C2` | `UTC` | `https://miaoli.im/@See/miaoli-android/posts.tsv` (TSV, post-capable) |
 
-Server timestamps are interpreted in each tribune's configured time zone and
+All three are enabled by default; any of them can be disabled from the tribune
+pane. Server timestamps are interpreted in each tribune's configured time zone and
 messages are merged by their absolute UTC instant, so sources in different zones
 interleave correctly. Each row shows only that tribune's local clock, in full
 `HH:mm:ss` form. Clock references in message text, including
@@ -25,9 +26,9 @@ text switches between black and white, and links and clock references share the
 readable blue variant that contrasts with each row's colour.
 
 Use the menu button in the top bar to open the tribune pane. Each row has a switch
-for showing or hiding that source in the current session and a pencil icon for its
-configuration page. Disabled sources are greyed out, and tribunes hidden from the
-feed remain listed so they can be configured or re-enabled.
+for enabling or disabling that source and a pencil icon for its configuration
+page. Disabled sources are greyed out. The enabled state is saved in the
+configuration and restored on the next run.
 
 Tap any message to insert its tribune-local clock at the composer cursor,
 replacing the selection if there is one, and focus the message field. With an
@@ -80,8 +81,8 @@ https://miaoli.im/@See/miaoli-android
 ```
 
 The default target is defined in `data/Tribunes.kt` (`Tribunes.miaoliandroid`) and
-can be changed from the configuration screen. It is hidden from the merged feed
-by default: the Moules and LinuxFR feeds are read-only and remain unchanged.
+can be changed from the configuration screen. The Moules and LinuxFR feeds are
+read-only and remain unchanged.
 
 The request is an `application/x-www-form-urlencoded` POST using the configured
 form field (default `message`), `Accept: application/json`, the tribune's user
