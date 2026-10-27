@@ -87,10 +87,12 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextLayoutResult
@@ -799,6 +801,7 @@ private fun PostRow(
     val messageColor = readableTextColor(tribuneColor)
     val linkColor = readableLinkColor(tribuneColor)
     val selectedOverlay = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+    val haptic = LocalHapticFeedback.current
     val latestOnClockClick by rememberUpdatedState(onClockClick)
     val latestOnClockLongClick by rememberUpdatedState(onClockLongClick)
     var textLayout by remember { mutableStateOf<TextLayoutResult?>(null) }
@@ -875,12 +878,13 @@ private fun PostRow(
 
                         if (longPress != null) {
                             longPress.consume()
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            latestOnClockLongClick(reference)
                             while (true) {
                                 val event = awaitPointerEvent()
                                 event.changes.forEach { it.consume() }
                                 if (event.changes.none { it.pressed }) break
                             }
-                            latestOnClockLongClick(reference)
                         } else {
                             val up = currentEvent.changes
                                 .firstOrNull { it.id == down.id }
