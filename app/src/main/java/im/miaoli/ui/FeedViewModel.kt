@@ -225,8 +225,10 @@ class FeedViewModel(
                 _state.update {
                     it.copy(
                         isPosting = false,
-                        postError = "Could not send to ${tribune.title}: " +
-                            (error.message ?: "unknown error"),
+                        postError = PostError(
+                            tribuneTitle = tribune.title,
+                            detail = error.message,
+                        ),
                     )
                 }
             }
@@ -317,8 +319,7 @@ class FeedViewModel(
                         ?: return@update current
                     current.copy(
                         errors = current.errors + (
-                            currentTribune.title to
-                                (error.message ?: "Unknown error")
+                            currentTribune.title to error.message.orEmpty()
                             ),
                     )
                 }
@@ -374,7 +375,7 @@ class FeedViewModel(
                 it.copy(
                     isLoading = false,
                     isRefreshing = false,
-                    errors = mapOf("Feed" to (error.message ?: "Unknown error")),
+                    errors = mapOf("Feed" to error.message.orEmpty()),
                 )
             }
         } finally {

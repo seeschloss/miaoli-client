@@ -23,7 +23,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
+import im.miaoli.R
 
 /**
  * Opens a tribune's login page in a WebView and returns its cookie header.
@@ -41,6 +44,7 @@ fun TribuneLoginScreen(
     onCookies: (String) -> Unit,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val cookieManager = remember { CookieManager.getInstance() }
     var webView by remember { mutableStateOf<WebView?>(null) }
 
@@ -68,7 +72,7 @@ fun TribuneLoginScreen(
                     IconButton(onClick = ::navigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.back),
                         )
                     }
                 },
@@ -82,7 +86,7 @@ fun TribuneLoginScreen(
                             if (cookies.isBlank()) {
                                 Toast.makeText(
                                     context,
-                                    "No cookies found. Finish logging in first.",
+                                    resources.getString(R.string.no_cookies_found),
                                     Toast.LENGTH_LONG,
                                 ).show()
                             } else {
@@ -90,7 +94,7 @@ fun TribuneLoginScreen(
                             }
                         },
                     ) {
-                        Text("Done")
+                        Text(stringResource(R.string.done))
                     }
                 },
             )
