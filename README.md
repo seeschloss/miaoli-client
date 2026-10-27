@@ -91,7 +91,7 @@ can be changed from the configuration screen. The LinuxFR feed is read-only and
 remains unchanged.
 
 The request is an `application/x-www-form-urlencoded` POST using the configured
-form field (default `message`), `Accept: application/json`, the tribune's user
+form field (default `message`), `Accept: */*`, the tribune's user
 agent, and its optional cookie header. Cleartext HTTP is allowed for older
 tribunes that do not offer HTTPS.
 

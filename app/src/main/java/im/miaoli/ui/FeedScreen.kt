@@ -41,6 +41,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
@@ -57,6 +58,7 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -64,6 +66,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -127,6 +130,12 @@ fun FeedScreen(
     val newestKey = visiblePosts.firstOrNull()?.key
     val latestVisiblePosts by rememberUpdatedState(visiblePosts)
     val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+    val isAtBottom by remember(listState) {
+        derivedStateOf {
+            listState.firstVisibleItemIndex == 0 &&
+                listState.firstVisibleItemScrollOffset == 0
+        }
+    }
 
     BackHandler(enabled = selectedPostKey != null) {
         selectedPostKey = null
@@ -274,6 +283,22 @@ fun FeedScreen(
                         onSelectTribune = onSelectTribune,
                         onPost = onPost,
                     )
+                }
+            },
+            floatingActionButton = {
+                if (visiblePosts.isNotEmpty() && !isAtBottom) {
+                    SmallFloatingActionButton(
+                        onClick = {
+                            scope.launch { listState.animateScrollToItem(0) }
+                        },
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowDown,
+                            contentDescription = "Scroll to bottom",
+                        )
+                    }
                 }
             },
         ) { innerPadding ->
