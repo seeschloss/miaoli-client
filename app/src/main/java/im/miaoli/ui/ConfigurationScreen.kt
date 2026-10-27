@@ -1,5 +1,6 @@
 package im.miaoli.ui
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import im.miaoli.data.FeedFormat
@@ -135,6 +137,7 @@ fun TribuneConfigurationScreen(
     tribuneId: Long,
     onBack: () -> Unit,
     onSave: (TribuneConfig) -> Unit,
+    onLoginCookies: (Long, String) -> Unit,
     isNew: Boolean = false,
 ) {
     val tribune = if (isNew) {
@@ -159,6 +162,7 @@ fun TribuneConfigurationScreen(
             isNew = isNew,
             onBack = onBack,
             onSave = onSave,
+            onLoginCookies = onLoginCookies,
         )
     }
 }
@@ -170,9 +174,40 @@ private fun TribuneConfigurationContent(
     isNew: Boolean,
     onBack: () -> Unit,
     onSave: (TribuneConfig) -> Unit,
+    onLoginCookies: (Long, String) -> Unit,
 ) {
-    var draft by remember(config, tribune.id) { mutableStateOf(TribuneDraft.from(tribune)) }
-    var errors by remember(config, tribune.id) { mutableStateOf<Map<String, String>?>(null) }
+    val context = LocalContext.current
+    var draft by remember(tribune.id) { mutableStateOf(TribuneDraft.from(tribune)) }
+    var errors by remember(tribune.id) { mutableStateOf<Map<String, String>?>(null) }
+    var showLogin by remember(tribune.id) { mutableStateOf(false) }
+
+    if (showLogin) {
+        TribuneLoginScreen(
+            title = "${draft.title.ifBlank { "Tribune" }} login",
+            loginUrl = draft.loginUrl.trim(),
+            cookieUrl = draft.postUrl.trim().takeIf { it.isValidHttpUrl() }
+                ?: draft.loginUrl.trim(),
+            onCancel = { showLogin = false },
+            onCookies = { cookies ->
+                draft = draft.copy(cookie = cookies)
+                errors = null
+                if (!isNew) {
+                    onLoginCookies(tribune.id, cookies)
+                }
+                showLogin = false
+                Toast.makeText(
+                    context,
+                    if (isNew) {
+                        "Cookies captured. Press Save to create the tribune."
+                    } else {
+                        "Cookies saved."
+                    },
+                    Toast.LENGTH_SHORT,
+                ).show()
+            },
+        )
+        return
+    }
 
     fun updateDraft(transform: (TribuneDraft) -> TribuneDraft) {
         draft = transform(draft)
@@ -261,6 +296,7 @@ private fun TribuneConfigurationContent(
                     draft = draft,
                     errors = errors.orEmpty(),
                     onChange = ::updateDraft,
+                    onLogin = { showLogin = true },
                 )
             }
         }
@@ -303,6 +339,7 @@ private fun TribuneConfigCard(
     draft: TribuneDraft,
     errors: Map<String, String>,
     onChange: ((TribuneDraft) -> TribuneDraft) -> Unit,
+    onLogin: () -> Unit,
 ) {
     val parsedColor = parseHexColor(draft.color)
     val previewColor = parsedColor?.let { Color(it) }
@@ -428,6 +465,27 @@ private fun TribuneConfigCard(
                 isError = errors["postField"] != null,
                 singleLine = true,
             )
+
+            OutlinedTextField(
+                value = draft.loginUrl,
+                onValueChange = { value -> onChange { it.copy(loginUrl = value) } },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Login URL") },
+                placeholder = { Text("https://...") },
+                supportingText = errorSupportingText(errors["loginUrl"])
+                    ?: { Text("Optional; opens an in-app browser to capture cookies") },
+                isError = errors["loginUrl"] != null,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+            )
+
+            OutlinedButton(
+                onClick = onLogin,
+                enabled = draft.loginUrl.trim().isValidHttpUrl(),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Log in")
+            }
 
             OutlinedTextField(
                 value = draft.userAgent,

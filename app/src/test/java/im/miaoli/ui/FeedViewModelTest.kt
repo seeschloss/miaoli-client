@@ -81,6 +81,17 @@ class FeedViewModelTest {
     }
 
     @Test
+    fun storesLoginCookieForPosting() {
+        viewModel.updateCookie(1L, "  session=abc  ")
+
+        val cookie = viewModel.state.value.config.tribunes
+            .first { it.id == 1L }
+            .cookie
+        assertEquals("session=abc", cookie)
+        assertEquals("session=abc", store.config.tribunes.first { it.id == 1L }.cookie)
+    }
+
+    @Test
     fun enablingTribuneReloadsOnlyThatTribune() {
         viewModel.toggleTribune(1L)
 

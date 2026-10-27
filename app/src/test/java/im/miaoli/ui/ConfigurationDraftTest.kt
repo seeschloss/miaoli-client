@@ -20,6 +20,7 @@ class ConfigurationDraftTest {
                 backendUrl = "https://example.test/a",
                 format = FeedFormat.TSV,
                 timeZoneId = "Europe/Paris",
+                loginUrl = "https://example.test/login",
             ),
             Tribune(
                 id = 2L,
@@ -65,6 +66,14 @@ class ConfigurationDraftTest {
 
         assertFalse(result.isValid)
         assertNotNull(result.tribuneErrors[1L]?.get("backendUrl"))
+    }
+
+    @Test
+    fun rejectsInvalidLoginUrl() {
+        val result = draftWith { it.copy(loginUrl = "not a url") }.validate()
+
+        assertFalse(result.isValid)
+        assertNotNull(result.tribuneErrors[1L]?.get("loginUrl"))
     }
 
     @Test

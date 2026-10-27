@@ -65,6 +65,7 @@ class MainActivity : ComponentActivity() {
                             viewModel.refresh()
                             newTribuneId = null
                         },
+                        onLoginCookies = viewModel::updateCookie,
                     )
 
                     editingTribuneId != null -> TribuneConfigurationScreen(
@@ -76,6 +77,7 @@ class MainActivity : ComponentActivity() {
                             viewModel.refresh()
                             configuredTribuneId = null
                         },
+                        onLoginCookies = viewModel::updateCookie,
                     )
 
                     showFeedSettings -> FeedSettingsScreen(

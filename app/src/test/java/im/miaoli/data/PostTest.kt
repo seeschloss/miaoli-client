@@ -8,7 +8,7 @@ import java.time.Instant
 class PostTest {
     private fun post(
         time: String,
-        tribune: Tribune = Tribunes.moules.copy(timeZoneId = "Europe/Paris"),
+        tribune: Tribune = Tribunes.miaoliandroid.copy(timeZoneId = "Europe/Paris"),
     ) = Post(
         id = "1",
         time = time,
@@ -44,7 +44,7 @@ class PostTest {
 
     @Test
     fun withTribuneRecomputesTimestamp() {
-        val paris = Tribunes.moules.copy(timeZoneId = "Europe/Paris")
+        val paris = Tribunes.miaoliandroid.copy(timeZoneId = "Europe/Paris")
         val utc = paris.copy(timeZoneId = "UTC")
         val post = post("20260701150000", paris)
 

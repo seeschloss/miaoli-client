@@ -101,6 +101,19 @@ class FeedViewModel(
         }
     }
 
+    /** Stores cookies captured by the in-app login browser for [id]. */
+    fun updateCookie(id: Long, cookie: String) {
+        val current = _state.value
+        if (current.config.tribunes.none { it.id == id }) return
+        val updatedConfig = current.config.copy(
+            tribunes = current.config.tribunes.map {
+                if (it.id == id) it.copy(cookie = cookie.trim()) else it
+            },
+        )
+        configStore.save(updatedConfig)
+        _state.update { it.copy(config = updatedConfig) }
+    }
+
     fun toggleTribune(id: Long) {
         val current = _state.value
         val tribune = current.config.tribunes.firstOrNull { it.id == id } ?: return

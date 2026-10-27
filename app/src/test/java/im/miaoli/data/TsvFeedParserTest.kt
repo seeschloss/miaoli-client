@@ -6,7 +6,7 @@ import org.junit.Test
 
 class TsvFeedParserTest {
     private val parser = TsvFeedParser()
-    private val tribune = Tribunes.moules
+    private val tribune = Tribunes.miaoliandroid
 
     @Test
     fun parsesRowsAndUsesInfoWhenLoginIsBlank() {

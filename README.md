@@ -3,17 +3,16 @@
 A native Android client for [tribune](https://github.com/seeschloss/miaoli) chat spaces.
 
 This is a from-scratch Kotlin rewrite of the old React Native client. By default it
-shows a merged feed from three tribunes:
+shows a merged feed from two tribunes:
 
 | Tribune | Color | Time zone | Backend |
 | --- | --- | --- | --- |
-| Moules | `#FDE096` | `Europe/Paris` | `https://moules.org/board/last.php?backend=tsv` (TSV) |
-| LinuxFR | `#67C6F2` | `Europe/Paris` | `https://linuxfr.org/board/index.xml` (XML) |
 | Miaoli Android | `#B8E0C2` | `UTC` | `https://miaoli.im/@See/miaoli-android/posts.tsv` (TSV, post-capable) |
+| LinuxFR | `#67C6F2` | `Europe/Paris` | `https://linuxfr.org/board/index.xml` (XML) |
 
-All three are enabled by default; any of them can be disabled from the tribune
-pane. Server timestamps are interpreted in each tribune's configured time zone and
-messages are merged by their absolute UTC instant, so sources in different zones
+Both are enabled by default; either can be disabled from the tribune pane. Server
+timestamps are interpreted in each tribune's configured time zone and messages
+are merged by their absolute UTC instant, so sources in different zones
 interleave correctly. Each row shows only that tribune's local clock, in full
 `HH:mm:ss` form. Clock references in message text, including
 `YYYY-MM-dd HH:mm:ss` forms and optional `@Title` suffixes, are highlighted in
@@ -52,16 +51,20 @@ be configured independently:
 - backend URL and feed format (TSV or HTML-escaped XML)
 - time zone (IANA ID, for example `Europe/Paris` or `UTC`)
 - optional post URL and form field name
+- optional login URL
 - user agent
 - optional cookie header
-- whether the tribune appears in the merged feed
+- whether the tribune is enabled in the feed
 
-The settings icon in the top bar, or **Feed settings** at the bottom of the side
-pane, opens the global polling setting. The interval is measured in seconds,
-defaults to 30 seconds, and is clamped to 5–3600 seconds. Settings are stored in
-app-private `SharedPreferences` and applied after pressing **Save**. Posting still
-works without authentication; a configured cookie is only sent as an optional
-header.
+**Log in** opens the configured login URL in an in-app browser. After logging in,
+press **Done**: the app captures the cookies for the post URL. Cookies are stored
+in the app's private configuration and are sent only to the post URL, not to the
+feed URL.
+
+**Feed settings** at the bottom of the side pane opens the global polling setting.
+The interval is measured in seconds, defaults to 30 seconds, and is clamped to
+5–3600 seconds. Settings are stored in app-private `SharedPreferences` and applied
+after pressing **Save**. Posting still works without authentication.
 
 ## Posting
 
@@ -82,12 +85,13 @@ https://miaoli.im/@See/miaoli-android
 ```
 
 The default target is defined in `data/Tribunes.kt` (`Tribunes.miaoliandroid`) and
-can be changed from the configuration screen. The Moules and LinuxFR feeds are
-read-only and remain unchanged.
+can be changed from the configuration screen. The LinuxFR feed is read-only and
+remains unchanged.
 
 The request is an `application/x-www-form-urlencoded` POST using the configured
 form field (default `message`), `Accept: application/json`, the tribune's user
-agent, and its optional cookie header.
+agent, and its optional cookie header. Cleartext HTTP is allowed for older
+tribunes that do not offer HTTPS.
 
 ## Requirements
 

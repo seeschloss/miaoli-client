@@ -57,6 +57,7 @@ internal object TribuneConfigJson {
                     put("format", tribune.format.name)
                     put("timeZoneId", tribune.timeZoneId)
                     put("postUrl", tribune.postUrl ?: JSONObject.NULL)
+                    put("loginUrl", tribune.loginUrl ?: JSONObject.NULL)
                     put("postField", tribune.postField)
                     put("userAgent", tribune.userAgent)
                     put("cookie", tribune.cookie)
@@ -98,6 +99,11 @@ internal object TribuneConfigJson {
                             null
                         } else {
                             item.optString("postUrl").takeIf { it.isNotBlank() }
+                        },
+                        loginUrl = if (item.isNull("loginUrl")) {
+                            null
+                        } else {
+                            item.optString("loginUrl").takeIf { it.isNotBlank() }
                         },
                         postField = item.optString("postField", "message"),
                         userAgent = item.optString("userAgent", Tribune.DEFAULT_USER_AGENT),

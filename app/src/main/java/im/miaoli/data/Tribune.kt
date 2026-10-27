@@ -19,11 +19,13 @@ data class Tribune(
     val timeZoneId: String = DEFAULT_TIME_ZONE,
     /** Form endpoint accepting an application/x-www-form-urlencoded POST, if posting is supported. */
     val postUrl: String? = null,
+    /** Optional page where the user can log in; cookies are captured from an in-app browser. */
+    val loginUrl: String? = null,
     /** Name of the form field that carries the message body. */
     val postField: String = "message",
     /** User-Agent sent for this tribune's feed and posting requests. */
     val userAgent: String = DEFAULT_USER_AGENT,
-    /** Optional Cookie header value sent for this tribune's requests. */
+    /** Optional Cookie header value sent only to this tribune's post URL. */
     val cookie: String = "",
     /** Whether this tribune is enabled in the merged feed. */
     val enabled: Boolean = true,

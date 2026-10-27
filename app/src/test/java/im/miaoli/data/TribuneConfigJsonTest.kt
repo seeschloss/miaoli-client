@@ -18,6 +18,7 @@ class TribuneConfigJsonTest {
                     format = FeedFormat.TSV,
                     timeZoneId = "Europe/Paris",
                     postUrl = "https://example.test/post",
+                    loginUrl = "https://example.test/login",
                     postField = "message",
                     userAgent = "Test/1.0",
                     cookie = "session=abc",
@@ -65,6 +66,7 @@ class TribuneConfigJsonTest {
                   "format": "TSV",
                   "timeZoneId": " Europe/Paris ",
                   "postUrl": "",
+                  "loginUrl": " https://example.test/login ",
                   "postField": "",
                   "userAgent": "",
                   "cookie": "  x  ",
@@ -82,6 +84,7 @@ class TribuneConfigJsonTest {
         assertEquals("https://example.test/a", tribune.backendUrl)
         assertEquals("Europe/Paris", tribune.timeZoneId)
         assertNull(tribune.postUrl)
+        assertEquals("https://example.test/login", tribune.loginUrl)
         assertEquals("message", tribune.postField)
         assertEquals(Tribune.DEFAULT_USER_AGENT, tribune.userAgent)
         assertEquals("x", tribune.cookie)

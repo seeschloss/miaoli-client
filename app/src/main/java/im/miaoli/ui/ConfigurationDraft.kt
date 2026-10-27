@@ -16,6 +16,7 @@ internal data class TribuneDraft(
     val format: FeedFormat,
     val timeZoneId: String,
     val postUrl: String,
+    val loginUrl: String,
     val postField: String,
     val userAgent: String,
     val cookie: String,
@@ -36,6 +37,9 @@ internal data class TribuneDraft(
         }
         if (postUrl.isNotBlank() && !postUrl.trim().isValidHttpUrl()) {
             put("postUrl", "Enter an http(s) URL or leave blank")
+        }
+        if (loginUrl.isNotBlank() && !loginUrl.trim().isValidHttpUrl()) {
+            put("loginUrl", "Enter an http(s) URL or leave blank")
         }
         if (postUrl.isNotBlank() && postField.isBlank()) {
             put("postField", "Form field is required when posting")
@@ -58,6 +62,7 @@ internal data class TribuneDraft(
         format = format,
         timeZoneId = timeZoneId.trim(),
         postUrl = postUrl.trim().takeIf { it.isNotEmpty() },
+        loginUrl = loginUrl.trim().takeIf { it.isNotEmpty() },
         postField = postField.trim().ifBlank { "message" },
         userAgent = userAgent.trim(),
         cookie = cookie.trim(),
@@ -73,6 +78,7 @@ internal data class TribuneDraft(
             format = tribune.format,
             timeZoneId = tribune.timeZoneId,
             postUrl = tribune.postUrl.orEmpty(),
+            loginUrl = tribune.loginUrl.orEmpty(),
             postField = tribune.postField,
             userAgent = tribune.userAgent,
             cookie = tribune.cookie,
