@@ -1,13 +1,16 @@
 package im.miaoli.data
 
 object Tribunes {
-    val moules = Tribune(
+    val miaoliandroid = Tribune(
         id = 1L,
-        title = "Moules",
-        color = 0xFFFDE096,
-        backendUrl = "https://moules.org/board/last.php?backend=tsv",
+        title = "Miaoli Android",
+        color = 0xFFB8E0C2,
+        backendUrl = "https://miaoli.im/@See/miaoli-android/posts.tsv",
         format = FeedFormat.TSV,
-        timeZoneId = "Europe/Paris",
+        timeZoneId = "UTC",
+        postUrl = "https://miaoli.im/@See/miaoli-android",
+        loginUrl = "https://miaoli.im",
+        postField = "message",
     )
 
     val linuxfr = Tribune(
@@ -17,18 +20,8 @@ object Tribunes {
         backendUrl = "https://linuxfr.org/board/index.xml",
         format = FeedFormat.XML_HTML_ESCAPED,
         timeZoneId = "Europe/Paris",
+        loginUrl = "https://linuxfr.org",
     )
 
-    val miaoliandroid = Tribune(
-        id = 3L,
-        title = "Miaoli Android",
-        color = 0xFFB8E0C2,
-        backendUrl = "https://miaoli.im/@See/miaoli-android/posts.tsv",
-        format = FeedFormat.TSV,
-        timeZoneId = "UTC",
-        postUrl = "https://miaoli.im/@See/miaoli-android",
-        postField = "message",
-    )
-
-    val defaults = listOf(moules, linuxfr, miaoliandroid)
+    val defaults = listOf(miaoliandroid, linuxfr)
 }

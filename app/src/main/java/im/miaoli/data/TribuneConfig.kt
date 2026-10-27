@@ -38,6 +38,7 @@ data class TribuneConfig(
                         zone.isNotEmpty() && runCatching { ZoneId.of(zone) }.isSuccess
                     } ?: Tribune.DEFAULT_TIME_ZONE,
                     postUrl = tribune.postUrl?.trim()?.takeIf { it.isNotEmpty() },
+                    loginUrl = tribune.loginUrl?.trim()?.takeIf { it.isNotEmpty() },
                     postField = tribune.postField.trim().ifBlank { "message" },
                     userAgent = tribune.userAgent
                         .replace("\r", "")

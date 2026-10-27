@@ -7,7 +7,7 @@ class PostMergerTest {
     private fun post(
         id: String,
         time: String,
-        tribune: Tribune = Tribunes.moules,
+        tribune: Tribune = Tribunes.miaoliandroid,
     ) = Post(
         id = id,
         time = time,
@@ -33,7 +33,7 @@ class PostMergerTest {
     @Test
     fun sameIdInDifferentTribunesIsNotADuplicate() {
         val merged = PostMerger.merge(
-            existing = listOf(post("1", "20260101120000", Tribunes.moules)),
+            existing = listOf(post("1", "20260101120000", Tribunes.miaoliandroid)),
             incoming = listOf(post("1", "20260101120000", Tribunes.linuxfr)),
         )
 
@@ -55,7 +55,7 @@ class PostMergerTest {
 
     @Test
     fun sortsByAbsoluteUtcTimeAcrossTimeZones() {
-        val paris = Tribunes.moules.copy(timeZoneId = "Europe/Paris")
+        val paris = Tribunes.linuxfr.copy(timeZoneId = "Europe/Paris")
         val utc = Tribunes.miaoliandroid.copy(timeZoneId = "UTC")
 
         val merged = PostMerger.merge(

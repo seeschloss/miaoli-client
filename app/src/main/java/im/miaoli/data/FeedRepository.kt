@@ -56,6 +56,7 @@ class FeedRepository(
     }
 
     private suspend fun fetchOne(tribune: Tribune): List<Post> = withContext(Dispatchers.IO) {
+        // Login cookies are scoped to posting and are never sent to the feed URL.
         val request = Request.Builder()
             .url(tribune.backendUrl)
             .tribuneHeaders(tribune)
@@ -93,6 +94,7 @@ class FeedRepository(
             val request = Request.Builder()
                 .url(url)
                 .tribuneHeaders(tribune)
+                .postCookie(tribune)
                 .header("Accept", "application/json")
                 .header("Referer", tribune.backendUrl)
                 .post(form)
@@ -113,6 +115,9 @@ class FeedRepository(
 
     private fun Request.Builder.tribuneHeaders(tribune: Tribune): Request.Builder = apply {
         header("User-Agent", tribune.userAgent.ifBlank { Tribune.DEFAULT_USER_AGENT })
+    }
+
+    private fun Request.Builder.postCookie(tribune: Tribune): Request.Builder = apply {
         tribune.cookie.trim()
             .takeIf { it.isNotEmpty() }
             ?.let { header("Cookie", it) }

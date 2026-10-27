@@ -47,7 +47,7 @@ class FeedRepositoryFetchTest {
     }
 
     @Test
-    fun fetchesWithConfiguredUserAgentAndCookie() = runBlocking {
+    fun fetchesWithConfiguredUserAgentButNoCookie() = runBlocking {
         val result = repository.fetch(
             listOf(
                 tribune().copy(
@@ -60,7 +60,7 @@ class FeedRepositoryFetchTest {
         assertEquals(1, result.posts.size)
         assertEquals("hello", result.posts.single().message)
         assertEquals("Custom/1.0", lastUserAgent)
-        assertEquals("session=abc", lastCookie)
+        assertEquals("", lastCookie)
     }
 
     @Test

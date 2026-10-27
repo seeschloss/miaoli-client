@@ -11,10 +11,16 @@ class TribuneConfigTest {
     }
 
     @Test
+    fun defaultTribunesHaveLoginUrls() {
+        assertEquals("https://miaoli.im", Tribunes.miaoliandroid.loginUrl)
+        assertEquals("https://linuxfr.org", Tribunes.linuxfr.loginUrl)
+    }
+
+    @Test
     fun allocatesNextIdAfterTheHighestExistingId() {
         val config = TribuneConfig(
             tribunes = listOf(
-                Tribunes.moules.copy(id = 3L),
+                Tribunes.miaoliandroid.copy(id = 3L),
                 Tribunes.linuxfr.copy(id = 7L),
             ),
         )
