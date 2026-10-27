@@ -24,6 +24,7 @@ class TribuneConfigJsonTest {
                     cookie = "session=abc",
                     enabled = true,
                     ownPostIds = listOf("101", "102"),
+                    username = "See",
                 ),
                 Tribune(
                     id = 2L,

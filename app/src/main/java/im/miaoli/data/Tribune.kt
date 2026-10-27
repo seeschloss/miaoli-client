@@ -31,6 +31,8 @@ data class Tribune(
     val enabled: Boolean = true,
     /** IDs returned by this tribune for posts sent by this device, oldest first. */
     val ownPostIds: List<String> = emptyList(),
+    /** Optional author name used when X-Post-Id is unavailable. */
+    val username: String = "",
 ) {
     val canPost: Boolean
         get() = !postUrl.isNullOrBlank()

@@ -22,6 +22,7 @@ class ConfigurationDraftTest {
                 timeZoneId = "Europe/Paris",
                 loginUrl = "https://example.test/login",
                 ownPostIds = listOf("101"),
+                username = "See",
             ),
             Tribune(
                 id = 2L,

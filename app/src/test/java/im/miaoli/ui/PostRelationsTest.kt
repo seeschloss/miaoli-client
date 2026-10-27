@@ -35,6 +35,25 @@ class PostRelationsTest {
     }
 
     @Test
+    fun matchesOwnPostsByUsernameWhenIdsAreUnavailable() = runBlocking {
+        val posts = listOf(
+            post(id = "1", time = "20260101120000", message = "original"),
+            post(
+                id = "2",
+                time = "20260101120100",
+                message = "12:00:00",
+                author = "other",
+            ),
+        )
+        val usernameTribune = tribune.copy(ownPostIds = emptyList(), username = "author")
+
+        val relations = computePostRelations(posts, listOf(usernameTribune))
+
+        assertEquals(PostRelation.Own, relations["1:1"])
+        assertEquals(PostRelation.ReplyToOwn, relations["1:2"])
+    }
+
+    @Test
     fun ownPostTakesPrecedenceOverReplyMarker() = runBlocking {
         val posts = listOf(
             post(id = "1", time = "20260101120000", message = "original"),
@@ -48,10 +67,15 @@ class PostRelationsTest {
         assertEquals(PostRelation.Own, relations["1:2"])
     }
 
-    private fun post(id: String, time: String, message: String) = Post(
+    private fun post(
+        id: String,
+        time: String,
+        message: String,
+        author: String = "author",
+    ) = Post(
         id = id,
         time = time,
-        author = "author",
+        author = author,
         message = message,
         tribune = tribune,
     )

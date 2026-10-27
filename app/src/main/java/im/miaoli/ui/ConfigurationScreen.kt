@@ -516,6 +516,18 @@ private fun TribuneConfigCard(
             )
 
             OutlinedTextField(
+                value = draft.username,
+                onValueChange = { value -> onChange { it.copy(username = value) } },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text(stringResource(R.string.username_label)) },
+                placeholder = { Text(stringResource(R.string.optional)) },
+                supportingText = {
+                    Text(stringResource(R.string.username_supporting))
+                },
+                singleLine = true,
+            )
+
+            OutlinedTextField(
                 value = draft.cookie,
                 onValueChange = { value -> onChange { it.copy(cookie = value) } },
                 modifier = Modifier.fillMaxWidth(),

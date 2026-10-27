@@ -15,6 +15,14 @@ internal enum class PostRelation {
     ReplyToOwn,
 }
 
+/** Matches by received X-Post-Id, then by the configured username fallback. */
+internal fun Tribune.matchesOwnPost(post: Post): Boolean {
+    if (post.id in ownPostIds) return true
+    val configuredUsername = username.trim()
+    return configuredUsername.isNotEmpty() &&
+        post.author.trim() == configuredUsername
+}
+
 /**
  * Finds this device's posts and posts whose clock references point at one of
  * them. Parsing and resolution happen off the main thread.
@@ -23,10 +31,10 @@ internal suspend fun computePostRelations(
     posts: List<Post>,
     tribunes: List<Tribune>,
 ): Map<String, PostRelation> = withContext(Dispatchers.Default) {
-    val ownIdsByTribune = tribunes.associate { it.id to it.ownPostIds.toSet() }
+    val tribunesById = tribunes.associateBy { it.id }
     val ownKeys = posts
         .filter { post ->
-            post.id in ownIdsByTribune[post.tribune.id].orEmpty()
+            tribunesById[post.tribune.id]?.matchesOwnPost(post) == true
         }
         .mapTo(mutableSetOf()) { it.key }
 

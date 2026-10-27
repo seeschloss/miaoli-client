@@ -150,9 +150,11 @@ fun FeedScreen(
         } ?: visiblePosts
     }
     val ownPostKeys = remember(visiblePosts, state.config.tribunes) {
-        val ownIdsByTribune = state.config.tribunes.associate { it.id to it.ownPostIds.toSet() }
+        val tribunesById = state.config.tribunes.associateBy { it.id }
         visiblePosts
-            .filter { post -> post.id in ownIdsByTribune[post.tribune.id].orEmpty() }
+            .filter { post ->
+                tribunesById[post.tribune.id]?.matchesOwnPost(post) == true
+            }
             .mapTo(mutableSetOf()) { it.key }
     }
     val enabledTitles = remember(enabledTribunes) {

@@ -54,6 +54,7 @@ data class TribuneConfig(
                         .filter(String::isNotEmpty)
                         .distinct()
                         .takeLast(Tribune.MAX_OWN_POST_IDS),
+                    username = tribune.username.trim(),
                 )
             }
             .ifEmpty { Tribunes.defaults },

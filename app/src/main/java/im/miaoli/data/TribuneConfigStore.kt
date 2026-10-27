@@ -68,6 +68,7 @@ internal object TribuneConfigJson {
                             tribune.ownPostIds.forEach(::put)
                         },
                     )
+                    put("username", tribune.username)
                 },
             )
         }
@@ -123,6 +124,7 @@ internal object TribuneConfigJson {
                                     ?.let(::add)
                             }
                         },
+                        username = item.optString("username", ""),
                     ),
                 )
             }

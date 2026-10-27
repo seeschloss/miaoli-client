@@ -66,6 +66,8 @@
     <string name="login_url_supporting">Permet de récupérer les cookies</string>
     <string name="log_in">Login</string>
     <string name="user_agent_label">User agent</string>
+    <string name="username_label">Nom d\'utilisateur</string>
+    <string name="username_supporting">Optionnel ; utilisé pour reconnaître vos messages lorsque X-Post-Id est absent</string>
     <string name="cookie_label">Cookie</string>
     <string name="optional">Optionnel</string>
     <string name="cookie_supporting">Sera uniquement envoyé au post</string>
