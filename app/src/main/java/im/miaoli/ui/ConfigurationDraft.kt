@@ -9,7 +9,7 @@ import java.util.Locale
 
 /** Editable string form of a [Tribune]. */
 internal data class TribuneDraft(
-    val id: String,
+    val id: Long,
     val title: String,
     val color: String,
     val backendUrl: String,
@@ -141,7 +141,7 @@ internal data class ConfigurationDraft(
 
 internal data class ConfigurationValidation(
     val pollingError: String?,
-    val tribuneErrors: Map<String, Map<String, String>>,
+    val tribuneErrors: Map<Long, Map<String, String>>,
     val config: TribuneConfig?,
 ) {
     val isValid: Boolean

@@ -72,7 +72,7 @@ class FeedRepositoryFetchTest {
     }
 
     private fun tribune() = Tribune(
-        id = "test",
+        id = 1L,
         title = "Test",
         color = 0,
         backendUrl = "http://127.0.0.1:${server.address.port}/feed",

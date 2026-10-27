@@ -6,7 +6,7 @@ enum class FeedFormat {
 }
 
 data class Tribune(
-    val id: String,
+    val id: Long,
     val title: String,
     /** ARGB color used to identify this tribune's messages. */
     val color: Long,
@@ -34,5 +34,6 @@ data class Tribune(
     companion object {
         const val DEFAULT_USER_AGENT = "Miaoli/0.3 (Android)"
         const val DEFAULT_TIME_ZONE = "UTC"
+        const val DEFAULT_NEW_COLOR = 0xFFB8E0C2
     }
 }

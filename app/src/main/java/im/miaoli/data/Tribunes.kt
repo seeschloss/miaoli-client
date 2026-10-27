@@ -2,7 +2,7 @@ package im.miaoli.data
 
 object Tribunes {
     val moules = Tribune(
-        id = "moules",
+        id = 1L,
         title = "Moules",
         color = 0xFFFDE096,
         backendUrl = "https://moules.org/board/last.php?backend=tsv",
@@ -11,7 +11,7 @@ object Tribunes {
     )
 
     val linuxfr = Tribune(
-        id = "linuxfr",
+        id = 2L,
         title = "LinuxFR",
         color = 0xFF67C6F2,
         backendUrl = "https://linuxfr.org/board/index.xml",
@@ -20,7 +20,7 @@ object Tribunes {
     )
 
     val miaoliandroid = Tribune(
-        id = "miaoli-android",
+        id = 3L,
         title = "Miaoli Android",
         color = 0xFFB8E0C2,
         backendUrl = "https://miaoli.im/@See/miaoli-android/posts.tsv",

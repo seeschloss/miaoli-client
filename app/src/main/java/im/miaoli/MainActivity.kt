@@ -43,7 +43,8 @@ class MainActivity : ComponentActivity() {
                 val lifecycleOwner = LocalLifecycleOwner.current
                 val feedListState = rememberLazyListState()
                 var showFeedSettings by rememberSaveable { mutableStateOf(false) }
-                var configuredTribuneId by rememberSaveable { mutableStateOf<String?>(null) }
+                var configuredTribuneId by rememberSaveable { mutableStateOf<Long?>(null) }
+                var newTribuneId by rememberSaveable { mutableStateOf<Long?>(null) }
 
                 LaunchedEffect(lifecycleOwner, state.config.pollingSeconds) {
                     lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -51,8 +52,21 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                val addingTribuneId = newTribuneId
                 val editingTribuneId = configuredTribuneId
                 when {
+                    addingTribuneId != null -> TribuneConfigurationScreen(
+                        config = state.config,
+                        tribuneId = addingTribuneId,
+                        isNew = true,
+                        onBack = { newTribuneId = null },
+                        onSave = { config ->
+                            viewModel.saveConfig(config)
+                            viewModel.refresh()
+                            newTribuneId = null
+                        },
+                    )
+
                     editingTribuneId != null -> TribuneConfigurationScreen(
                         config = state.config,
                         tribuneId = editingTribuneId,
@@ -83,7 +97,14 @@ class MainActivity : ComponentActivity() {
                         onSelectTribune = viewModel::selectTribune,
                         onToggleTribune = viewModel::toggleTribune,
                         onOpenSettings = { showFeedSettings = true },
-                        onConfigureTribune = { configuredTribuneId = it },
+                        onConfigureTribune = { id ->
+                            newTribuneId = null
+                            configuredTribuneId = id
+                        },
+                        onAddTribune = {
+                            configuredTribuneId = null
+                            newTribuneId = state.config.nextTribuneId()
+                        },
                         onPost = viewModel::post,
                         onScrollRequestHandled = viewModel::consumeScrollRequest,
                     )

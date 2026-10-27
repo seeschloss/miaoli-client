@@ -14,7 +14,7 @@ class ConfigurationDraftTest {
     private val config = TribuneConfig(
         tribunes = listOf(
             Tribune(
-                id = "a",
+                id = 1L,
                 title = "A",
                 color = 0xFFFDE096,
                 backendUrl = "https://example.test/a",
@@ -22,7 +22,7 @@ class ConfigurationDraftTest {
                 timeZoneId = "Europe/Paris",
             ),
             Tribune(
-                id = "b",
+                id = 2L,
                 title = "B",
                 color = 0xFF67C6F2,
                 backendUrl = "https://example.test/b",
@@ -56,7 +56,7 @@ class ConfigurationDraftTest {
         val result = draftWith { it.copy(color = "orange") }.validate()
 
         assertFalse(result.isValid)
-        assertNotNull(result.tribuneErrors["a"]?.get("color"))
+        assertNotNull(result.tribuneErrors[1L]?.get("color"))
     }
 
     @Test
@@ -64,7 +64,7 @@ class ConfigurationDraftTest {
         val result = draftWith { it.copy(backendUrl = "not a url") }.validate()
 
         assertFalse(result.isValid)
-        assertNotNull(result.tribuneErrors["a"]?.get("backendUrl"))
+        assertNotNull(result.tribuneErrors[1L]?.get("backendUrl"))
     }
 
     @Test
@@ -72,7 +72,7 @@ class ConfigurationDraftTest {
         val result = draftWith { it.copy(timeZoneId = "Mars/Olympus_Mons") }.validate()
 
         assertFalse(result.isValid)
-        assertNotNull(result.tribuneErrors["a"]?.get("timeZoneId"))
+        assertNotNull(result.tribuneErrors[1L]?.get("timeZoneId"))
     }
 
     @Test
@@ -87,7 +87,7 @@ class ConfigurationDraftTest {
         val result = draftWith { it.copy(postUrl = "") }.validate()
 
         assertTrue(result.isValid)
-        assertNull(result.config!!.tribunes.first { it.id == "a" }.postUrl)
+        assertNull(result.config!!.tribunes.first { it.id == 1L }.postUrl)
     }
 
     @Test
@@ -96,7 +96,7 @@ class ConfigurationDraftTest {
             .validate()
 
         assertFalse(result.isValid)
-        assertNotNull(result.tribuneErrors["a"]?.get("postField"))
+        assertNotNull(result.tribuneErrors[1L]?.get("postField"))
     }
 
     @Test
@@ -104,7 +104,7 @@ class ConfigurationDraftTest {
         val result = draftWith { it.copy(cookie = "a=b\nc=d") }.validate()
 
         assertFalse(result.isValid)
-        assertNotNull(result.tribuneErrors["a"]?.get("cookie"))
+        assertNotNull(result.tribuneErrors[1L]?.get("cookie"))
     }
 
     @Test
@@ -112,7 +112,7 @@ class ConfigurationDraftTest {
         val draft = ConfigurationDraft.from(config).let { current ->
             current.copy(
                 tribunes = current.tribunes.map { tribune ->
-                    if (tribune.id == "b") tribune.copy(title = "A") else tribune
+                    if (tribune.id == 2L) tribune.copy(title = "A") else tribune
                 },
             )
         }
@@ -120,8 +120,8 @@ class ConfigurationDraftTest {
         val result = draft.validate()
 
         assertFalse(result.isValid)
-        assertNotNull(result.tribuneErrors["a"]?.get("title"))
-        assertNotNull(result.tribuneErrors["b"]?.get("title"))
+        assertNotNull(result.tribuneErrors[1L]?.get("title"))
+        assertNotNull(result.tribuneErrors[2L]?.get("title"))
     }
 
     @Test
@@ -142,7 +142,7 @@ class ConfigurationDraftTest {
     ): ConfigurationDraft = ConfigurationDraft.from(config).let { draft ->
         draft.copy(
             tribunes = draft.tribunes.map { tribune ->
-                if (tribune.id == "a") transform(tribune) else tribune
+                if (tribune.id == 1L) transform(tribune) else tribune
             },
         )
     }

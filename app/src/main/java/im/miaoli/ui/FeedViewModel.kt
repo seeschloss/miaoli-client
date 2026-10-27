@@ -31,7 +31,7 @@ class FeedViewModel(
     private val _state = MutableStateFlow(
         FeedUiState(
             config = initialConfig,
-            selectedTribuneId = initialConfig.postableTribunes.firstOrNull()?.id.orEmpty(),
+            selectedTribuneId = initialConfig.postableTribunes.firstOrNull()?.id,
             enabledTribuneIds = initialConfig.feedTribunes.map { it.id }.toSet(),
         ),
     )
@@ -55,7 +55,7 @@ class FeedViewModel(
      * origin becomes the new destination; a read-only origin leaves the
      * destination unchanged.
      */
-    fun insertClock(clock: String, originTribuneId: String) {
+    fun insertClock(clock: String, originTribuneId: Long) {
         _state.update { current ->
             val origin = current.config.tribunes
                 .firstOrNull { it.id == originTribuneId }
@@ -84,7 +84,7 @@ class FeedViewModel(
      * Switches the composer destination. Only postable tribunes can be
      * selected. Existing clocks are rewritten relative to the new destination.
      */
-    fun selectTribune(id: String) {
+    fun selectTribune(id: Long) {
         _state.update { current ->
             if (id == current.selectedTribuneId) {
                 current.copy(postError = null)
@@ -100,7 +100,7 @@ class FeedViewModel(
         }
     }
 
-    fun toggleTribune(id: String) {
+    fun toggleTribune(id: Long) {
         val feedIds = _state.value.config.feedTribunes.mapTo(mutableSetOf()) { it.id }
         if (id !in feedIds) return
 
@@ -135,7 +135,7 @@ class FeedViewModel(
             val newSelectedId = normalized.postableTribunes
                 .firstOrNull { it.id == current.selectedTribuneId }
                 ?.id
-                ?: normalized.postableTribunes.firstOrNull()?.id.orEmpty()
+                ?: normalized.postableTribunes.firstOrNull()?.id
 
             current.copy(
                 config = normalized,

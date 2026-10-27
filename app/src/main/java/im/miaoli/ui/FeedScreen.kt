@@ -99,11 +99,12 @@ fun FeedScreen(
     listState: LazyListState,
     onRefresh: () -> Unit,
     onDraftChange: (TextFieldValue) -> Unit,
-    onInsertClock: (String, String) -> Unit,
-    onSelectTribune: (String) -> Unit,
-    onToggleTribune: (String) -> Unit,
+    onInsertClock: (String, Long) -> Unit,
+    onSelectTribune: (Long) -> Unit,
+    onToggleTribune: (Long) -> Unit,
     onOpenSettings: () -> Unit,
-    onConfigureTribune: (String) -> Unit,
+    onConfigureTribune: (Long) -> Unit,
+    onAddTribune: () -> Unit,
     onPost: () -> Unit,
     onScrollRequestHandled: (Long) -> Unit,
 ) {
@@ -169,6 +170,12 @@ fun FeedScreen(
                     scope.launch {
                         drawerState.close()
                         onConfigureTribune(id)
+                    }
+                },
+                onAddTribune = {
+                    scope.launch {
+                        drawerState.close()
+                        onAddTribune()
                     }
                 },
                 onClose = { scope.launch { drawerState.close() } },
@@ -314,9 +321,10 @@ fun FeedScreen(
 @Composable
 private fun TribunesDrawer(
     tribunes: List<Tribune>,
-    enabledTribuneIds: Set<String>,
-    onToggleTribune: (String) -> Unit,
-    onConfigureTribune: (String) -> Unit,
+    enabledTribuneIds: Set<Long>,
+    onToggleTribune: (Long) -> Unit,
+    onConfigureTribune: (Long) -> Unit,
+    onAddTribune: () -> Unit,
     onClose: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
@@ -364,7 +372,7 @@ private fun TribunesDrawer(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClick = { onConfigureTribune("") })
+                    .clickable(onClick = onAddTribune)
                     .padding(horizontal = 24.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -545,7 +553,7 @@ private fun PostComposer(
     tribunes: List<Tribune>,
     focusRequester: FocusRequester,
     onDraftChange: (TextFieldValue) -> Unit,
-    onSelectTribune: (String) -> Unit,
+    onSelectTribune: (Long) -> Unit,
     onPost: () -> Unit,
 ) {
     val selected = state.config.tribunes
