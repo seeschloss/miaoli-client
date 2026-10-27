@@ -73,4 +73,5 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kxml2)
     testImplementation(libs.json)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

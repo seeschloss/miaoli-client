@@ -28,7 +28,8 @@ readable blue variant that contrasts with each row's colour.
 Use the menu button in the top bar to open the tribune pane. Each row has a switch
 for enabling or disabling that source and a pencil icon for its configuration
 page. Disabled sources are greyed out. The enabled state is saved in the
-configuration and restored on the next run.
+configuration and restored on the next run. Enabling a source reloads it
+immediately instead of waiting for the next scheduled poll.
 
 Tap any message to insert its tribune-local clock at the composer cursor,
 replacing the selection if there is one, and focus the message field. With an

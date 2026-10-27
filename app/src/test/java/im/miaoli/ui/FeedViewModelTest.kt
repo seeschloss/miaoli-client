@@ -1,15 +1,26 @@
 package im.miaoli.ui
 
+import im.miaoli.data.FeedDataSource
 import im.miaoli.data.FeedFormat
-import im.miaoli.data.FeedRepository
+import im.miaoli.data.FetchResult
+import im.miaoli.data.Post
+import im.miaoli.data.PostReceipt
 import im.miaoli.data.Tribune
 import im.miaoli.data.TribuneConfig
 import im.miaoli.data.TribuneConfigStore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class FeedViewModelTest {
     private val tribunes = listOf(
         Tribune(
@@ -34,10 +45,22 @@ class FeedViewModelTest {
         TribuneConfig(tribunes = tribunes, pollingSeconds = 30),
     )
 
+    private val repository = FakeFeedDataSource()
+
     private val viewModel = FeedViewModel(
         configStore = store,
-        repository = FeedRepository(),
+        repository = repository,
     )
+
+    @Before
+    fun setUp() {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
 
     @Test
     fun startsWithEveryFeedTribuneEnabled() {
@@ -58,10 +81,43 @@ class FeedViewModelTest {
     }
 
     @Test
+    fun enablingTribuneReloadsOnlyThatTribune() {
+        viewModel.toggleTribune(1L)
+
+        assertTrue(repository.fetchedTribuneIds.isEmpty())
+
+        viewModel.toggleTribune(1L)
+
+        assertEquals(listOf(listOf(1L)), repository.fetchedTribuneIds)
+    }
+
+    @Test
+    fun enablingTribuneMergesItsFetchedPosts() {
+        val post = Post(
+            id = "new",
+            time = "20260101120000",
+            author = "author",
+            message = "message",
+            tribune = tribunes.first(),
+        )
+        val localRepository = FakeFeedDataSource(posts = listOf(post))
+        val localViewModel = FeedViewModel(
+            configStore = store,
+            repository = localRepository,
+        )
+
+        localViewModel.toggleTribune(1L)
+        localViewModel.toggleTribune(1L)
+
+        assertEquals(listOf("new"), localViewModel.state.value.posts.map { it.id })
+        assertEquals(listOf(listOf(1L)), localRepository.fetchedTribuneIds)
+    }
+
+    @Test
     fun persistsDisabledTribuneAcrossRuns() {
         viewModel.toggleTribune(1L)
 
-        val reloaded = FeedViewModel(configStore = store, repository = FeedRepository())
+        val reloaded = FeedViewModel(configStore = store, repository = FakeFeedDataSource())
 
         assertEquals(setOf(2L), enabledFeedIds(reloaded))
     }
@@ -95,7 +151,7 @@ class FeedViewModelTest {
             configStore = FakeConfigStore(
                 TribuneConfig(tribunes = tribunes + readOnly, pollingSeconds = 30),
             ),
-            repository = FeedRepository(),
+            repository = FakeFeedDataSource(),
         )
 
         localViewModel.insertClock("12:34:56", 9L)
@@ -118,7 +174,7 @@ class FeedViewModelTest {
             configStore = FakeConfigStore(
                 TribuneConfig(tribunes = tribunes + readOnly, pollingSeconds = 30),
             ),
-            repository = FeedRepository(),
+            repository = FakeFeedDataSource(),
         )
 
         localViewModel.selectTribune(9L)
@@ -214,6 +270,24 @@ class FeedViewModelTest {
 
     private fun enabledFeedIds(viewModel: FeedViewModel): Set<Long> =
         viewModel.state.value.feedTribunes.mapTo(mutableSetOf()) { it.id }
+
+    private class FakeFeedDataSource(
+        private val posts: List<Post> = emptyList(),
+    ) : FeedDataSource {
+        val fetchedTribuneIds = mutableListOf<List<Long>>()
+
+        override suspend fun fetch(tribunes: List<Tribune>): FetchResult {
+            val ids = tribunes.mapTo(mutableSetOf()) { it.id }
+            fetchedTribuneIds += tribunes.map { it.id }
+            return FetchResult(
+                posts = posts.filter { it.tribune.id in ids },
+                errors = emptyMap(),
+            )
+        }
+
+        override suspend fun post(tribune: Tribune, message: String): PostReceipt =
+            PostReceipt()
+    }
 
     private class FakeConfigStore(var config: TribuneConfig) : TribuneConfigStore {
         override fun load(): TribuneConfig = config
