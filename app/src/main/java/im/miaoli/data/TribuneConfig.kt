@@ -49,6 +49,11 @@ data class TribuneConfig(
                         .replace("\r", "")
                         .replace("\n", "")
                         .trim(),
+                    ownPostIds = tribune.ownPostIds
+                        .map(String::trim)
+                        .filter(String::isNotEmpty)
+                        .distinct()
+                        .takeLast(Tribune.MAX_OWN_POST_IDS),
                 )
             }
             .ifEmpty { Tribunes.defaults },

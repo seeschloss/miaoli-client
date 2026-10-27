@@ -62,6 +62,12 @@ internal object TribuneConfigJson {
                     put("userAgent", tribune.userAgent)
                     put("cookie", tribune.cookie)
                     put("enabled", tribune.enabled)
+                    put(
+                        "ownPostIds",
+                        JSONArray().apply {
+                            tribune.ownPostIds.forEach(::put)
+                        },
+                    )
                 },
             )
         }
@@ -109,6 +115,14 @@ internal object TribuneConfigJson {
                         userAgent = item.optString("userAgent", Tribune.DEFAULT_USER_AGENT),
                         cookie = item.optString("cookie", ""),
                         enabled = item.optBoolean("enabled", true),
+                        ownPostIds = buildList {
+                            val ids = item.optJSONArray("ownPostIds") ?: JSONArray()
+                            for (index in 0 until ids.length()) {
+                                ids.optString(index)
+                                    .takeIf { it.isNotBlank() }
+                                    ?.let(::add)
+                            }
+                        },
                     ),
                 )
             }

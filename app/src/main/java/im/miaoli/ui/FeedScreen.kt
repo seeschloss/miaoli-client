@@ -105,6 +105,7 @@ import androidx.compose.ui.unit.dp
 import im.miaoli.R
 import im.miaoli.data.Post
 import im.miaoli.data.Tribune
+import im.miaoli.ui.theme.LocalMiaoliPostColors
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -135,6 +136,7 @@ fun FeedScreen(
     var composerFocusRequest by remember { mutableIntStateOf(0) }
     var selectedPostKey by remember { mutableStateOf<String?>(null) }
     var filteredPostKeys by remember { mutableStateOf<Set<String>?>(null) }
+    var postRelations by remember { mutableStateOf<Map<String, PostRelation>>(emptyMap()) }
     val enabledTribunes = state.feedTribunes
     val enabledTribuneIds = remember(enabledTribunes) {
         enabledTribunes.mapTo(mutableSetOf()) { it.id }
@@ -146,6 +148,12 @@ fun FeedScreen(
         filteredPostKeys?.let { keys ->
             visiblePosts.filter { it.key in keys }
         } ?: visiblePosts
+    }
+    val ownPostKeys = remember(visiblePosts, state.config.tribunes) {
+        val ownIdsByTribune = state.config.tribunes.associate { it.id to it.ownPostIds.toSet() }
+        visiblePosts
+            .filter { post -> post.id in ownIdsByTribune[post.tribune.id].orEmpty() }
+            .mapTo(mutableSetOf()) { it.key }
     }
     val enabledTitles = remember(enabledTribunes) {
         enabledTribunes.mapTo(mutableSetOf()) { it.title }
@@ -170,6 +178,10 @@ fun FeedScreen(
 
     LaunchedEffect(displayedPosts) {
         prefetchRenderedMessages(displayedPosts)
+    }
+
+    LaunchedEffect(visiblePosts, state.config.tribunes) {
+        postRelations = computePostRelations(visiblePosts, state.config.tribunes)
     }
 
     LaunchedEffect(newestVisibleKey) {
@@ -419,6 +431,10 @@ fun FeedScreen(
                             ) { post ->
                                 PostRow(
                                     post = post,
+                                    relation = when {
+                                        post.key in ownPostKeys -> PostRelation.Own
+                                        else -> postRelations[post.key] ?: PostRelation.None
+                                    },
                                     selected = post.key == selectedPostKey,
                                     onClick = {
                                         if (!state.isPosting) {
@@ -839,6 +855,7 @@ private fun clockAt(
 @Composable
 private fun PostRow(
     post: Post,
+    relation: PostRelation,
     selected: Boolean,
     onClick: () -> Unit,
     onClockClick: (ClockReference) -> Unit,
@@ -847,6 +864,22 @@ private fun PostRow(
     val tribuneColor = Color(post.tribune.color)
     val messageColor = readableTextColor(tribuneColor)
     val linkColor = readableLinkColor(tribuneColor)
+    val postColors = LocalMiaoliPostColors.current
+    val leftColumnBackground = when (relation) {
+        PostRelation.Own -> postColors.ownContainer
+        PostRelation.ReplyToOwn -> postColors.replyContainer
+        PostRelation.None -> MaterialTheme.colorScheme.surface
+    }
+    val leftColumnContent = when (relation) {
+        PostRelation.Own -> postColors.ownContent
+        PostRelation.ReplyToOwn -> postColors.replyContent
+        PostRelation.None -> MaterialTheme.colorScheme.onSurface
+    }
+    val authorColor = if (relation == PostRelation.None) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        leftColumnContent
+    }
     val selectedOverlay = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
     val haptic = LocalHapticFeedback.current
     val latestOnClockClick by rememberUpdatedState(onClockClick)
@@ -884,7 +917,7 @@ private fun PostRow(
             modifier = Modifier
                 .widthIn(min = 76.dp)
                 .fillMaxHeight()
-                .background(MaterialTheme.colorScheme.surface)
+                .background(leftColumnBackground)
                 .padding(horizontal = 6.dp, vertical = 6.dp),
             verticalArrangement = Arrangement.Center,
         ) {
@@ -892,7 +925,7 @@ private fun PostRow(
                 text = post.clock,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = leftColumnContent,
                 maxLines = 1,
                 softWrap = false,
             )
@@ -900,7 +933,7 @@ private fun PostRow(
                 text = post.author,
                 modifier = Modifier.widthIn(max = 76.dp),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
+                color = authorColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

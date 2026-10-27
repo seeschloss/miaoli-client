@@ -32,4 +32,17 @@ class TribuneConfigTest {
     fun allocatesFirstIdWhenThereAreNoTribunes() {
         assertEquals(1L, TribuneConfig(tribunes = emptyList()).nextTribuneId())
     }
+
+    @Test
+    fun keepsOnlyTheLatestOwnPostIds() {
+        val tribune = Tribunes.miaoliandroid.copy(
+            ownPostIds = (1..501).map(Int::toString),
+        )
+
+        val normalized = TribuneConfig(tribunes = listOf(tribune)).normalized()
+
+        assertEquals(Tribune.MAX_OWN_POST_IDS, normalized.tribunes.single().ownPostIds.size)
+        assertEquals("2", normalized.tribunes.single().ownPostIds.first())
+        assertEquals("501", normalized.tribunes.single().ownPostIds.last())
+    }
 }

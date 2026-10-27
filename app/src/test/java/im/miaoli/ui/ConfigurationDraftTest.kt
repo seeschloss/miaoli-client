@@ -21,6 +21,7 @@ class ConfigurationDraftTest {
                 format = FeedFormat.TSV,
                 timeZoneId = "Europe/Paris",
                 loginUrl = "https://example.test/login",
+                ownPostIds = listOf("101"),
             ),
             Tribune(
                 id = 2L,

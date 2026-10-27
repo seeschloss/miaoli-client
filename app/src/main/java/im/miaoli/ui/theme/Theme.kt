@@ -5,10 +5,38 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 internal val MiaoliLightPrimary = Color(0xFF1976D2)
 internal val MiaoliDarkPrimary = Color(0xFF90CAF9)
+
+/** Accent colours for this device's posts and replies to them. */
+internal data class MiaoliPostColors(
+    val ownContainer: Color,
+    val ownContent: Color,
+    val replyContainer: Color,
+    val replyContent: Color,
+)
+
+private val MiaoliLightPostColors = MiaoliPostColors(
+    ownContainer = Color(0xFFD4F2DB),
+    ownContent = Color(0xFF12351D),
+    replyContainer = Color(0xFFFFE8B8),
+    replyContent = Color(0xFF4A3200),
+)
+
+private val MiaoliDarkPostColors = MiaoliPostColors(
+    ownContainer = Color(0xFF1B3D28),
+    ownContent = Color(0xFFD4F2DB),
+    replyContainer = Color(0xFF4A3512),
+    replyContent = Color(0xFFFFE8B8),
+)
+
+internal val LocalMiaoliPostColors = staticCompositionLocalOf {
+    MiaoliLightPostColors
+}
 
 private val MiaoliLightColors = lightColorScheme(
     primary = MiaoliLightPrimary,
@@ -45,8 +73,16 @@ fun MiaoliTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    MaterialTheme(
-        colorScheme = if (darkTheme) MiaoliDarkColors else MiaoliLightColors,
-        content = content,
-    )
+    CompositionLocalProvider(
+        LocalMiaoliPostColors provides if (darkTheme) {
+            MiaoliDarkPostColors
+        } else {
+            MiaoliLightPostColors
+        },
+    ) {
+        MaterialTheme(
+            colorScheme = if (darkTheme) MiaoliDarkColors else MiaoliLightColors,
+            content = content,
+        )
+    }
 }

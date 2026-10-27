@@ -29,6 +29,7 @@ internal data class TribuneDraft(
     val userAgent: String,
     val cookie: String,
     val enabled: Boolean,
+    val ownPostIds: List<String> = emptyList(),
 ) {
     fun validate(): Map<String, ValidationMessage> = buildMap {
         if (title.isBlank()) {
@@ -75,6 +76,7 @@ internal data class TribuneDraft(
         userAgent = userAgent.trim(),
         cookie = cookie.trim(),
         enabled = enabled,
+        ownPostIds = ownPostIds,
     )
 
     companion object {
@@ -91,6 +93,7 @@ internal data class TribuneDraft(
             userAgent = tribune.userAgent,
             cookie = tribune.cookie,
             enabled = tribune.enabled,
+            ownPostIds = tribune.ownPostIds,
         )
     }
 }

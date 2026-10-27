@@ -29,6 +29,8 @@ data class Tribune(
     val cookie: String = "",
     /** Whether this tribune is enabled in the merged feed. */
     val enabled: Boolean = true,
+    /** IDs returned by this tribune for posts sent by this device, oldest first. */
+    val ownPostIds: List<String> = emptyList(),
 ) {
     val canPost: Boolean
         get() = !postUrl.isNullOrBlank()
@@ -37,5 +39,6 @@ data class Tribune(
         const val DEFAULT_USER_AGENT = "Miaoli/0.3 (Android)"
         const val DEFAULT_TIME_ZONE = "UTC"
         const val DEFAULT_NEW_COLOR = 0xFFB8E0C2
+        const val MAX_OWN_POST_IDS = 500
     }
 }

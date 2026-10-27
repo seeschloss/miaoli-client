@@ -8,6 +8,7 @@ import im.miaoli.data.PostReceipt
 import im.miaoli.data.Tribune
 import im.miaoli.data.TribuneConfig
 import im.miaoli.data.TribuneConfigStore
+import androidx.compose.ui.text.input.TextFieldValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -89,6 +90,26 @@ class FeedViewModelTest {
             .cookie
         assertEquals("session=abc", cookie)
         assertEquals("session=abc", store.config.tribunes.first { it.id == 1L }.cookie)
+    }
+
+    @Test
+    fun recordsPostIdReturnedByTribune() {
+        val localRepository = FakeFeedDataSource(postReceipt = PostReceipt("42"))
+        val localViewModel = FeedViewModel(configStore = store, repository = localRepository)
+
+        localViewModel.updateDraft(TextFieldValue("hello"))
+        localViewModel.post()
+
+        assertEquals(
+            listOf("42"),
+            localViewModel.state.value.config.tribunes
+                .first { it.id == 1L }
+                .ownPostIds,
+        )
+        assertEquals(
+            listOf("42"),
+            store.config.tribunes.first { it.id == 1L }.ownPostIds,
+        )
     }
 
     @Test
@@ -284,6 +305,7 @@ class FeedViewModelTest {
 
     private class FakeFeedDataSource(
         private val posts: List<Post> = emptyList(),
+        private val postReceipt: PostReceipt = PostReceipt(),
     ) : FeedDataSource {
         val fetchedTribuneIds = mutableListOf<List<Long>>()
 
@@ -297,7 +319,7 @@ class FeedViewModelTest {
         }
 
         override suspend fun post(tribune: Tribune, message: String): PostReceipt =
-            PostReceipt()
+            postReceipt
     }
 
     private class FakeConfigStore(var config: TribuneConfig) : TribuneConfigStore {

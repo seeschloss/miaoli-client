@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -99,6 +100,31 @@ class FeedViewModel(
                 current
             }
         }
+    }
+
+    /**
+     * Remembers an ID returned by a tribune after posting, so later feed
+     * refreshes can identify this device's messages.
+     */
+    private fun recordOwnPost(tribuneId: Long, postId: String) {
+        val updated = _state.updateAndGet { current ->
+            current.copy(
+                config = current.config.copy(
+                    tribunes = current.config.tribunes.map { tribune ->
+                        if (tribune.id == tribuneId) {
+                            tribune.copy(
+                                ownPostIds = (
+                                    tribune.ownPostIds.filterNot { it == postId } + postId
+                                ).takeLast(Tribune.MAX_OWN_POST_IDS),
+                            )
+                        } else {
+                            tribune
+                        }
+                    },
+                ),
+            )
+        }
+        configStore.save(updated.config)
     }
 
     /** Stores cookies captured by the in-app login browser for [id]. */
@@ -192,6 +218,9 @@ class FeedViewModel(
 
             try {
                 val receipt = repository.post(tribune, message)
+                receipt.postId?.let { postId ->
+                    recordOwnPost(tribune.id, postId)
+                }
                 _state.update {
                     it.copy(
                         isPosting = false,

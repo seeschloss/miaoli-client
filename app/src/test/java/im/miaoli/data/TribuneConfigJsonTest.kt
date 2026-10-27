@@ -23,6 +23,7 @@ class TribuneConfigJsonTest {
                     userAgent = "Test/1.0",
                     cookie = "session=abc",
                     enabled = true,
+                    ownPostIds = listOf("101", "102"),
                 ),
                 Tribune(
                     id = 2L,
