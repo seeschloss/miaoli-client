@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Miaoli</string>
+
+    <!-- Feed -->
+    <string name="feed">Liste</string>
+    <string name="show_tribunes">Lister les tribunes</string>
+    <string name="refresh">Rafraîchir</string>
+    <string name="scroll_to_bottom">Aller à la fin</string>
+    <string name="close">Fermer</string>
+    <string name="tribunes">Tribunes</string>
+    <string name="new_tribune_ellipsis">Nouvelle tribune…</string>
+    <string name="settings">Paramètres</string>
+    <string name="retry">Réessayer</string>
+    <string name="message_placeholder">Message</string>
+    <string name="send">Envoyer</string>
+    <string name="no_tribunes_enabled">Aucune tribune activée.</string>
+    <string name="no_messages_yet">Aucun message.</string>
+    <string name="no_messages_from_enabled_tribunes">Aucun message.</string>
+    <string name="configure_tribune">Configurer %1$s</string>
+    <string name="insert_clock_and_reply">Insérer %1$s et répondre à %2$s</string>
+    <string name="error_entry">%1$s : %2$s</string>
+    <string name="unknown_error">Erreur inconnue</string>
+
+    <!-- Clock references -->
+    <string name="clock_not_found">Mais où est %1$s ?</string>
+    <string name="clock_tribune_not_found">Je ne connais pas %1$s !</string>
+
+    <!-- Composer -->
+    <string name="post_failed">Impossible de poster sur %1$s : %2$s</string>
+
+    <!-- Settings -->
+    <string name="global_settings">Paramètres</string>
+    <string name="back">Retour</string>
+    <string name="save">Enregistrer</string>
+    <string name="polling">Refraîchissement</string>
+    <string name="refresh_interval_seconds">Intervale (secondes)</string>
+    <string name="polling_interval_error">SVP ne pas inonder la tribune avec un intervale de moins de %1$d secondes!</string>
+
+    <!-- Tribune configuration -->
+    <string name="new_tribune">Nouvelle tribune</string>
+    <string name="tribune_settings">Paramètres de la tribune</string>
+    <string name="tribune_not_found">Tribune introuvable.</string>
+    <string name="check_highlighted_fields">Vérifier les champs indiqués</string>
+    <string name="untitled_tribune">Tribune sans nom</string>
+    <string name="tribune">Tribune</string>
+    <string name="login_title">Authentification sur %1$s</string>
+    <string name="cookies_captured_new">Cookie enregistré</string>
+    <string name="cookies_saved">Cookie enregistré</string>
+    <string name="no_cookies_found">Aucun cookie détecté</string>
+    <string name="done">OK</string>
+
+    <string name="title_label">Titre</string>
+    <string name="color_label">Couleur</string>
+    <string name="color_placeholder">#RRGGBB</string>
+    <string name="backend_url_label">Backend URL</string>
+    <string name="format_label">Flavour</string>
+    <string name="time_zone_label">Timezone</string>
+    <string name="time_zone_placeholder">Europe/Paris</string>
+    <string name="post_url_label">Post URL</string>
+    <string name="url_placeholder">https://…</string>
+    <string name="post_url_supporting"></string>
+    <string name="post_form_field_label">Champ de POST</string>
+    <string name="post_form_field_supporting">.</string>
+    <string name="login_url_label">Login URL</string>
+    <string name="login_url_supporting">Permet de récupérer les cookies</string>
+    <string name="log_in">Login</string>
+    <string name="user_agent_label">User agent</string>
+    <string name="cookie_label">Cookie</string>
+    <string name="optional">Optionnel</string>
+    <string name="cookie_supporting">Sera uniquement envoyé au post</string>
+    <string name="format_tsv">TSV</string>
+    <string name="format_xml_html_escaped">XML (htmlentitised)</string>
+
+    <!-- Configuration validation -->
+    <string name="validation_title_required">Titre obligatoire</string>
+    <string name="validation_color_format">Spécifier une couleur au format #RRGGBB</string>
+    <string name="validation_http_url">Entrer une URL http(s)</string>
+    <string name="validation_http_url_optional">Enter une URL http(s) URL, ou rien</string>
+    <string name="validation_time_zone">Utiliser une timezone IANA, comme "Europe/Paris"</string>
+    <string name="validation_post_field_required">Ce champ est obligatoire pour poster</string>
+    <string name="validation_user_agent_required">UA obligatoire</string>
+    <string name="validation_user_agent_line_breaks">Une UA ne peut pas avoir de retour à la ligne, petit malin</string>
+    <string name="validation_cookie_line_breaks">Le cookie ne peut pas avoir de retour à la ligne, petit malin</string>
+    <string name="validation_polling_range">Entre %1$d et %2$d secondes</string>
+    <string name="validation_titles_unique">Nom déjà utilisé</string>
+</resources>
