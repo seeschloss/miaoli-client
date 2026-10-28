@@ -23,14 +23,28 @@ internal fun Tribune.matchesOwnPost(post: Post): Boolean {
         post.author.trim() == configuredUsername
 }
 
+internal data class PostRelationData(
+    val relations: Map<String, PostRelation>,
+    val answers: Map<String, List<String>>,
+)
+
 /**
- * Finds this device's posts and posts whose clock references point at one of
- * them. Parsing and resolution happen off the main thread.
+ * Finds this device's posts, replies to them, and every post's direct answer
+ * clocks. Parsing and resolution happen off the main thread.
  */
 internal suspend fun computePostRelations(
     posts: List<Post>,
     tribunes: List<Tribune>,
-): Map<String, PostRelation> = withContext(Dispatchers.Default) {
+): Map<String, PostRelation> = computePostRelationsWithAnswers(posts, tribunes).relations
+
+/**
+ * Computes relation badges and the reverse clock references used by the
+ * expandable post details.
+ */
+internal suspend fun computePostRelationsWithAnswers(
+    posts: List<Post>,
+    tribunes: List<Tribune>,
+): PostRelationData = withContext(Dispatchers.Default) {
     val tribunesById = tribunes.associateBy { it.id }
     val ownKeys = posts
         .filter { post ->
@@ -38,35 +52,61 @@ internal suspend fun computePostRelations(
         }
         .mapTo(mutableSetOf()) { it.key }
 
-    if (ownKeys.isEmpty()) {
-        return@withContext emptyMap()
-    }
+    val relations = mutableMapOf<String, PostRelation>()
+    val answers = mutableMapOf<String, MutableList<AnswerClock>>()
 
-    buildMap {
-        posts.forEach { post ->
-            currentCoroutineContext().ensureActive()
-            val relation = when {
-                post.key in ownKeys -> PostRelation.Own
-                else -> {
-                    val rendered = renderedMessage(
-                        message = post.message,
-                        linkColor = readableLinkColor(Color(post.tribune.color)),
-                    )
-                    val repliesToOwn = rendered.clockReferences.any { reference ->
-                        val target = resolveClockTarget(
-                            origin = post,
-                            reference = reference,
-                            tribunes = tribunes,
-                            posts = posts,
-                        )
-                        target is ClockTargetResult.Found && target.post.key in ownKeys
-                    }
-                    if (repliesToOwn) PostRelation.ReplyToOwn else PostRelation.None
-                }
+    posts.forEach { post ->
+        currentCoroutineContext().ensureActive()
+        val rendered = renderedMessage(
+            message = post.message,
+            linkColor = readableLinkColor(Color(post.tribune.color)),
+        )
+        var repliesToOwn = false
+        rendered.clockReferences.forEach { reference ->
+            val target = (resolveClockTarget(
+                origin = post,
+                reference = reference,
+                tribunes = tribunes,
+                posts = posts,
+            ) as? ClockTargetResult.Found)?.post ?: return@forEach
+            if (post.key !in ownKeys && target.key in ownKeys) {
+                repliesToOwn = true
             }
-            if (relation != PostRelation.None) {
-                put(post.key, relation)
+            val suffix = if (target.tribune.id != post.tribune.id) {
+                "@${post.tribune.title}"
+            } else {
+                ""
             }
+            answers.getOrPut(target.key) { mutableListOf() }
+                .add(
+                    AnswerClock(
+                        clock = post.clock + suffix,
+                        timestamp = post.timestamp?.toEpochMilli() ?: Long.MAX_VALUE,
+                    ),
+                )
+        }
+        val relation = when {
+            post.key in ownKeys -> PostRelation.Own
+            repliesToOwn -> PostRelation.ReplyToOwn
+            else -> PostRelation.None
+        }
+        if (relation != PostRelation.None) {
+            relations[post.key] = relation
         }
     }
+
+    PostRelationData(
+        relations = relations,
+        answers = answers.mapValues { (_, references) ->
+            references
+                .distinctBy { it.clock }
+                .sortedBy { it.timestamp }
+                .map { it.clock }
+        },
+    )
 }
+
+private data class AnswerClock(
+    val clock: String,
+    val timestamp: Long,
+)

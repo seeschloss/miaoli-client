@@ -67,6 +67,33 @@ class PostRelationsTest {
         assertEquals(PostRelation.Own, relations["1:2"])
     }
 
+    @Test
+    fun collectsAnswersWithCrossTribuneSuffix() = runBlocking {
+        val otherTribune = tribune.copy(
+            id = 2L,
+            title = "B",
+            backendUrl = "https://example.test/b",
+            ownPostIds = emptyList(),
+        )
+        val posts = listOf(
+            Post(
+                id = "2",
+                time = "20260101120100",
+                author = "answerer",
+                message = "12:00:00@A",
+                tribune = otherTribune,
+            ),
+            post(id = "1", time = "20260101120000", message = "original"),
+        )
+
+        val data = computePostRelationsWithAnswers(
+            posts = posts,
+            tribunes = listOf(tribune, otherTribune),
+        )
+
+        assertEquals(listOf("12:01:00@B"), data.answers["1:1"])
+    }
+
     private fun post(
         id: String,
         time: String,

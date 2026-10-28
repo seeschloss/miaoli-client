@@ -23,6 +23,7 @@ class PostTest {
 
         assertEquals(Instant.parse("2026-07-01T13:00:00Z"), post.timestamp)
         assertEquals("15:00:00", post.clock)
+        assertEquals("2026-07-01 15:00:00", post.fullDateTime)
     }
 
     @Test

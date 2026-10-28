@@ -11,6 +11,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -155,8 +156,10 @@ fun FeedScreen(
     val composerFocusRequester = remember { FocusRequester() }
     var composerFocusRequest by remember { mutableIntStateOf(0) }
     var selectedPostKey by remember { mutableStateOf<String?>(null) }
+    var expandedPostKey by remember { mutableStateOf<String?>(null) }
     var filteredPostKeys by remember { mutableStateOf<Set<String>?>(null) }
     var postRelations by remember { mutableStateOf<Map<String, PostRelation>>(emptyMap()) }
+    var postAnswerClocks by remember { mutableStateOf<Map<String, List<String>>>(emptyMap()) }
     var otherTotozUsage by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var activeTotoz by remember { mutableStateOf<TotozPopup?>(null) }
     var clockScrollJob by remember { mutableStateOf<Job?>(null) }
@@ -210,6 +213,11 @@ fun FeedScreen(
 
     LaunchedEffect(displayedPosts) {
         prefetchRenderedMessages(displayedPosts)
+        if (expandedPostKey != null &&
+            displayedPosts.none { it.key == expandedPostKey }
+        ) {
+            expandedPostKey = null
+        }
     }
 
     LaunchedEffect(visiblePosts) {
@@ -224,7 +232,9 @@ fun FeedScreen(
             posts = visiblePosts,
             tribunes = state.config.tribunes,
         )
-        postRelations = computePostRelations(visiblePosts, state.config.tribunes)
+        val relationData = computePostRelationsWithAnswers(visiblePosts, state.config.tribunes)
+        postRelations = relationData.relations
+        postAnswerClocks = relationData.answers
     }
 
     LaunchedEffect(newestVisibleKey) {
@@ -493,6 +503,15 @@ fun FeedScreen(
                                         else -> postRelations[post.key] ?: PostRelation.None
                                     },
                                     selected = post.key == selectedPostKey,
+                                    expanded = post.key == expandedPostKey,
+                                    answerClocks = postAnswerClocks[post.key].orEmpty(),
+                                    onLongClick = {
+                                        expandedPostKey = if (expandedPostKey == post.key) {
+                                            null
+                                        } else {
+                                            post.key
+                                        }
+                                    },
                                     onClick = {
                                         if (!state.isPosting) {
                                             onInsertClock(
@@ -1146,6 +1165,9 @@ private fun PostRow(
     post: Post,
     relation: PostRelation,
     selected: Boolean,
+    expanded: Boolean,
+    answerClocks: List<String>,
+    onLongClick: () -> Unit,
     onClick: () -> Unit,
     onClockClick: (ClockReference) -> Unit,
     onClockLongClick: (ClockReference) -> Unit,
@@ -1191,11 +1213,11 @@ private fun PostRow(
         post.clock,
         post.tribune.title,
     )
+    val detailsLabel = stringResource(R.string.post_details_long_click)
 
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Min)
             .clip(RoundedCornerShape(12.dp))
             .background(tribuneColor)
             .drawWithContent {
@@ -1204,108 +1226,161 @@ private fun PostRow(
                     drawRect(selectedOverlay)
                 }
             }
-            .clickable(
+            .combinedClickable(
                 onClickLabel = insertClockLabel,
                 onClick = onClick,
+                onLongClickLabel = detailsLabel,
+                onLongClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onLongClick()
+                },
             ),
     ) {
-        Column(
+        Row(
             modifier = Modifier
-                .widthIn(min = 76.dp)
-                .fillMaxHeight()
-                .background(leftColumnBackground)
-                .padding(horizontal = 6.dp, vertical = 6.dp),
-            verticalArrangement = Arrangement.Center,
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
         ) {
-            Text(
-                text = post.clock,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                color = leftColumnContent,
-                maxLines = 1,
-                softWrap = false,
-            )
-            Text(
-                text = post.author,
-                modifier = Modifier.widthIn(max = 76.dp),
-                style = MaterialTheme.typography.labelSmall,
-                color = authorColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Column(
+                modifier = Modifier
+                    .widthIn(min = 76.dp)
+                    .fillMaxHeight()
+                    .background(leftColumnBackground)
+                    .padding(horizontal = 6.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    text = post.clock,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = leftColumnContent,
+                    maxLines = 1,
+                    softWrap = false,
+                )
+                Text(
+                    text = post.author,
+                    modifier = Modifier.widthIn(max = 76.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = authorColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 10.dp, vertical = 7.dp),
+            ) {
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = messageColor,
+                    onTextLayout = { textLayout = it },
+                    modifier = Modifier
+                        .onGloballyPositioned { textCoordinates = it }
+                        .pointerInput(message) {
+                            awaitEachGesture {
+                                val down = awaitFirstDown(requireUnconsumed = false)
+                                val layout = textLayout ?: return@awaitEachGesture
+
+                                val totoz = totozAt(layout, down.position, totozRefs)
+                                if (totoz != null) {
+                                    // Claim the gesture so the row's click handler
+                                    // cannot turn a totoz press into a reply.
+                                    down.consume()
+                                    try {
+                                        totozAnchor(
+                                            layout = layout,
+                                            coordinates = latestTextCoordinates,
+                                            reference = totoz,
+                                        )?.let { anchor ->
+                                            latestOnTotozPress(totoz.name, anchor)
+                                        }
+                                        waitForUpOrCancellation()?.consume()
+                                    } finally {
+                                        latestOnTotozRelease()
+                                    }
+                                    return@awaitEachGesture
+                                }
+
+                                val reference = clockAt(layout, down.position, clockRefs)
+                                    ?: return@awaitEachGesture
+                                // Claim the gesture so the row's click handler cannot also
+                                // treat a clock tap or long press as a reply action.
+                                down.consume()
+
+                                var canceled = false
+                                val up = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                                    waitForUpOrCancellation().also { change ->
+                                        if (change == null) {
+                                            canceled = true
+                                        }
+                                    }
+                                }
+
+                                if (up != null) {
+                                    if (!up.isConsumed &&
+                                        clockAt(layout, up.position, clockRefs) == reference
+                                    ) {
+                                        up.consume()
+                                        latestOnClockClick(reference)
+                                    }
+                                } else if (!canceled) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    latestOnClockLongClick(reference)
+                                    while (true) {
+                                        val event = awaitPointerEvent()
+                                        event.changes.forEach { it.consume() }
+                                        if (event.changes.none { it.pressed }) break
+                                    }
+                                }
+                            }
+                        },
+                )
+            }
         }
 
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 10.dp, vertical = 7.dp),
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn(tween(100)) +
+                expandVertically(
+                    animationSpec = tween(120),
+                    expandFrom = Alignment.Top,
+                ),
+            exit = fadeOut(tween(80)) +
+                shrinkVertically(
+                    animationSpec = tween(100),
+                    shrinkTowards = Alignment.Top,
+                ),
         ) {
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
+            PostDetails(
+                post = post,
+                answerClocks = answerClocks,
                 color = messageColor,
-                onTextLayout = { textLayout = it },
-                modifier = Modifier
-                    .onGloballyPositioned { textCoordinates = it }
-                    .pointerInput(message) {
-                        awaitEachGesture {
-                            val down = awaitFirstDown(requireUnconsumed = false)
-                            val layout = textLayout ?: return@awaitEachGesture
-
-                            val totoz = totozAt(layout, down.position, totozRefs)
-                            if (totoz != null) {
-                                // Claim the gesture so the row's click handler
-                                // cannot turn a totoz press into a reply.
-                                down.consume()
-                                try {
-                                    totozAnchor(
-                                        layout = layout,
-                                        coordinates = latestTextCoordinates,
-                                        reference = totoz,
-                                    )?.let { anchor ->
-                                        latestOnTotozPress(totoz.name, anchor)
-                                    }
-                                    waitForUpOrCancellation()?.consume()
-                                } finally {
-                                    latestOnTotozRelease()
-                                }
-                                return@awaitEachGesture
-                            }
-
-                            val reference = clockAt(layout, down.position, clockRefs)
-                                ?: return@awaitEachGesture
-                            // Claim the gesture so the row's click handler cannot also
-                            // treat a clock tap or long press as a reply action.
-                            down.consume()
-
-                            var canceled = false
-                            val up = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
-                                waitForUpOrCancellation().also { change ->
-                                    if (change == null) {
-                                        canceled = true
-                                    }
-                                }
-                            }
-
-                            if (up != null) {
-                                if (!up.isConsumed &&
-                                    clockAt(layout, up.position, clockRefs) == reference
-                                ) {
-                                    up.consume()
-                                    latestOnClockClick(reference)
-                                }
-                            } else if (!canceled) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                latestOnClockLongClick(reference)
-                                while (true) {
-                                    val event = awaitPointerEvent()
-                                    event.changes.forEach { it.consume() }
-                                    if (event.changes.none { it.pressed }) break
-                                }
-                            }
-                        }
-                    },
             )
         }
     }
+}
+
+@Composable
+private fun PostDetails(
+    post: Post,
+    answerClocks: List<String>,
+    color: Color,
+) {
+    Text(
+        text = stringResource(
+            R.string.post_details_format,
+            post.id,
+            post.authorInfo.trim().ifEmpty { post.author },
+            post.fullDateTime,
+            answerClocks.joinToString(", "),
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 10.dp, end = 10.dp, top = 2.dp, bottom = 8.dp),
+        style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+        color = color,
+    )
 }

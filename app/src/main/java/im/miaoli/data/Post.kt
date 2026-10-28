@@ -32,6 +32,21 @@ data class Post(
             time
         }
 
+    /** Full server-local date and time. */
+    val fullDateTime: String
+        get() = if (time.length >= 14) {
+            buildString {
+                append(time, 0, 4).append('-')
+                append(time, 4, 6).append('-')
+                append(time, 6, 8).append(' ')
+                append(time, 8, 10).append(':')
+                append(time, 10, 12).append(':')
+                append(time, 12, 14)
+            }
+        } else {
+            time
+        }
+
     /**
      * Returns a copy carrying [tribune] and a timestamp recomputed with its
      * time zone. The generated data-class copy would keep the old timestamp.
