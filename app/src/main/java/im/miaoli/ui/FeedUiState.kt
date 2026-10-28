@@ -32,6 +32,10 @@ data class FeedScrollRequest(
     val id: Long,
     /** Key of the post to reveal, or null to reveal the newest end of the feed. */
     val postKey: String? = null,
+    /** Whether to scroll even while the keyboard is open. */
+    val revealWhileImeVisible: Boolean = false,
+    /** Whether to align the target at the top instead of its default edge. */
+    val alignToTop: Boolean = false,
 )
 
 data class PostError(

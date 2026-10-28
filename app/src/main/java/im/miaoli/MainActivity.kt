@@ -89,6 +89,7 @@ class MainActivity : ComponentActivity() {
                     configuredTribuneId = null
                     newTribuneId = null
                     viewModel.insertClock(quote.clock, quote.tribuneId)
+                    quote.postKey?.let(viewModel::revealPost)
                     viewModel.requestComposerFocus()
                     pendingNotificationQuote.value = null
                 }

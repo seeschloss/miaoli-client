@@ -18,6 +18,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -67,6 +68,19 @@ class FeedViewModelTest {
     @Test
     fun startsWithEveryFeedTribuneEnabled() {
         assertEquals(setOf(1L, 2L), enabledFeedIds(viewModel))
+    }
+
+    @Test
+    fun revealPostRequestsATopAlignedScroll() {
+        viewModel.revealPost("1:42")
+
+        val request = viewModel.state.value.scrollRequest
+        assertEquals("1:42", request?.postKey)
+        assertEquals(true, request?.revealWhileImeVisible)
+        assertEquals(true, request?.alignToTop)
+
+        viewModel.consumeScrollRequest(requireNotNull(request).id)
+        assertNull(viewModel.state.value.scrollRequest)
     }
 
     @Test

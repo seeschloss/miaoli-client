@@ -21,18 +21,21 @@ import im.miaoli.ui.parseMessage
 internal const val ACTION_OPEN_REPLY = "im.miaoli.action.OPEN_REPLY"
 internal const val EXTRA_TRIBUNE_ID = "im.miaoli.extra.TRIBUNE_ID"
 internal const val EXTRA_CLOCK = "im.miaoli.extra.CLOCK"
+internal const val EXTRA_POST_KEY = "im.miaoli.extra.POST_KEY"
 
 internal data class NotificationQuote(
     val tribuneId: Long,
     val clock: String,
+    val postKey: String?,
 )
 
 internal fun notificationQuoteFromIntent(intent: Intent?): NotificationQuote? {
     if (intent?.action != ACTION_OPEN_REPLY) return null
     val tribuneId = intent.getLongExtra(EXTRA_TRIBUNE_ID, -1L)
     val clock = intent.getStringExtra(EXTRA_CLOCK)?.trim().orEmpty()
+    val postKey = intent.getStringExtra(EXTRA_POST_KEY)?.trim()?.takeIf { it.isNotEmpty() }
     if (tribuneId <= 0L || clock.isEmpty()) return null
-    return NotificationQuote(tribuneId = tribuneId, clock = clock)
+    return NotificationQuote(tribuneId = tribuneId, clock = clock, postKey = postKey)
 }
 
 /** Reads the notification quote once and removes it from the intent. */
@@ -41,6 +44,7 @@ internal fun consumeNotificationQuote(intent: Intent?): NotificationQuote? {
     intent?.action = null
     intent?.removeExtra(EXTRA_TRIBUNE_ID)
     intent?.removeExtra(EXTRA_CLOCK)
+    intent?.removeExtra(EXTRA_POST_KEY)
     return quote
 }
 
@@ -134,6 +138,7 @@ internal object ReplyNotifications {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra(EXTRA_TRIBUNE_ID, reply.tribune.id)
             putExtra(EXTRA_CLOCK, reply.clock)
+            putExtra(EXTRA_POST_KEY, reply.key)
         }
         return PendingIntent.getActivity(
             context,

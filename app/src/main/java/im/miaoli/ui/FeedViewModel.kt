@@ -292,6 +292,21 @@ class FeedViewModel(
         }
     }
 
+    /** Requests that the feed reveal [postKey], e.g. from a notification. */
+    fun revealPost(postKey: String) {
+        val requestId = ++nextScrollRequestId
+        _state.update {
+            it.copy(
+                scrollRequest = FeedScrollRequest(
+                    id = requestId,
+                    postKey = postKey,
+                    revealWhileImeVisible = true,
+                    alignToTop = true,
+                ),
+            )
+        }
+    }
+
     /** Clears a scroll request after the feed has handled it. */
     fun consumeScrollRequest(id: Long) {
         _state.update { current ->

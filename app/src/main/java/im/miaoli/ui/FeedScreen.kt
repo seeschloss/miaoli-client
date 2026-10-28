@@ -240,7 +240,7 @@ fun FeedScreen(
     // inset animation to finish so the final scroll uses the settled viewport.
     LaunchedEffect(state.scrollRequest?.id, imeVisible) {
         val request = state.scrollRequest ?: return@LaunchedEffect
-        if (imeVisible) return@LaunchedEffect
+        if (imeVisible && !request.revealWhileImeVisible) return@LaunchedEffect
 
         withFrameNanos { }
 
@@ -255,7 +255,11 @@ fun FeedScreen(
         }
 
         if (latestDisplayedPosts.isNotEmpty()) {
-            listState.animateScrollToItem(targetIndex)
+            if (request.alignToTop) {
+                listState.animateItemToTop(targetIndex)
+            } else {
+                listState.animateScrollToItem(targetIndex)
+            }
         }
         onScrollRequestHandled(request.id)
     }
