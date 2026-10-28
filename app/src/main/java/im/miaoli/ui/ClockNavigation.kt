@@ -128,14 +128,26 @@ private fun matchesDate(post: Post, date: String?): Boolean {
     return post.time.length >= 8 && post.time.take(8) == compactDate
 }
 
-/** Returns post keys that can be quoted with `HH:mm` because their minute is unique. */
-internal fun minimalQuoteClocks(posts: List<Post>): Map<String, String> =
-    posts
-        .filter { it.timestamp != null }
+/**
+ * Returns post keys that can be quoted with `HH:mm` because their minute is
+ * unique and already over. A later post proves that the minute is closed.
+ */
+internal fun minimalQuoteClocks(posts: List<Post>): Map<String, String> {
+    val timestamped = posts.filter { it.timestamp != null }
+
+    return timestamped
         .groupBy { post -> post.tribune.id to post.time.take(12) }
         .filterValues { minutePosts -> minutePosts.size == 1 }
-        .values
-        .associate { minutePosts ->
+        .mapNotNull { (_, minutePosts) ->
             val post = minutePosts.single()
-            post.key to post.clock.take(5)
+            val timestamp = post.timestamp ?: return@mapNotNull null
+            val second = post.time.substring(12, 14).toLongOrNull()
+                ?: return@mapNotNull null
+            val minuteEnd = timestamp.plusSeconds(60L - second)
+            val minuteIsOver = timestamped.any { other ->
+                other.timestamp?.let { it >= minuteEnd } == true
+            }
+            if (minuteIsOver) post.key to post.clock.take(5) else null
         }
+        .toMap()
+}

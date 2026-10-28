@@ -102,12 +102,31 @@ class ClockNavigationTest {
     }
 
     @Test
-    fun minimalQuoteClocksOnlyForUniqueMinutes() {
+    fun minimalQuoteClocksOnlyForCompletedUniqueMinutes() {
         val unique = post("unique", "20260101123440", originTribune)
         val first = post("first", "20260101123510", originTribune)
         val second = post("second", "20260101123540", originTribune)
 
         val quotes = minimalQuoteClocks(listOf(unique, first, second))
+
+        assertEquals(mapOf(unique.key to "12:34"), quotes)
+    }
+
+    @Test
+    fun doesNotShortenAUniqueMinuteUntilItIsOver() {
+        val latest = post("latest", "20260101123440", originTribune)
+
+        val quotes = minimalQuoteClocks(listOf(latest))
+
+        assertTrue(quotes.isEmpty())
+    }
+
+    @Test
+    fun laterPostOnAnotherTribuneClosesTheMinute() {
+        val unique = post("unique", "20260101123440", originTribune)
+        val later = post("later", "20260101123501", otherTribune)
+
+        val quotes = minimalQuoteClocks(listOf(unique, later))
 
         assertEquals(mapOf(unique.key to "12:34"), quotes)
     }
