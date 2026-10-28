@@ -26,8 +26,6 @@ private val URL_PATTERN = Regex(
     """(?:https?|ftp|gopher|file|mms|rtsp|rtmp)://[^\s<>"']+""",
 )
 
-private val TOTOZ_PATTERN = Regex("""\[:[^\]/]+\]""")
-
 /** Puli.js uses this grey for visible markup tags. */
 internal val TAG_COLOR = Color(0xFFBBBBBB)
 

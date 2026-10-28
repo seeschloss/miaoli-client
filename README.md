@@ -18,13 +18,13 @@ Answer a post by tapping it, which inserts this post's clock in the typing area 
 
 Tap a clock on an existing post to scroll to the referenced post. Long tap to filter the list and only show posts from this discussion thread.
 
+Press and hold a `[:totoz]` reference to show the corresponding image from https://totoz.eu. Releasing hides it. The app keeps the 50 most recent totoz images in memory.
+
 That's basically all there is to it.
 
 ## Future features
 
 Tribune parameters autodiscovery to make it easier and faster to add a new tribune.
-
-Totoz support (totoz are small reaction images hosted on https://totoz.eu).
 
 # Build
 ## Requirements

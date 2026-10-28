@@ -71,6 +71,47 @@ class MessageTextTest {
     }
 
     @Test
+    fun findsTotozReferences() {
+        val references = totozReferences("before [:wouhou] and [:foo bar] after")
+
+        assertEquals(listOf("[:wouhou]", "[:foo bar]"), references.map { it.text })
+        assertEquals(listOf("wouhou", "foo bar"), references.map { it.name })
+        assertEquals(7, references[0].start)
+    }
+
+    @Test
+    fun stylesTotozWithoutUnderline() {
+        val highlighted = highlightTotoz(
+            AnnotatedString("before [:wouhou] after"),
+            Color.Red,
+        )
+
+        assertEquals(
+            listOf(TextRange(7, 16)),
+            highlighted.spanStyles.map { TextRange(it.start, it.end) },
+        )
+        assertEquals(Color.Red, highlighted.spanStyles.single().item.color)
+        assertEquals(null, highlighted.spanStyles.single().item.textDecoration)
+    }
+
+    @Test
+    fun rendersTotozReferencesInMessage() {
+        val rendered = renderedMessage("before [:wouhou] after", Color.Red)
+
+        assertEquals("wouhou", rendered.totozReferences.single().name)
+        assertEquals(
+            listOf(TextRange(7, 16)),
+            rendered.text.spanStyles.map { TextRange(it.start, it.end) },
+        )
+    }
+
+    @Test
+    fun buildsTotozUrls() {
+        assertEquals("https://totoz.eu/img/wouhou", totozUrl("wouhou"))
+        assertEquals("https://totoz.eu/img/foo%20bar", totozUrl("foo bar"))
+    }
+
+    @Test
     fun stylesOnlyClockText() {
         val highlighted = highlightClocks(
             AnnotatedString("at 12:34:56 now"),

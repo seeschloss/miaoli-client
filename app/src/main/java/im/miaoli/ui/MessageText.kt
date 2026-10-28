@@ -35,10 +35,11 @@ internal data class ClockReference(
     val end: Int,
 )
 
-/** A styled message and its non-link clock references. */
+/** A styled message and its non-link references. */
 internal data class RenderedMessage(
     val text: AnnotatedString,
     val clockReferences: List<ClockReference>,
+    val totozReferences: List<TotozReference>,
 )
 
 private data class MessageRenderKey(
@@ -66,10 +67,17 @@ internal fun renderedMessage(message: String, linkColor: Color): RenderedMessage
     }
 
     val parsed = parseMessage(message)
-    val styled = highlightClocks(highlightLinks(parsed, linkColor), linkColor)
+    val styled = highlightTotoz(
+        highlightClocks(highlightLinks(parsed, linkColor), linkColor),
+        linkColor,
+    )
     val result = RenderedMessage(
         text = styled,
         clockReferences = clockReferences(styled.text)
+            .filterNot { reference ->
+                styled.hasLinkAnnotations(reference.start, reference.end)
+            },
+        totozReferences = totozReferences(styled.text)
             .filterNot { reference ->
                 styled.hasLinkAnnotations(reference.start, reference.end)
             },
@@ -133,6 +141,25 @@ internal fun highlightClocks(text: AnnotatedString, color: Color): AnnotatedStri
     return AnnotatedString.Builder(text).apply {
         ranges.forEach { range ->
             addStyle(SpanStyle(color = color), range.start, range.end)
+        }
+    }.toAnnotatedString()
+}
+
+/** Applies [color] to every totoz reference that is not part of a link. */
+internal fun highlightTotoz(text: AnnotatedString, color: Color): AnnotatedString {
+    val ranges = totozReferences(text.text)
+        .filterNot { reference ->
+            text.hasLinkAnnotations(reference.start, reference.end)
+        }
+    if (ranges.isEmpty()) return text
+
+    return AnnotatedString.Builder(text).apply {
+        ranges.forEach { reference ->
+            addStyle(
+                SpanStyle(color = color),
+                reference.start,
+                reference.end,
+            )
         }
     }.toAnnotatedString()
 }

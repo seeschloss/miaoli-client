@@ -86,9 +86,13 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -137,6 +141,7 @@ fun FeedScreen(
     var selectedPostKey by remember { mutableStateOf<String?>(null) }
     var filteredPostKeys by remember { mutableStateOf<Set<String>?>(null) }
     var postRelations by remember { mutableStateOf<Map<String, PostRelation>>(emptyMap()) }
+    var activeTotoz by remember { mutableStateOf<TotozPopup?>(null) }
     val enabledTribunes = state.feedTribunes
     val enabledTribuneIds = remember(enabledTribunes) {
         enabledTribunes.mapTo(mutableSetOf()) { it.id }
@@ -180,6 +185,13 @@ fun FeedScreen(
 
     LaunchedEffect(displayedPosts) {
         prefetchRenderedMessages(displayedPosts)
+    }
+
+    LaunchedEffect(visiblePosts) {
+        val names = collectTotozNames(visiblePosts)
+        if (names.isNotEmpty()) {
+            TotozImageCache.prefetch(context, names)
+        }
     }
 
     LaunchedEffect(visiblePosts, state.config.tribunes) {
@@ -275,9 +287,10 @@ fun FeedScreen(
         )
     }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
+    Box(modifier = Modifier.fillMaxSize()) {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
             TribunesDrawer(
                 tribunes = state.config.tribunes,
                 onToggleTribune = onToggleTribune,
@@ -450,6 +463,12 @@ fun FeedScreen(
                                     onClockLongClick = { reference ->
                                         filterToClock(post, reference)
                                     },
+                                    onTotozPress = { name, anchor ->
+                                        activeTotoz = TotozPopup(name, anchor)
+                                    },
+                                    onTotozRelease = {
+                                        activeTotoz = null
+                                    },
                                 )
                             }
                         }
@@ -457,6 +476,10 @@ fun FeedScreen(
                 }
             }
         }
+    }
+    activeTotoz?.let { popup ->
+        TotozOverlay(popup)
+    }
     }
 }
 
@@ -839,6 +862,39 @@ private fun PostComposer(
     }
 }
 
+private fun totozAt(
+    layout: TextLayoutResult,
+    position: Offset,
+    references: List<TotozReference>,
+): TotozReference? {
+    if (position.x < 0f || position.y < 0f ||
+        position.x > layout.size.width.toFloat() ||
+        position.y > layout.size.height.toFloat()
+    ) {
+        return null
+    }
+    val offset = layout.getOffsetForPosition(position)
+    return references.firstOrNull { offset in it.start until it.end }
+}
+
+private fun totozAnchor(
+    layout: TextLayoutResult,
+    coordinates: LayoutCoordinates?,
+    reference: TotozReference,
+): Rect? {
+    val position = coordinates?.positionInRoot() ?: return null
+    val start = layout.getBoundingBox(reference.start.coerceIn(0, layout.layoutInput.text.length - 1))
+    val end = layout.getBoundingBox(
+        (reference.end - 1).coerceIn(0, layout.layoutInput.text.length - 1),
+    )
+    return Rect(
+        left = position.x + minOf(start.left, end.left),
+        top = position.y + minOf(start.top, end.top),
+        right = position.x + maxOf(start.right, end.right),
+        bottom = position.y + maxOf(start.bottom, end.bottom),
+    )
+}
+
 private fun clockAt(
     layout: TextLayoutResult,
     position: Offset,
@@ -862,6 +918,8 @@ private fun PostRow(
     onClick: () -> Unit,
     onClockClick: (ClockReference) -> Unit,
     onClockLongClick: (ClockReference) -> Unit,
+    onTotozPress: (String, Rect) -> Unit,
+    onTotozRelease: () -> Unit,
 ) {
     val tribuneColor = Color(post.tribune.color)
     val messageColor = readableTextColor(tribuneColor)
@@ -886,12 +944,17 @@ private fun PostRow(
     val haptic = LocalHapticFeedback.current
     val latestOnClockClick by rememberUpdatedState(onClockClick)
     val latestOnClockLongClick by rememberUpdatedState(onClockLongClick)
+    val latestOnTotozPress by rememberUpdatedState(onTotozPress)
+    val latestOnTotozRelease by rememberUpdatedState(onTotozRelease)
     var textLayout by remember { mutableStateOf<TextLayoutResult?>(null) }
+    var textCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    val latestTextCoordinates by rememberUpdatedState(textCoordinates)
     val rendered = remember(post.message, linkColor) {
         renderedMessage(post.message, linkColor)
     }
     val message = rendered.text
     val clockRefs = rendered.clockReferences
+    val totozRefs = rendered.totozReferences
     val insertClockLabel = stringResource(
         R.string.insert_clock_and_reply,
         post.clock,
@@ -951,43 +1014,66 @@ private fun PostRow(
                 style = MaterialTheme.typography.bodyMedium,
                 color = messageColor,
                 onTextLayout = { textLayout = it },
-                modifier = Modifier.pointerInput(message) {
-                    awaitEachGesture {
-                        val down = awaitFirstDown(requireUnconsumed = false)
-                        val layout = textLayout ?: return@awaitEachGesture
-                        val reference = clockAt(layout, down.position, clockRefs)
-                            ?: return@awaitEachGesture
-                        // Claim the gesture so the row's click handler cannot also
-                        // treat a clock tap or long press as a reply action.
-                        down.consume()
+                modifier = Modifier
+                    .onGloballyPositioned { textCoordinates = it }
+                    .pointerInput(message) {
+                        awaitEachGesture {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            val layout = textLayout ?: return@awaitEachGesture
 
-                        var canceled = false
-                        val up = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
-                            waitForUpOrCancellation().also { change ->
-                                if (change == null) {
-                                    canceled = true
+                            val totoz = totozAt(layout, down.position, totozRefs)
+                            if (totoz != null) {
+                                // Claim the gesture so the row's click handler
+                                // cannot turn a totoz press into a reply.
+                                down.consume()
+                                try {
+                                    totozAnchor(
+                                        layout = layout,
+                                        coordinates = latestTextCoordinates,
+                                        reference = totoz,
+                                    )?.let { anchor ->
+                                        latestOnTotozPress(totoz.name, anchor)
+                                    }
+                                    waitForUpOrCancellation()?.consume()
+                                } finally {
+                                    latestOnTotozRelease()
+                                }
+                                return@awaitEachGesture
+                            }
+
+                            val reference = clockAt(layout, down.position, clockRefs)
+                                ?: return@awaitEachGesture
+                            // Claim the gesture so the row's click handler cannot also
+                            // treat a clock tap or long press as a reply action.
+                            down.consume()
+
+                            var canceled = false
+                            val up = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                                waitForUpOrCancellation().also { change ->
+                                    if (change == null) {
+                                        canceled = true
+                                    }
+                                }
+                            }
+
+                            if (up != null) {
+                                if (!up.isConsumed &&
+                                    clockAt(layout, up.position, clockRefs) == reference
+                                ) {
+                                    up.consume()
+                                    latestOnClockClick(reference)
+                                }
+                            } else if (!canceled) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                latestOnClockLongClick(reference)
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    event.changes.forEach { it.consume() }
+                                    if (event.changes.none { it.pressed }) break
                                 }
                             }
                         }
-
-                        if (up != null) {
-                            if (!up.isConsumed &&
-                                clockAt(layout, up.position, clockRefs) == reference
-                            ) {
-                                up.consume()
-                                latestOnClockClick(reference)
-                            }
-                        } else if (!canceled) {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            latestOnClockLongClick(reference)
-                            while (true) {
-                                val event = awaitPointerEvent()
-                                event.changes.forEach { it.consume() }
-                                if (event.changes.none { it.pressed }) break
-                            }
-                        }
-                    }
-                },
+                    },
             )
         }
     }
