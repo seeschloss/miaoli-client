@@ -79,7 +79,11 @@
 
     <!-- Post details -->
     <string name="post_details_long_click">Show post details</string>
-    <string name="post_details_format">id=%1$s\nua=%2$s\ntime=%3$s\nanswers=[%4$s]</string>
+    <string name="post_details_id_label">id=</string>
+    <string name="post_details_ua_label">ua=</string>
+    <string name="post_details_time_label">time=</string>
+    <string name="post_details_answers_label">answers=[</string>
+    <string name="post_details_answers_suffix">]</string>
 
     <!-- Notifications -->
     <string name="notification_answer_title">%1$s - %2$s</string>

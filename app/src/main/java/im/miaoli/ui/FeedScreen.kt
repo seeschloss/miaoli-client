@@ -18,6 +18,8 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -110,7 +112,9 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -159,7 +163,7 @@ fun FeedScreen(
     var expandedPostKey by remember { mutableStateOf<String?>(null) }
     var filteredPostKeys by remember { mutableStateOf<Set<String>?>(null) }
     var postRelations by remember { mutableStateOf<Map<String, PostRelation>>(emptyMap()) }
-    var postAnswerClocks by remember { mutableStateOf<Map<String, List<String>>>(emptyMap()) }
+    var postAnswerClocks by remember { mutableStateOf<Map<String, List<AnswerClock>>>(emptyMap()) }
     var otherTotozUsage by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var activeTotoz by remember { mutableStateOf<TotozPopup?>(null) }
     var clockScrollJob by remember { mutableStateOf<Job?>(null) }
@@ -339,6 +343,29 @@ fun FeedScreen(
             tribunes = state.config.tribunes,
             posts = visiblePosts,
         )
+    }
+
+    fun revealAnswer(answer: AnswerClock) {
+        expandedPostKey = null
+        selectedPostKey = answer.post.key
+        val index = displayedPosts.indexOfFirst { it.key == answer.post.key }
+        if (index >= 0) {
+            clockScrollJob?.cancel()
+            clockScrollJob = scope.launch {
+                listState.animateItemToTop(index)
+            }
+        }
+    }
+
+    fun filterToAnswer(answer: AnswerClock) {
+        expandedPostKey = null
+        val reference = messageClockReferences(answer.post.message).firstOrNull()
+        if (reference == null) {
+            selectedPostKey = null
+            filteredPostKeys = setOf(answer.post.key)
+        } else {
+            filterToClock(answer.post, reference)
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -527,6 +554,8 @@ fun FeedScreen(
                                     onClockLongClick = { reference ->
                                         filterToClock(post, reference)
                                     },
+                                    onAnswerClick = ::revealAnswer,
+                                    onAnswerLongClick = ::filterToAnswer,
                                     onTotozPress = { name, anchor ->
                                         activeTotoz = TotozPopup(name, anchor)
                                     },
@@ -1166,11 +1195,13 @@ private fun PostRow(
     relation: PostRelation,
     selected: Boolean,
     expanded: Boolean,
-    answerClocks: List<String>,
+    answerClocks: List<AnswerClock>,
     onLongClick: () -> Unit,
     onClick: () -> Unit,
     onClockClick: (ClockReference) -> Unit,
     onClockLongClick: (ClockReference) -> Unit,
+    onAnswerClick: (AnswerClock) -> Unit,
+    onAnswerLongClick: (AnswerClock) -> Unit,
     onTotozPress: (String, Rect) -> Unit,
     onTotozRelease: () -> Unit,
 ) {
@@ -1225,21 +1256,21 @@ private fun PostRow(
                 if (selected) {
                     drawRect(selectedOverlay)
                 }
-            }
-            .combinedClickable(
-                onClickLabel = insertClockLabel,
-                onClick = onClick,
-                onLongClickLabel = detailsLabel,
-                onLongClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onLongClick()
-                },
-            ),
+            },
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(IntrinsicSize.Min),
+                .height(IntrinsicSize.Min)
+                .combinedClickable(
+                    onClickLabel = insertClockLabel,
+                    onClick = onClick,
+                    onLongClickLabel = detailsLabel,
+                    onLongClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onLongClick()
+                    },
+                ),
         ) {
             Column(
                 modifier = Modifier
@@ -1359,31 +1390,87 @@ private fun PostRow(
                 answerClocks = answerClocks,
                 background = leftColumnBackground,
                 color = leftColumnContent,
+                clockColor = linkColor,
+                onAnswerClick = onAnswerClick,
+                onAnswerLongClick = onAnswerLongClick,
             )
         }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PostDetails(
     post: Post,
-    answerClocks: List<String>,
+    answerClocks: List<AnswerClock>,
     background: Color,
     color: Color,
+    clockColor: Color,
+    onAnswerClick: (AnswerClock) -> Unit,
+    onAnswerLongClick: (AnswerClock) -> Unit,
 ) {
-    Text(
-        text = stringResource(
-            R.string.post_details_format,
-            post.id,
-            post.authorInfo.trim().ifEmpty { post.author },
-            post.fullDateTime,
-            answerClocks.joinToString(", "),
-        ),
+    val idLabel = stringResource(R.string.post_details_id_label)
+    val uaLabel = stringResource(R.string.post_details_ua_label)
+    val timeLabel = stringResource(R.string.post_details_time_label)
+    val answersLabel = stringResource(R.string.post_details_answers_label)
+    val answersSuffix = stringResource(R.string.post_details_answers_suffix)
+    val haptic = LocalHapticFeedback.current
+    val detailStyle = MaterialTheme.typography.bodySmall.copy(
+        fontFamily = FontFamily.Monospace,
+    )
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(background)
             .padding(horizontal = 10.dp, vertical = 7.dp),
-        style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-        color = color,
-    )
+        verticalArrangement = Arrangement.spacedBy(0.dp),
+    ) {
+        Text(
+            text = idLabel + post.id,
+            style = detailStyle,
+            color = color,
+        )
+        Text(
+            text = uaLabel + post.authorInfo.trim().ifEmpty { post.author },
+            style = detailStyle,
+            color = color,
+        )
+        Text(
+            text = timeLabel + post.fullDateTime,
+            style = detailStyle,
+            color = color,
+        )
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(0.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp),
+        ) {
+            Text(
+                text = answersLabel,
+                style = detailStyle,
+                color = color,
+            )
+            answerClocks.forEachIndexed { index, answer ->
+                Text(
+                    text = answer.displayClock +
+                        if (index < answerClocks.lastIndex) ", " else "",
+                    modifier = Modifier.combinedClickable(
+                        onClick = { onAnswerClick(answer) },
+                        onLongClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onAnswerLongClick(answer)
+                        },
+                    ),
+                    style = detailStyle,
+                    color = clockColor,
+                )
+            }
+            Text(
+                text = answersSuffix,
+                style = detailStyle,
+                color = color,
+            )
+        }
+    }
 }

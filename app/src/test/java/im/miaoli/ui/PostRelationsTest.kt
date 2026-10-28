@@ -91,7 +91,7 @@ class PostRelationsTest {
             tribunes = listOf(tribune, otherTribune),
         )
 
-        assertEquals(listOf("12:01:00@B"), data.answers["1:1"])
+        assertEquals(listOf("12:01:00@B"), data.answers["1:1"]?.map { it.displayClock })
     }
 
     private fun post(

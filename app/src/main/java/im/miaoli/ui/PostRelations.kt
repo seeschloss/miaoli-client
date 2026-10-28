@@ -25,7 +25,12 @@ internal fun Tribune.matchesOwnPost(post: Post): Boolean {
 
 internal data class PostRelationData(
     val relations: Map<String, PostRelation>,
-    val answers: Map<String, List<String>>,
+    val answers: Map<String, List<AnswerClock>>,
+)
+
+internal data class AnswerClock(
+    val post: Post,
+    val displayClock: String,
 )
 
 /**
@@ -78,12 +83,7 @@ internal suspend fun computePostRelationsWithAnswers(
                 ""
             }
             answers.getOrPut(target.key) { mutableListOf() }
-                .add(
-                    AnswerClock(
-                        clock = post.clock + suffix,
-                        timestamp = post.timestamp?.toEpochMilli() ?: Long.MAX_VALUE,
-                    ),
-                )
+                .add(AnswerClock(post = post, displayClock = post.clock + suffix))
         }
         val relation = when {
             post.key in ownKeys -> PostRelation.Own
@@ -99,14 +99,8 @@ internal suspend fun computePostRelationsWithAnswers(
         relations = relations,
         answers = answers.mapValues { (_, references) ->
             references
-                .distinctBy { it.clock }
-                .sortedBy { it.timestamp }
-                .map { it.clock }
+                .distinctBy { it.post.key }
+                .sortedBy { it.post.timestamp?.toEpochMilli() ?: Long.MAX_VALUE }
         },
     )
 }
-
-private data class AnswerClock(
-    val clock: String,
-    val timestamp: Long,
-)
