@@ -585,6 +585,7 @@ private fun FormatSelector(
 private fun FeedFormat.labelRes(): Int = when (this) {
     FeedFormat.TSV -> R.string.format_tsv
     FeedFormat.XML_HTML_ESCAPED -> R.string.format_xml_html_escaped
+    FeedFormat.XML_RAW -> R.string.format_xml_raw
 }
 
 private fun pollingErrorMessage(value: String): ValidationMessage? {

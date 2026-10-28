@@ -31,7 +31,7 @@ class TribuneConfigJsonTest {
                     title = "B",
                     color = 0xFF67C6F2,
                     backendUrl = "https://example.test/b",
-                    format = FeedFormat.XML_HTML_ESCAPED,
+                    format = FeedFormat.XML_RAW,
                     enabled = false,
                 ),
             ),

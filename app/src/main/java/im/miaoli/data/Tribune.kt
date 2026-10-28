@@ -3,6 +3,7 @@ package im.miaoli.data
 enum class FeedFormat {
     TSV,
     XML_HTML_ESCAPED,
+    XML_RAW,
 }
 
 data class Tribune(

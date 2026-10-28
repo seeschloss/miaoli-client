@@ -32,6 +32,7 @@ class FeedRepository(
     private val parsers: Map<FeedFormat, FeedParser> = mapOf(
         FeedFormat.TSV to TsvFeedParser(),
         FeedFormat.XML_HTML_ESCAPED to XmlFeedParser(),
+        FeedFormat.XML_RAW to XmlFeedParser(preserveMessageTags = true),
     ),
 ) : FeedDataSource {
     override suspend fun fetch(tribunes: List<Tribune>): FetchResult = coroutineScope {

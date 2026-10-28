@@ -73,6 +73,7 @@
     <string name="cookie_supporting">Sera uniquement envoyé au post</string>
     <string name="format_tsv">TSV</string>
     <string name="format_xml_html_escaped">XML (htmlentitised)</string>
+    <string name="format_xml_raw">XML (brut)</string>
 
     <!-- Configuration validation -->
     <string name="validation_title_required">Titre obligatoire</string>

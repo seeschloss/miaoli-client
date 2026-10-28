@@ -6,6 +6,7 @@ import org.junit.Test
 
 class XmlFeedParserTest {
     private val parser = XmlFeedParser()
+    private val rawParser = XmlFeedParser(preserveMessageTags = true)
     private val tribune = Tribunes.linuxfr
 
     private val body = """
@@ -50,5 +51,42 @@ class XmlFeedParserTest {
     @Test
     fun returnsEmptyListWhenThereAreNoPosts() {
         assertTrue(parser.parse("<board />", tribune).isEmpty())
+    }
+
+    @Test
+    fun rawFormatPreservesInlineMessageTags() {
+        val rawBody = """
+            <board>
+              <post time="20261028084232" id="279128">
+                <info>dave</info>
+                <login>sveetch</login>
+                <message>see <a href="https://example.org/?a=1&amp;b=2">[https]</a> &amp; <b>bold</b> &lt;text&gt;</message>
+              </post>
+            </board>
+        """.trimIndent()
+
+        val post = rawParser.parse(rawBody, tribune).single()
+
+        assertEquals(
+            "see <a href=\"https://example.org/?a=1&amp;b=2\">[https]</a> " +
+                "&amp; <b>bold</b> &lt;text&gt;",
+            post.message,
+        )
+    }
+
+    @Test
+    fun escapedFormatStillStripsInlineMarkup() {
+        val escapedBody = """
+            <board>
+              <post time="20261028084232" id="279128">
+                <message>see &lt;b&gt;bold&lt;/b&gt;</message>
+              </post>
+            </board>
+        """.trimIndent()
+
+        assertEquals(
+            "see <b>bold</b>",
+            parser.parse(escapedBody, tribune).single().message,
+        )
     }
 }
