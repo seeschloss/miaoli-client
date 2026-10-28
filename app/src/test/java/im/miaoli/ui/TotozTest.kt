@@ -18,6 +18,16 @@ class TotozTest {
             TextFieldValue("hello [:wou", selection = TextRange(11)),
         )
         assertEquals(TotozQuery(start = 6, query = "wou"), typed)
+
+        val beforeClosingBracket = incompleteTotozQuery(
+            TextFieldValue("hello [:]", selection = TextRange(8)),
+        )
+        assertEquals(TotozQuery(start = 6, query = ""), beforeClosingBracket)
+
+        val typedBeforeClosingBracket = incompleteTotozQuery(
+            TextFieldValue("hello [:wou]", selection = TextRange(11)),
+        )
+        assertEquals(TotozQuery(start = 6, query = "wou"), typedBeforeClosingBracket)
     }
 
     @Test
@@ -72,7 +82,31 @@ class TotozTest {
             name = "wouhou",
         )
 
-        assertEquals("hello [:wouhou]  world", result.text)
+        assertEquals("hello [:wouhou] world", result.text)
+        assertEquals(TextRange(16), result.selection)
+    }
+
+    @Test
+    fun completesTotozBeforeClosingBracket() {
+        val result = completeTotoz(
+            value = TextFieldValue("hello [:]", selection = TextRange(8)),
+            start = 6,
+            name = "wouhou",
+        )
+
+        assertEquals("hello [:wouhou] ", result.text)
+        assertEquals(TextRange(16), result.selection)
+    }
+
+    @Test
+    fun completesTypedTotozBeforeClosingBracket() {
+        val result = completeTotoz(
+            value = TextFieldValue("hello [:wou]", selection = TextRange(11)),
+            start = 6,
+            name = "wouhou",
+        )
+
+        assertEquals("hello [:wouhou] ", result.text)
         assertEquals(TextRange(16), result.selection)
     }
 

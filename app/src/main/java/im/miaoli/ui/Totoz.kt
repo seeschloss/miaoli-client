@@ -80,11 +80,14 @@ internal fun incompleteTotozQuery(value: TextFieldValue): TotozQuery? {
     val start = text.lastIndexOf("[:", cursor)
     if (start < 0) return null
 
-    val rest = text.substring(start + 2)
-    if (rest.contains(']')) return null
-
     val query = text.substring(start + 2, cursor)
-    if (query.contains('/')) return null
+    if (query.contains(']') || query.contains('/')) return null
+
+    // The formatter's [:] button puts the caret immediately before the
+    // closing bracket. That case should still offer suggestions.
+    val hasImmediateClosingBracket = text.getOrNull(cursor) == ']'
+    val rest = text.substring(start + 2)
+    if (!hasImmediateClosingBracket && rest.contains(']')) return null
 
     return TotozQuery(start = start, query = query)
 }
@@ -131,11 +134,15 @@ internal fun completeTotoz(
     val text = value.text
     val cursor = value.selection.start.coerceIn(0, text.length)
     val safeStart = start.coerceIn(0, cursor)
-    val inserted = "[:$name] "
+    val end = if (text.getOrNull(cursor) == ']') cursor + 1 else cursor
+    val suffix = text.substring(end)
+    val hasExistingSpace = suffix.firstOrNull()?.isWhitespace() == true
+    val inserted = "[:$name]" + if (hasExistingSpace) "" else " "
+    val newCursor = safeStart + inserted.length + if (hasExistingSpace) 1 else 0
 
     return TextFieldValue(
-        text = text.substring(0, safeStart) + inserted + text.substring(cursor),
-        selection = TextRange(safeStart + inserted.length),
+        text = text.substring(0, safeStart) + inserted + suffix,
+        selection = TextRange(newCursor),
         composition = null,
     )
 }
