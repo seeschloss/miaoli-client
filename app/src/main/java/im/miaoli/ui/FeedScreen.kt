@@ -3,6 +3,7 @@ package im.miaoli.ui
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -35,6 +36,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -94,6 +96,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
@@ -128,9 +131,11 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import kotlin.math.abs
+import kotlin.math.roundToInt
 import im.miaoli.R
 import im.miaoli.data.Post
 import im.miaoli.data.Tribune
@@ -218,6 +223,14 @@ fun FeedScreen(
     }
     val pullRefreshThresholdPx = with(LocalDensity.current) { 64.dp.toPx() }
     var pullDistance by remember { mutableFloatStateOf(0f) }
+    val pullOffset = remember { Animatable(0f) }
+    LaunchedEffect(pullDistance) {
+        if (pullDistance > 0f) {
+            pullOffset.snapTo(pullDistance)
+        } else {
+            pullOffset.animateTo(0f, tween(160))
+        }
+    }
     val latestRefreshing by rememberUpdatedState(state.isRefreshing || state.isLoading)
     val latestAtBottom by rememberUpdatedState(isAtBottom)
     val latestOnRefresh by rememberUpdatedState(onRefresh)
@@ -514,7 +527,11 @@ fun FeedScreen(
                         ErrorBanner(errors = visibleErrors, onRefresh = onRefresh)
                     }
 
-                    Box(modifier = Modifier.fillMaxSize()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clipToBounds(),
+                    ) {
                         when {
                             state.isLoading && state.posts.isEmpty() -> {
                                 Box(
@@ -561,6 +578,9 @@ fun FeedScreen(
                                     reverseLayout = true,
                                     modifier = Modifier
                                         .fillMaxSize()
+                                        .offset {
+                                            IntOffset(0, -pullOffset.value.roundToInt())
+                                        }
                                         .nestedScroll(pullRefreshConnection)
                                         .pointerInput(Unit) {
                                             awaitEachGesture {
@@ -627,7 +647,7 @@ fun FeedScreen(
                             }
                         }
 
-                        if (pullDistance > 0f) {
+                        if (pullOffset.value > 0.5f) {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
                                 contentDescription = null,
