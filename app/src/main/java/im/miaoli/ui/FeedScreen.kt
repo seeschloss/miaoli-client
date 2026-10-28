@@ -1611,6 +1611,7 @@ private fun PostDetails(
 ) {
     val idLabel = stringResource(R.string.post_details_id_label)
     val uaLabel = stringResource(R.string.post_details_ua_label)
+    val loginLabel = stringResource(R.string.post_details_login_label)
     val timeLabel = stringResource(R.string.post_details_time_label)
     val answersLabel = stringResource(R.string.post_details_answers_label)
     val answersSuffix = stringResource(R.string.post_details_answers_suffix)
@@ -1633,6 +1634,11 @@ private fun PostDetails(
         )
         Text(
             text = uaLabel + post.authorInfo.trim().ifEmpty { post.author },
+            style = detailStyle,
+            color = color,
+        )
+        Text(
+            text = loginLabel + post.login.trim().ifEmpty { stringResource(R.string.login_anonymous) },
             style = detailStyle,
             color = color,
         )
