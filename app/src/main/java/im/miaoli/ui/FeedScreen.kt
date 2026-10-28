@@ -403,10 +403,6 @@ fun FeedScreen(
                     .fillMaxSize()
                     .padding(innerPadding),
             ) {
-                if (enabledTribunes.isNotEmpty()) {
-                    TribuneLegend(enabledTribunes)
-                }
-
                 if (visibleErrors.isNotEmpty()) {
                     ErrorBanner(errors = visibleErrors, onRefresh = onRefresh)
                 }
@@ -664,33 +660,6 @@ private fun TribuneToggleRow(
                 ),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-        }
-    }
-}
-
-@Composable
-private fun TribuneLegend(tribunes: List<Tribune>) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        tribunes.forEach { tribune ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .clip(CircleShape)
-                        .background(Color(tribune.color)),
-                )
-                Spacer(Modifier.width(5.dp))
-                Text(
-                    text = tribune.title,
-                    style = MaterialTheme.typography.labelMedium,
-                )
-            }
         }
     }
 }
