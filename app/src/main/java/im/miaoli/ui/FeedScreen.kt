@@ -175,6 +175,13 @@ fun FeedScreen(
             }
             .mapTo(mutableSetOf()) { it.key }
     }
+    val quoteClocks = remember(visiblePosts, state.config.useMinimalClockQuotes) {
+        if (state.config.useMinimalClockQuotes) {
+            minimalQuoteClocks(visiblePosts)
+        } else {
+            emptyMap()
+        }
+    }
     val enabledTitles = remember(enabledTribunes) {
         enabledTribunes.mapTo(mutableSetOf()) { it.title }
     }
@@ -468,7 +475,10 @@ fun FeedScreen(
                                     selected = post.key == selectedPostKey,
                                     onClick = {
                                         if (!state.isPosting) {
-                                            onInsertClock(post.clock, post.tribune.id)
+                                            onInsertClock(
+                                                quoteClocks[post.key] ?: post.clock,
+                                                post.tribune.id,
+                                            )
                                             composerFocusRequest++
                                         }
                                     },

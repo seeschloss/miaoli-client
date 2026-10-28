@@ -50,6 +50,69 @@ class ClockNavigationTest {
     }
 
     @Test
+    fun resolvesUniqueMinuteReference() {
+        val origin = post("origin", "20260101124000", originTribune)
+        val target = post("target", "20260101123440", originTribune)
+        val unrelated = post("unrelated", "20260101123500", originTribune)
+
+        val result = resolveClockTarget(
+            origin = origin,
+            reference = reference("12:34", "12:34"),
+            tribunes = listOf(originTribune),
+            posts = listOf(origin, target, unrelated),
+        )
+
+        assertEquals("target", (result as ClockTargetResult.Found).post.id)
+    }
+
+    @Test
+    fun refusesAmbiguousMinuteReference() {
+        val origin = post("origin", "20260101124000", originTribune)
+        val first = post("first", "20260101123410", originTribune)
+        val second = post("second", "20260101123440", originTribune)
+
+        val result = resolveClockTarget(
+            origin = origin,
+            reference = reference("12:34", "12:34"),
+            tribunes = listOf(originTribune),
+            posts = listOf(origin, first, second),
+        )
+
+        assertTrue(result is ClockTargetResult.NoMessage)
+    }
+
+    @Test
+    fun resolvesDatedMinuteReference() {
+        val origin = post("origin", "20260103124000", originTribune)
+        val wrongDate = post("wrong", "20260101123440", originTribune)
+        val target = post("target", "20260102123420", originTribune)
+
+        val result = resolveClockTarget(
+            origin = origin,
+            reference = reference(
+                text = "2026-01-02 12:34",
+                date = "2026-01-02",
+                time = "12:34",
+            ),
+            tribunes = listOf(originTribune),
+            posts = listOf(origin, wrongDate, target),
+        )
+
+        assertEquals("target", (result as ClockTargetResult.Found).post.id)
+    }
+
+    @Test
+    fun minimalQuoteClocksOnlyForUniqueMinutes() {
+        val unique = post("unique", "20260101123440", originTribune)
+        val first = post("first", "20260101123510", originTribune)
+        val second = post("second", "20260101123540", originTribune)
+
+        val quotes = minimalQuoteClocks(listOf(unique, first, second))
+
+        assertEquals(mapOf(unique.key to "12:34"), quotes)
+    }
+
+    @Test
     fun resolvesSuffixToEnabledTribune() {
         val origin = post("origin", "20260101120010", originTribune)
         val target = post("target", "20260101115900", otherTribune)

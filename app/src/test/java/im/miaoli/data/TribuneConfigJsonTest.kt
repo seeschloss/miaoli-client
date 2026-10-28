@@ -36,6 +36,7 @@ class TribuneConfigJsonTest {
                 ),
             ),
             pollingSeconds = 45,
+            useMinimalClockQuotes = true,
         )
 
         val decoded = TribuneConfigJson.decode(TribuneConfigJson.encode(config))

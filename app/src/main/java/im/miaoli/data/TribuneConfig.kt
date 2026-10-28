@@ -11,6 +11,8 @@ import java.time.ZoneId
 data class TribuneConfig(
     val tribunes: List<Tribune> = Tribunes.defaults,
     val pollingSeconds: Int = DEFAULT_POLLING_SECONDS,
+    /** Quote `HH:mm` instead of `HH:mm:ss` when the minute is unambiguous. */
+    val useMinimalClockQuotes: Boolean = false,
 ) {
     val feedTribunes: List<Tribune>
         get() = tribunes.filter { it.enabled }

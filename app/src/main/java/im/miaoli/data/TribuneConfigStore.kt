@@ -76,6 +76,7 @@ internal object TribuneConfigJson {
         return JSONObject().apply {
             put("version", VERSION)
             put("pollingSeconds", config.pollingSeconds)
+            put("useMinimalClockQuotes", config.useMinimalClockQuotes)
             put("tribunes", tribunes)
         }.toString()
     }
@@ -136,6 +137,7 @@ internal object TribuneConfigJson {
                 "pollingSeconds",
                 TribuneConfig.DEFAULT_POLLING_SECONDS,
             ),
+            useMinimalClockQuotes = root.optBoolean("useMinimalClockQuotes", false),
         ).normalized()
     }
 }

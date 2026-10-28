@@ -35,6 +35,24 @@ class MessageTextTest {
     }
 
     @Test
+    fun findsMinuteOnlyClock() {
+        val reference = clockReferences("at 12:34 now").single()
+
+        assertEquals("12:34", reference.time)
+        assertTrue(reference.isMinuteOnly)
+    }
+
+    @Test
+    fun findsDateAndMinuteOnlyClock() {
+        val reference = clockReferences("2026-10-25 12:34@Moules").single()
+
+        assertEquals("2026-10-25", reference.date)
+        assertEquals("12:34", reference.time)
+        assertEquals("Moules", reference.tribuneTitle)
+        assertTrue(reference.isMinuteOnly)
+    }
+
+    @Test
     fun findsDateAndSuffix() {
         val text = "2026-10-25 23:30:03@Moules"
 

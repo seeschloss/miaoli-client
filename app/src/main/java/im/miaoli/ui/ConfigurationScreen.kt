@@ -63,12 +63,20 @@ fun FeedSettingsScreen(
 ) {
     var pollingSeconds by remember(config) { mutableStateOf(config.pollingSeconds.toString()) }
     var pollingError by remember(config) { mutableStateOf<ValidationMessage?>(null) }
+    var minimalClockQuotes by remember(config) {
+        mutableStateOf(config.useMinimalClockQuotes)
+    }
 
     fun save() {
         val error = pollingErrorMessage(pollingSeconds)
         pollingError = error
         if (error == null) {
-            onSave(config.copy(pollingSeconds = pollingSeconds.toInt()))
+            onSave(
+                config.copy(
+                    pollingSeconds = pollingSeconds.toInt(),
+                    useMinimalClockQuotes = minimalClockQuotes,
+                ),
+            )
         }
     }
 
@@ -130,6 +138,29 @@ fun FeedSettingsScreen(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
+            }
+
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.minimal_clock_quotes),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                        Text(
+                            text = stringResource(R.string.minimal_clock_quotes_supporting),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(
+                        checked = minimalClockQuotes,
+                        onCheckedChange = { minimalClockQuotes = it },
+                    )
+                }
             }
         }
     }

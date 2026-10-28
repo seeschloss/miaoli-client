@@ -12,7 +12,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
 private const val DATE_PATTERN = """\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])"""
-private const val TIME_PATTERN = """(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d"""
+private const val TIME_PATTERN = """(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?"""
 private val SUFFIX_PATTERN = Regex("""(?:@[0-9A-Za-z]+)?""")
 
 /**
@@ -33,7 +33,11 @@ internal data class ClockReference(
     val tribuneTitle: String?,
     val start: Int,
     val end: Int,
-)
+) {
+    /** True for `HH:mm`, false for `HH:mm:ss`. */
+    val isMinuteOnly: Boolean
+        get() = time.length == 5
+}
 
 /** A styled message and its non-link references. */
 internal data class RenderedMessage(

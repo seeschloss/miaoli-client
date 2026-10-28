@@ -13,7 +13,8 @@ internal sealed interface ClockTargetResult {
  * Resolves a clock reference from [origin] against the currently visible
  * [posts]. A suffix names an enabled tribune exactly; references to disabled
  * tribunes count as missing tribunes. Without a date, the closest matching
- * message older than [origin] is selected.
+ * message older than [origin] is selected. A minute-only clock is accepted
+ * only when its minute contains exactly one post.
  */
 internal fun resolveClockTarget(
     origin: Post,
@@ -30,11 +31,13 @@ internal fun resolveClockTarget(
 
     val matching = posts.filter { post ->
         post.tribune.id == targetTribune.id &&
-            post.clock == reference.time &&
+            clockMatches(post, reference) &&
             matchesDate(post, reference.date)
     }
 
-    val target = if (reference.date != null) {
+    val target = if (reference.isMinuteOnly) {
+        resolveMinuteTarget(origin, reference, matching)
+    } else if (reference.date != null) {
         matching.firstOrNull()
     } else {
         val originTimestamp = origin.timestamp
@@ -50,6 +53,38 @@ internal fun resolveClockTarget(
 
     return target?.let(ClockTargetResult::Found)
         ?: ClockTargetResult.NoMessage(reference)
+}
+
+private fun clockMatches(post: Post, reference: ClockReference): Boolean =
+    if (reference.isMinuteOnly) {
+        post.clock.take(5) == reference.time
+    } else {
+        post.clock == reference.time
+    }
+
+private fun resolveMinuteTarget(
+    origin: Post,
+    reference: ClockReference,
+    matching: List<Post>,
+): Post? {
+    if (reference.date != null) {
+        return matching.singleOrNull()
+    }
+
+    val originTimestamp = origin.timestamp ?: return null
+    val candidate = matching
+        .mapNotNull { post ->
+            post.timestamp?.let { timestamp -> post to timestamp }
+        }
+        .filter { (_, timestamp) -> timestamp < originTimestamp }
+        .maxByOrNull { (_, timestamp) -> timestamp }
+        ?.first
+        ?: return null
+
+    val candidateMinute = candidate.time.take(12)
+    return matching
+        .filter { it.time.take(12) == candidateMinute }
+        .singleOrNull()
 }
 
 /**
@@ -92,3 +127,15 @@ private fun matchesDate(post: Post, date: String?): Boolean {
     val compactDate = date.replace("-", "")
     return post.time.length >= 8 && post.time.take(8) == compactDate
 }
+
+/** Returns post keys that can be quoted with `HH:mm` because their minute is unique. */
+internal fun minimalQuoteClocks(posts: List<Post>): Map<String, String> =
+    posts
+        .filter { it.timestamp != null }
+        .groupBy { post -> post.tribune.id to post.time.take(12) }
+        .filterValues { minutePosts -> minutePosts.size == 1 }
+        .values
+        .associate { minutePosts ->
+            val post = minutePosts.single()
+            post.key to post.clock.take(5)
+        }
