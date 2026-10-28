@@ -16,6 +16,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import coil3.SingletonImageLoader
 import coil3.compose.AsyncImage
 import coil3.compose.rememberAsyncImagePainter
@@ -29,13 +30,24 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder
+import kotlin.math.ln
 import kotlin.math.roundToInt
 
 internal val TOTOZ_PATTERN = Regex("""\[:[^\]/]+\]""")
 internal const val MAX_TOTOZ_IMAGES = 50
 
-/** Render totoz source pixels three times their natural size. */
-private const val TOTOZ_SCALE = 3f
+/**
+ * Small totoz are tripled; larger images follow a logarithmic curve from
+ * 150 dp at 50 px to 200 dp at 200 px.
+ */
+internal fun totozDisplayLongEdgeDp(sourcePx: Float): Float {
+    if (sourcePx <= 0f) return 0f
+    return when {
+        sourcePx < 50f -> sourcePx * 3f
+        sourcePx < 200f -> 150f + 50f * ln(sourcePx / 50f) / ln(4f)
+        else -> 200f
+    }
+}
 
 /** A totoz reference such as `[:wouhou]` in a message. */
 internal data class TotozReference(
@@ -149,13 +161,11 @@ internal fun TotozOverlay(popup: TotozPopup) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val windowWidth = with(density) { maxWidth.toPx() }
         val windowHeight = with(density) { maxHeight.toPx() }
-        val naturalWidth = with(density) { intrinsic.width.toDp() }
-        val naturalHeight = with(density) { intrinsic.height.toDp() }
-        // One source pixel becomes three dp, then the result is capped to the
-        // screen. This deliberately upscales even small reaction images.
-        val upscale = TOTOZ_SCALE * density.density
-        val targetWidth = naturalWidth * upscale
-        val targetHeight = naturalHeight * upscale
+        val sourceLongEdge = maxOf(intrinsic.width, intrinsic.height)
+        val displayLongEdge = totozDisplayLongEdgeDp(sourceLongEdge).dp
+        val aspectScale = displayLongEdge.value / sourceLongEdge
+        val targetWidth = (intrinsic.width * aspectScale).dp
+        val targetHeight = (intrinsic.height * aspectScale).dp
         val fit = minOf(
             1f,
             maxWidth.value / targetWidth.value,
