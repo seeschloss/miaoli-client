@@ -5,6 +5,7 @@ import im.miaoli.data.FeedFormat
 import im.miaoli.data.FetchResult
 import im.miaoli.data.Post
 import im.miaoli.data.PostReceipt
+import im.miaoli.data.TotozUsageStore
 import im.miaoli.data.Tribune
 import im.miaoli.data.TribuneConfig
 import im.miaoli.data.TribuneConfigStore
@@ -110,6 +111,25 @@ class FeedViewModelTest {
             listOf("42"),
             store.config.tribunes.first { it.id == 1L }.ownPostIds,
         )
+    }
+
+    @Test
+    fun recordsTotozUsageFromSuccessfulPost() {
+        val usageStore = FakeTotozUsageStore()
+        val localViewModel = FeedViewModel(
+            configStore = store,
+            repository = FakeFeedDataSource(),
+            totozUsageStore = usageStore,
+        )
+
+        localViewModel.updateDraft(
+            TextFieldValue("hello [:foo] and [:foo] [:bar]"),
+        )
+        localViewModel.post()
+
+        val expected = mapOf("foo" to 2, "bar" to 1)
+        assertEquals(expected, localViewModel.state.value.totozUsage)
+        assertEquals(expected, usageStore.usage)
     }
 
     @Test
@@ -327,6 +347,16 @@ class FeedViewModelTest {
 
         override fun save(config: TribuneConfig) {
             this.config = config
+        }
+    }
+
+    private class FakeTotozUsageStore(
+        var usage: Map<String, Int> = emptyMap(),
+    ) : TotozUsageStore {
+        override fun load(): Map<String, Int> = usage
+
+        override fun save(usage: Map<String, Int>) {
+            this.usage = usage
         }
     }
 }

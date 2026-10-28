@@ -8,7 +8,9 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import im.miaoli.data.FeedDataSource
 import im.miaoli.data.FeedRepository
+import im.miaoli.data.NoopTotozUsageStore
 import im.miaoli.data.PostMerger
+import im.miaoli.data.TotozUsageStore
 import im.miaoli.data.Tribune
 import im.miaoli.data.TribuneConfig
 import im.miaoli.data.TribuneConfigStore
@@ -29,12 +31,14 @@ import kotlinx.coroutines.sync.withLock
 class FeedViewModel(
     private val configStore: TribuneConfigStore,
     private val repository: FeedDataSource = FeedRepository(),
+    private val totozUsageStore: TotozUsageStore = NoopTotozUsageStore,
 ) : ViewModel() {
     private val initialConfig = configStore.load().normalized()
     private val _state = MutableStateFlow(
         FeedUiState(
             config = initialConfig,
             selectedTribuneId = initialConfig.postableTribunes.firstOrNull()?.id,
+            totozUsage = totozUsageStore.load(),
         ),
     )
     val state: StateFlow<FeedUiState> = _state.asStateFlow()
@@ -125,6 +129,22 @@ class FeedViewModel(
             )
         }
         configStore.save(updated.config)
+    }
+
+    private fun recordTotozUsage(message: String) {
+        val counts = totozReferences(message)
+            .groupingBy { it.name }
+            .eachCount()
+        if (counts.isEmpty()) return
+
+        val updated = _state.updateAndGet { current ->
+            val usage = current.totozUsage.toMutableMap()
+            counts.forEach { (name, count) ->
+                usage[name] = (usage[name] ?: 0) + count
+            }
+            current.copy(totozUsage = usage)
+        }
+        totozUsageStore.save(updated.totozUsage)
     }
 
     /** Stores cookies captured by the in-app login browser for [id]. */
@@ -221,6 +241,7 @@ class FeedViewModel(
                 receipt.postId?.let { postId ->
                     recordOwnPost(tribune.id, postId)
                 }
+                recordTotozUsage(message)
                 _state.update {
                     it.copy(
                         isPosting = false,
@@ -413,9 +434,17 @@ class FeedViewModel(
     }
 
     companion object {
-        fun factory(configStore: TribuneConfigStore): ViewModelProvider.Factory =
+        fun factory(
+            configStore: TribuneConfigStore,
+            totozUsageStore: TotozUsageStore = NoopTotozUsageStore,
+        ): ViewModelProvider.Factory =
             viewModelFactory {
-                initializer { FeedViewModel(configStore = configStore) }
+                initializer {
+                    FeedViewModel(
+                        configStore = configStore,
+                        totozUsageStore = totozUsageStore,
+                    )
+                }
             }
     }
 }

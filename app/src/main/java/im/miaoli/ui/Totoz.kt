@@ -15,6 +15,8 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import coil3.SingletonImageLoader
@@ -25,6 +27,7 @@ import coil3.request.Disposable
 import coil3.request.ImageRequest
 import coil3.size.Size
 import im.miaoli.data.Post
+import im.miaoli.data.Tribune
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -62,6 +65,80 @@ internal data class TotozPopup(
     val name: String,
     val anchor: Rect,
 )
+
+/** An unfinished `[:query` token at the composer cursor. */
+internal data class TotozQuery(
+    val start: Int,
+    val query: String,
+)
+
+internal fun incompleteTotozQuery(value: TextFieldValue): TotozQuery? {
+    if (value.selection.start != value.selection.end) return null
+
+    val text = value.text
+    val cursor = value.selection.start.coerceIn(0, text.length)
+    val start = text.lastIndexOf("[:", cursor)
+    if (start < 0) return null
+
+    val rest = text.substring(start + 2)
+    if (rest.contains(']')) return null
+
+    val query = text.substring(start + 2, cursor)
+    if (query.contains('/')) return null
+
+    return TotozQuery(start = start, query = query)
+}
+
+internal fun buildTotozSuggestions(
+    ownUsage: Map<String, Int>,
+    otherUsage: Map<String, Int>,
+    query: String,
+    limit: Int = 10,
+): List<String> {
+    val matches = { name: String -> name.startsWith(query, ignoreCase = true) }
+    val result = LinkedHashSet<String>()
+
+    ownUsage.entries
+        .sortedWith(
+            compareByDescending<Map.Entry<String, Int>> { it.value }
+                .thenBy { it.key },
+        )
+        .forEach { entry ->
+            if (result.size < limit && matches(entry.key)) {
+                result.add(entry.key)
+            }
+        }
+
+    otherUsage.entries
+        .sortedWith(
+            compareByDescending<Map.Entry<String, Int>> { it.value }
+                .thenBy { it.key },
+        )
+        .forEach { entry ->
+            if (result.size < limit && matches(entry.key)) {
+                result.add(entry.key)
+            }
+        }
+
+    return result.toList()
+}
+
+internal fun completeTotoz(
+    value: TextFieldValue,
+    start: Int,
+    name: String,
+): TextFieldValue {
+    val text = value.text
+    val cursor = value.selection.start.coerceIn(0, text.length)
+    val safeStart = start.coerceIn(0, cursor)
+    val inserted = "[:$name] "
+
+    return TextFieldValue(
+        text = text.substring(0, safeStart) + inserted + text.substring(cursor),
+        selection = TextRange(safeStart + inserted.length),
+        composition = null,
+    )
+}
 
 internal fun totozReferences(text: String): List<TotozReference> =
     TOTOZ_PATTERN.findAll(text).map { match ->
@@ -138,6 +215,30 @@ internal suspend fun collectTotozNames(posts: List<Post>): List<String> =
         }
         names.toList().takeLast(MAX_TOTOZ_IMAGES)
     }
+
+/** Counts totoz in other people's posts, for autocomplete fallback. */
+internal suspend fun collectOtherTotozCounts(
+    posts: List<Post>,
+    tribunes: List<Tribune>,
+): Map<String, Int> = withContext(Dispatchers.Default) {
+    val tribunesById = tribunes.associateBy { it.id }
+    val counts = mutableMapOf<String, Int>()
+
+    posts.forEach { post ->
+        currentCoroutineContext().ensureActive()
+        if (tribunesById[post.tribune.id]?.matchesOwnPost(post) == true) {
+            return@forEach
+        }
+        renderedMessage(
+            message = post.message,
+            linkColor = readableLinkColor(Color(post.tribune.color)),
+        ).totozReferences.forEach { reference ->
+            counts[reference.name] = (counts[reference.name] ?: 0) + 1
+        }
+    }
+
+    counts
+}
 
 /**
  * Draws an undecorated image over the feed. It is intentionally not a Popup

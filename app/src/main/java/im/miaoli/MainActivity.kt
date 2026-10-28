@@ -17,6 +17,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import im.miaoli.data.SharedPreferencesTotozUsageStore
 import im.miaoli.data.SharedPreferencesTribuneConfigStore
 import im.miaoli.ui.FeedScreen
 import im.miaoli.ui.FeedSettingsScreen
@@ -35,8 +36,11 @@ class MainActivity : ComponentActivity() {
                 val configStore = remember(context) {
                     SharedPreferencesTribuneConfigStore(context.applicationContext)
                 }
-                val factory = remember(configStore) {
-                    FeedViewModel.factory(configStore)
+                val totozUsageStore = remember(context) {
+                    SharedPreferencesTotozUsageStore(context.applicationContext)
+                }
+                val factory = remember(configStore, totozUsageStore) {
+                    FeedViewModel.factory(configStore, totozUsageStore)
                 }
                 val viewModel: FeedViewModel = viewModel(factory = factory)
                 val state by viewModel.state.collectAsStateWithLifecycle()

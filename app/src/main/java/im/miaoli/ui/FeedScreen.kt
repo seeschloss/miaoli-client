@@ -14,6 +14,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -152,6 +153,7 @@ fun FeedScreen(
     var selectedPostKey by remember { mutableStateOf<String?>(null) }
     var filteredPostKeys by remember { mutableStateOf<Set<String>?>(null) }
     var postRelations by remember { mutableStateOf<Map<String, PostRelation>>(emptyMap()) }
+    var otherTotozUsage by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var activeTotoz by remember { mutableStateOf<TotozPopup?>(null) }
     val enabledTribunes = state.feedTribunes
     val enabledTribuneIds = remember(enabledTribunes) {
@@ -206,6 +208,10 @@ fun FeedScreen(
     }
 
     LaunchedEffect(visiblePosts, state.config.tribunes) {
+        otherTotozUsage = collectOtherTotozCounts(
+            posts = visiblePosts,
+            tribunes = state.config.tribunes,
+        )
         postRelations = computePostRelations(visiblePosts, state.config.tribunes)
     }
 
@@ -370,6 +376,8 @@ fun FeedScreen(
                         onDraftChange = onDraftChange,
                         onSelectTribune = onSelectTribune,
                         onPost = onPost,
+                        totozUsage = state.totozUsage,
+                        otherTotozUsage = otherTotozUsage,
                     )
                 }
             },
@@ -734,6 +742,8 @@ private fun PostComposer(
     onDraftChange: (TextFieldValue) -> Unit,
     onSelectTribune: (Long) -> Unit,
     onPost: () -> Unit,
+    totozUsage: Map<String, Int>,
+    otherTotozUsage: Map<String, Int>,
 ) {
     val selected = state.config.tribunes
         .firstOrNull { it.id == state.selectedTribuneId }
@@ -741,6 +751,18 @@ private fun PostComposer(
     val keyboard = LocalSoftwareKeyboardController.current
     var expanded by remember { mutableStateOf(false) }
     var isComposerFocused by remember { mutableStateOf(false) }
+    val totozQuery = remember(state.draft.value) {
+        incompleteTotozQuery(state.draft.value)
+    }
+    val suggestions = remember(totozQuery, totozUsage, otherTotozUsage) {
+        totozQuery?.let { query ->
+            buildTotozSuggestions(
+                ownUsage = totozUsage,
+                otherUsage = otherTotozUsage,
+                query = query.query,
+            )
+        }.orEmpty()
+    }
     val linkColor = MaterialTheme.colorScheme.primary
     val draftVisualTransformation = remember(linkColor) {
         DraftVisualTransformation(
@@ -775,28 +797,47 @@ private fun PostComposer(
                 )
             }
 
-            AnimatedVisibility(
-                visible = isComposerFocused,
-                enter = fadeIn(tween(100)) +
-                    expandVertically(
-                        animationSpec = tween(120),
-                        expandFrom = Alignment.Top,
-                    ),
-                exit = fadeOut(tween(80)) +
-                    shrinkVertically(
-                        animationSpec = tween(100),
-                        shrinkTowards = Alignment.Top,
-                    ),
+            if (isComposerFocused &&
+                totozQuery != null &&
+                suggestions.isNotEmpty()
             ) {
-                FormattingBar(
-                    enabled = !state.isPosting,
-                    onInsert = { opening, closing ->
+                TotozSuggestionsRow(
+                    suggestions = suggestions,
+                    onSelect = { name ->
                         onDraftChange(
-                            insertPair(state.draft.value, opening, closing),
+                            completeTotoz(
+                                value = state.draft.value,
+                                start = totozQuery.start,
+                                name = name,
+                            ),
                         )
                         focusRequester.requestFocus()
                     },
                 )
+            } else {
+                AnimatedVisibility(
+                    visible = isComposerFocused,
+                    enter = fadeIn(tween(100)) +
+                        expandVertically(
+                            animationSpec = tween(120),
+                            expandFrom = Alignment.Top,
+                        ),
+                    exit = fadeOut(tween(80)) +
+                        shrinkVertically(
+                            animationSpec = tween(100),
+                            shrinkTowards = Alignment.Top,
+                        ),
+                ) {
+                    FormattingBar(
+                        enabled = !state.isPosting,
+                        onInsert = { opening, closing ->
+                            onDraftChange(
+                                insertPair(state.draft.value, opening, closing),
+                            )
+                            focusRequester.requestFocus()
+                        },
+                    )
+                }
             }
 
             Row(
@@ -894,6 +935,35 @@ private fun PostComposer(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TotozSuggestionsRow(
+    suggestions: List<String>,
+    onSelect: (String) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        suggestions.forEach { name ->
+            TextButton(
+                onClick = { onSelect(name) },
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                modifier = Modifier.height(32.dp),
+            ) {
+                Text(
+                    text = "[:$name]",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontFamily = FontFamily.Monospace,
+                    ),
+                    maxLines = 1,
+                )
             }
         }
     }

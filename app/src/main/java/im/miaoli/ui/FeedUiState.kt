@@ -14,6 +14,8 @@ data class FeedUiState(
     val selectedTribuneId: Long? = null,
     val isPosting: Boolean = false,
     val postError: PostError? = null,
+    /** Counts of totoz used in posts sent from this app. */
+    val totozUsage: Map<String, Int> = emptyMap(),
     /** One-shot request to bring a newly sent post, or the bottom of the feed, into view. */
     val scrollRequest: FeedScrollRequest? = null,
 ) {
