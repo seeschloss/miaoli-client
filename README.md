@@ -22,6 +22,14 @@ Press and hold a `[:totoz]` reference to show the corresponding image from https
 
 That's basically all there is to it.
 
+## Screenshots
+
+<img width="540" height="1200" alt="image" src="https://github.com/user-attachments/assets/e169e70f-12a1-404c-aa0d-f17290474b06" />
+
+<img width="540" height="1200" alt="image" src="https://github.com/user-attachments/assets/ddb78493-0a30-4163-923a-113474209248" />
+
+<img width="540" height="1200" alt="image" src="https://github.com/user-attachments/assets/a28d6e0b-f0d8-4d6f-a5e0-ef9b5726a319" />
+
 ## Future features
 
 Tribune parameters autodiscovery to make it easier and faster to add a new tribune.
