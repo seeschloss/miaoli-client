@@ -1036,23 +1036,16 @@ private suspend fun LazyListState.animateItemToTop(index: Int) {
     animateScrollToItem(index)
     withFrameNanos { }
 
+    // In a reversed list the reported offset grows upwards from the visual
+    // bottom, so the visual top is the viewport end minus the item height.
+    // animateScrollToItem leaves the target at the bottom, so scroll the
+    // remaining distance to put it at the top.
     val info = layoutInfo
     val item = info.visibleItemsInfo.firstOrNull { it.index == index } ?: return
-    // The list is reversed, so moving an item upward requires scrolling
-    // backward in the list's coordinate system. Depending on the layout
-    // phase, an item at the visual bottom can report a zero offset, so use
-    // the remaining viewport span as a fallback.
-    val delta = item.offset - info.viewportStartOffset
-    val atScrollStart = firstVisibleItemIndex == index &&
-        firstVisibleItemScrollOffset == 0
-    if (delta != 0) {
-        animateScrollBy(-delta.toFloat())
-    } else if (atScrollStart) {
-        val span = info.viewportEndOffset - info.viewportStartOffset
-        val distance = (span - item.size).coerceAtLeast(0)
-        if (distance > 0) {
-            animateScrollBy(-distance.toFloat())
-        }
+    val visualTop = info.viewportEndOffset - item.size
+    val distance = visualTop - item.offset
+    if (distance != 0) {
+        animateScrollBy(-distance.toFloat())
     }
 }
 
