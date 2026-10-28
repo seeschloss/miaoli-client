@@ -1357,7 +1357,8 @@ private fun PostRow(
             PostDetails(
                 post = post,
                 answerClocks = answerClocks,
-                color = messageColor,
+                background = leftColumnBackground,
+                color = leftColumnContent,
             )
         }
     }
@@ -1367,6 +1368,7 @@ private fun PostRow(
 private fun PostDetails(
     post: Post,
     answerClocks: List<String>,
+    background: Color,
     color: Color,
 ) {
     Text(
@@ -1379,7 +1381,8 @@ private fun PostDetails(
         ),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 10.dp, end = 10.dp, top = 2.dp, bottom = 8.dp),
+            .background(background)
+            .padding(horizontal = 10.dp, vertical = 7.dp),
         style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
         color = color,
     )
