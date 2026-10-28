@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -105,6 +106,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -140,8 +142,8 @@ import im.miaoli.R
 import im.miaoli.data.Post
 import im.miaoli.data.Tribune
 import im.miaoli.ui.theme.LocalMiaoliPostColors
-import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -222,18 +224,75 @@ fun FeedScreen(
         }
     }
     val pullRefreshThresholdPx = with(LocalDensity.current) { 64.dp.toPx() }
+    val arrowSizePx = with(LocalDensity.current) { 40.dp.toPx() }
+    val arrowBottomPaddingPx = with(LocalDensity.current) { 12.dp.toPx() }
+    val maxPullPx = arrowSizePx * 4f
     var pullDistance by remember { mutableFloatStateOf(0f) }
-    val pullOffset = remember { Animatable(0f) }
-    LaunchedEffect(pullDistance) {
-        if (pullDistance > 0f) {
-            pullOffset.snapTo(pullDistance)
-        } else {
-            pullOffset.animateTo(0f, tween(160))
-        }
-    }
+    var pullDirection by remember { mutableFloatStateOf(0f) }
+    val pullVisual = remember { Animatable(0f) }
+    val arrowAlpha = remember { Animatable(1f) }
+    val spinExtra = remember { Animatable(0f) }
+    var arrowFading by remember { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
     val latestRefreshing by rememberUpdatedState(state.isRefreshing || state.isLoading)
     val latestAtBottom by rememberUpdatedState(isAtBottom)
     val latestOnRefresh by rememberUpdatedState(onRefresh)
+
+    LaunchedEffect(pullDistance) {
+        if (arrowFading) return@LaunchedEffect
+        if (pullDistance > 0f) {
+            pullVisual.snapTo(pullDistance)
+        } else {
+            pullVisual.animateTo(0f, tween(160))
+        }
+    }
+
+    LaunchedEffect(arrowFading) {
+        if (!arrowFading) return@LaunchedEffect
+        arrowAlpha.snapTo(1f)
+        spinExtra.snapTo(0f)
+        coroutineScope {
+            launch {
+                spinExtra.animateTo(
+                    targetValue = 360f,
+                    animationSpec = tween(220, easing = LinearEasing),
+                )
+            }
+            arrowAlpha.animateTo(0f, tween(220))
+        }
+        pullVisual.snapTo(0f)
+        spinExtra.snapTo(0f)
+        arrowAlpha.snapTo(1f)
+        arrowFading = false
+    }
+
+    fun triggerPullRefresh() {
+        if (arrowFading || latestRefreshing) return
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        latestOnRefresh()
+        arrowFading = true
+        pullDistance = 0f
+        pullDirection = 0f
+    }
+
+    fun overlayOffset(pull: Float): Float {
+        val hidden = arrowSizePx + arrowBottomPaddingPx
+        return when {
+            pull <= 0f -> hidden
+            pull < pullRefreshThresholdPx -> hidden * (1f - pull / pullRefreshThresholdPx)
+            else -> -(pull - pullRefreshThresholdPx)
+        }
+    }
+
+    fun overlayRotation(pull: Float): Float = when {
+        pull <= 0f -> 0f
+        pull < pullRefreshThresholdPx -> 180f * pull / pullRefreshThresholdPx
+        else -> 180f + 180f * (
+            (pull - pullRefreshThresholdPx) /
+                (maxPullPx - pullRefreshThresholdPx)
+            ).coerceIn(0f, 1f)
+    }
+
     val pullRefreshConnection = remember {
         object : NestedScrollConnection {
             override fun onPostScroll(
@@ -243,13 +302,24 @@ fun FeedScreen(
             ): Offset {
                 if (source != NestedScrollSource.UserInput ||
                     latestRefreshing ||
+                    arrowFading ||
                     !latestAtBottom ||
                     available.y == 0f
                 ) {
                     return Offset.Zero
                 }
-                pullDistance = (pullDistance + abs(available.y))
-                    .coerceAtMost(pullRefreshThresholdPx * 1.5f)
+                if (pullDirection == 0f) {
+                    pullDirection = if (available.y > 0f) 1f else -1f
+                }
+                val delta = available.y * pullDirection
+                if (delta <= 0f && pullDistance <= 0f) {
+                    pullDirection = 0f
+                    return Offset.Zero
+                }
+                pullDistance = (pullDistance + delta).coerceIn(0f, maxPullPx)
+                if (pullDistance == 0f) {
+                    pullDirection = 0f
+                }
                 return Offset(0f, available.y)
             }
 
@@ -257,10 +327,11 @@ fun FeedScreen(
                 consumed: Velocity,
                 available: Velocity,
             ): Velocity {
-                if (pullDistance >= pullRefreshThresholdPx && !latestRefreshing) {
-                    latestOnRefresh()
+                if (pullDistance >= pullRefreshThresholdPx) {
+                    triggerPullRefresh()
                 }
                 pullDistance = 0f
+                pullDirection = 0f
                 return Velocity.Zero
             }
         }
@@ -578,21 +649,18 @@ fun FeedScreen(
                                     reverseLayout = true,
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .offset {
-                                            IntOffset(0, -pullOffset.value.roundToInt())
-                                        }
                                         .nestedScroll(pullRefreshConnection)
                                         .pointerInput(Unit) {
                                             awaitEachGesture {
                                                 awaitFirstDown(requireUnconsumed = false)
                                                 val up = waitForUpOrCancellation()
                                                 if (up != null &&
-                                                    pullDistance >= pullRefreshThresholdPx &&
-                                                    !latestRefreshing
+                                                    pullDistance >= pullRefreshThresholdPx
                                                 ) {
-                                                    onRefresh()
+                                                    triggerPullRefresh()
                                                 }
                                                 pullDistance = 0f
+                                                pullDirection = 0f
                                             }
                                         },
                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
@@ -647,20 +715,39 @@ fun FeedScreen(
                             }
                         }
 
-                        if (pullOffset.value > 0.5f) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = null,
+                        if (pullVisual.value > 0.5f || arrowFading) {
+                            Surface(
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)
                                     .padding(bottom = 12.dp)
-                                    .rotate(
-                                        (pullDistance / pullRefreshThresholdPx)
-                                            .coerceIn(0f, 1f) * 180f,
+                                    .offset {
+                                        IntOffset(
+                                            0,
+                                            overlayOffset(pullVisual.value).roundToInt(),
+                                        )
+                                    }
+                                    .graphicsLayer {
+                                        alpha = arrowAlpha.value
+                                        rotationZ = overlayRotation(pullVisual.value) +
+                                            spinExtra.value
+                                    }
+                                    .size(40.dp),
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                tonalElevation = 3.dp,
+                            ) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.primary,
                                     )
-                                    .size(24.dp),
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
+                                }
+                            }
                         }
                     }
             }
