@@ -69,12 +69,16 @@
     <string name="user_agent_label">User agent</string>
     <string name="username_label">Username</string>
     <string name="username_supporting">Optional; used to match your posts when X-Post-Id is unavailable</string>
+    <string name="send_notification_on_answers">Send a notification on answers</string>
     <string name="cookie_label">Cookie</string>
     <string name="optional">Optional</string>
     <string name="cookie_supporting">Optional, will only be sent to the post URL</string>
     <string name="format_tsv">TSV</string>
     <string name="format_xml_html_escaped">XML (HTML-escaped)</string>
     <string name="format_xml_raw">XML (raw)</string>
+
+    <!-- Notifications -->
+    <string name="notification_answer_text">%1$s · %2$s</string>
 
     <!-- Configuration validation -->
     <string name="validation_title_required">Title is required</string>

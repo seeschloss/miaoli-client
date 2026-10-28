@@ -31,6 +31,7 @@ internal data class TribuneDraft(
     val enabled: Boolean,
     val ownPostIds: List<String> = emptyList(),
     val username: String = "",
+    val notifyOnAnswers: Boolean = false,
 ) {
     fun validate(): Map<String, ValidationMessage> = buildMap {
         if (title.isBlank()) {
@@ -79,6 +80,7 @@ internal data class TribuneDraft(
         enabled = enabled,
         ownPostIds = ownPostIds,
         username = username.trim(),
+        notifyOnAnswers = notifyOnAnswers,
     )
 
     companion object {
@@ -97,6 +99,7 @@ internal data class TribuneDraft(
             enabled = tribune.enabled,
             ownPostIds = tribune.ownPostIds,
             username = tribune.username,
+            notifyOnAnswers = tribune.notifyOnAnswers,
         )
     }
 }

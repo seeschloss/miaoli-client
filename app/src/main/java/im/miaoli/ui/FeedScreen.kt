@@ -268,6 +268,14 @@ fun FeedScreen(
         }
     }
 
+    LaunchedEffect(state.composerFocusRequest) {
+        if (state.composerFocusRequest > 0L && state.postableTribunes.isNotEmpty()) {
+            composerFocusRequester.requestFocus()
+            withFrameNanos { }
+            keyboard?.show()
+        }
+    }
+
     fun openClockReference(origin: Post, reference: ClockReference) {
         selectedPostKey = null
         when (

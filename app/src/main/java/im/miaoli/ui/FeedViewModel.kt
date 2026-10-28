@@ -56,6 +56,13 @@ class FeedViewModel(
         }
     }
 
+    /** Requests focus for the composer after an external action, e.g. a notification. */
+    fun requestComposerFocus() {
+        _state.update { current ->
+            current.copy(composerFocusRequest = current.composerFocusRequest + 1L)
+        }
+    }
+
     /**
      * Inserts a quoted clock at the current cursor/selection. A postable
      * origin becomes the new destination; a read-only origin leaves the

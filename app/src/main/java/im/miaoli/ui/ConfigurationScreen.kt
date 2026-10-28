@@ -1,7 +1,12 @@
 package im.miaoli.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -50,6 +55,7 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import im.miaoli.R
 import im.miaoli.data.FeedFormat
 import im.miaoli.data.Tribune
@@ -383,9 +389,30 @@ private fun TribuneConfigCard(
     onChange: ((TribuneDraft) -> TribuneDraft) -> Unit,
     onLogin: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (!granted) {
+            onChange { it.copy(notifyOnAnswers = false) }
+        }
+    }
     val parsedColor = parseHexColor(draft.color)
     val previewColor = parsedColor?.let { Color(it) }
         ?: MaterialTheme.colorScheme.outlineVariant
+
+    fun setNotificationsEnabled(enabled: Boolean) {
+        onChange { it.copy(notifyOnAnswers = enabled) }
+        if (enabled &&
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS,
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -552,6 +579,21 @@ private fun TribuneConfigCard(
                 },
                 singleLine = true,
             )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.send_notification_on_answers),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.weight(1f),
+                )
+                Switch(
+                    checked = draft.notifyOnAnswers,
+                    onCheckedChange = ::setNotificationsEnabled,
+                )
+            }
 
             OutlinedTextField(
                 value = draft.cookie,

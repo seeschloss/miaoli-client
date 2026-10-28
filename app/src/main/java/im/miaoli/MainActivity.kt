@@ -1,5 +1,6 @@
 package im.miaoli
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -19,15 +20,22 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import im.miaoli.data.SharedPreferencesTotozUsageStore
 import im.miaoli.data.SharedPreferencesTribuneConfigStore
+import im.miaoli.notifications.NotificationQuote
+import im.miaoli.notifications.ReplyNotificationScheduler
+import im.miaoli.notifications.consumeNotificationQuote
 import im.miaoli.ui.FeedScreen
 import im.miaoli.ui.FeedSettingsScreen
 import im.miaoli.ui.FeedViewModel
 import im.miaoli.ui.TribuneConfigurationScreen
 import im.miaoli.ui.theme.MiaoliTheme
+import kotlinx.coroutines.flow.MutableStateFlow
 
 class MainActivity : ComponentActivity() {
+    private val pendingNotificationQuote = MutableStateFlow<NotificationQuote?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pendingNotificationQuote.value = consumeNotificationQuote(intent)
         enableEdgeToEdge()
 
         setContent {
@@ -44,6 +52,7 @@ class MainActivity : ComponentActivity() {
                 }
                 val viewModel: FeedViewModel = viewModel(factory = factory)
                 val state by viewModel.state.collectAsStateWithLifecycle()
+                val pendingQuote by pendingNotificationQuote.collectAsStateWithLifecycle()
                 val lifecycleOwner = LocalLifecycleOwner.current
                 val feedListState = rememberLazyListState()
                 var showFeedSettings by rememberSaveable { mutableStateOf(false) }
@@ -54,6 +63,20 @@ class MainActivity : ComponentActivity() {
                     lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                         viewModel.poll()
                     }
+                }
+
+                LaunchedEffect(state.config) {
+                    ReplyNotificationScheduler.sync(context.applicationContext, state.config)
+                }
+
+                LaunchedEffect(pendingQuote) {
+                    val quote = pendingQuote ?: return@LaunchedEffect
+                    showFeedSettings = false
+                    configuredTribuneId = null
+                    newTribuneId = null
+                    viewModel.insertClock(quote.clock, quote.tribuneId)
+                    viewModel.requestComposerFocus()
+                    pendingNotificationQuote.value = null
                 }
 
                 val addingTribuneId = newTribuneId
@@ -116,6 +139,14 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        consumeNotificationQuote(intent)?.let { quote ->
+            pendingNotificationQuote.value = quote
         }
     }
 }

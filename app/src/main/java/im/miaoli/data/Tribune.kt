@@ -34,6 +34,8 @@ data class Tribune(
     val ownPostIds: List<String> = emptyList(),
     /** Optional author name used when X-Post-Id is unavailable. */
     val username: String = "",
+    /** Whether background checks should notify about answers to this device's posts. */
+    val notifyOnAnswers: Boolean = false,
 ) {
     val canPost: Boolean
         get() = !postUrl.isNullOrBlank()

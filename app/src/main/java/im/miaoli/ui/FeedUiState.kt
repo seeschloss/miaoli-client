@@ -18,6 +18,8 @@ data class FeedUiState(
     val totozUsage: Map<String, Int> = emptyMap(),
     /** One-shot request to bring a newly sent post, or the bottom of the feed, into view. */
     val scrollRequest: FeedScrollRequest? = null,
+    /** Incremented when an external action should focus the composer. */
+    val composerFocusRequest: Long = 0L,
 ) {
     val feedTribunes: List<Tribune>
         get() = config.feedTribunes

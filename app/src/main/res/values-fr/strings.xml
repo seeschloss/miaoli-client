@@ -69,12 +69,16 @@
     <string name="user_agent_label">User agent</string>
     <string name="username_label">Nom d\'utilisateur</string>
     <string name="username_supporting">Optionnel ; utilisé pour reconnaître vos messages lorsque X-Post-Id est absent</string>
+    <string name="send_notification_on_answers">Envoyer une notification pour les réponses</string>
     <string name="cookie_label">Cookie</string>
     <string name="optional">Optionnel</string>
     <string name="cookie_supporting">Sera uniquement envoyé au post</string>
     <string name="format_tsv">TSV</string>
     <string name="format_xml_html_escaped">XML (htmlentitised)</string>
     <string name="format_xml_raw">XML (brut)</string>
+
+    <!-- Notifications -->
+    <string name="notification_answer_text">%1$s · %2$s</string>
 
     <!-- Configuration validation -->
     <string name="validation_title_required">Titre obligatoire</string>

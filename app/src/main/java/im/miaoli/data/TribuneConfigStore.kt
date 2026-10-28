@@ -69,6 +69,7 @@ internal object TribuneConfigJson {
                         },
                     )
                     put("username", tribune.username)
+                    put("notifyOnAnswers", tribune.notifyOnAnswers)
                 },
             )
         }
@@ -126,6 +127,7 @@ internal object TribuneConfigJson {
                             }
                         },
                         username = item.optString("username", ""),
+                        notifyOnAnswers = item.optBoolean("notifyOnAnswers", false),
                     ),
                 )
             }

@@ -1,6 +1,7 @@
 package im.miaoli.data
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -25,6 +26,7 @@ class TribuneConfigJsonTest {
                     enabled = true,
                     ownPostIds = listOf("101", "102"),
                     username = "See",
+                    notifyOnAnswers = true,
                 ),
                 Tribune(
                     id = 2L,
@@ -92,5 +94,6 @@ class TribuneConfigJsonTest {
         assertEquals(Tribune.DEFAULT_USER_AGENT, tribune.userAgent)
         assertEquals("x", tribune.cookie)
         assertTrue(tribune.enabled)
+        assertFalse(tribune.notifyOnAnswers)
     }
 }
