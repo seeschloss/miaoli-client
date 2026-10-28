@@ -2,6 +2,12 @@ package im.miaoli.ui
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -85,6 +91,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
@@ -733,6 +740,7 @@ private fun PostComposer(
         ?: tribunes.first()
     val keyboard = LocalSoftwareKeyboardController.current
     var expanded by remember { mutableStateOf(false) }
+    var isComposerFocused by remember { mutableStateOf(false) }
     val linkColor = MaterialTheme.colorScheme.primary
     val draftVisualTransformation = remember(linkColor) {
         DraftVisualTransformation(
@@ -767,13 +775,27 @@ private fun PostComposer(
                 )
             }
 
-            FormattingBar(
-                enabled = !state.isPosting,
-                onInsert = { tag ->
-                    onDraftChange(insertTag(state.draft.value, tag))
-                    focusRequester.requestFocus()
-                },
-            )
+            AnimatedVisibility(
+                visible = isComposerFocused,
+                enter = fadeIn(tween(100)) +
+                    expandVertically(
+                        animationSpec = tween(120),
+                        expandFrom = Alignment.Top,
+                    ),
+                exit = fadeOut(tween(80)) +
+                    shrinkVertically(
+                        animationSpec = tween(100),
+                        shrinkTowards = Alignment.Top,
+                    ),
+            ) {
+                FormattingBar(
+                    enabled = !state.isPosting,
+                    onInsert = { tag ->
+                        onDraftChange(insertTag(state.draft.value, tag))
+                        focusRequester.requestFocus()
+                    },
+                )
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -831,7 +853,8 @@ private fun PostComposer(
                     onValueChange = onDraftChange,
                     modifier = Modifier
                         .weight(1f)
-                        .focusRequester(focusRequester),
+                        .focusRequester(focusRequester)
+                        .onFocusChanged { isComposerFocused = it.isFocused },
                     placeholder = { Text(stringResource(R.string.message_placeholder)) },
                     maxLines = 4,
                     enabled = !state.isPosting,
