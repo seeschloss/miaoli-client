@@ -82,6 +82,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -93,6 +94,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -101,6 +103,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -123,7 +128,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import kotlin.math.abs
 import im.miaoli.R
 import im.miaoli.data.Post
 import im.miaoli.data.Tribune
@@ -207,6 +214,42 @@ fun FeedScreen(
         derivedStateOf {
             listState.firstVisibleItemIndex == 0 &&
                 listState.firstVisibleItemScrollOffset == 0
+        }
+    }
+    val pullRefreshThresholdPx = with(LocalDensity.current) { 64.dp.toPx() }
+    var pullDistance by remember { mutableFloatStateOf(0f) }
+    val latestRefreshing by rememberUpdatedState(state.isRefreshing || state.isLoading)
+    val latestAtBottom by rememberUpdatedState(isAtBottom)
+    val latestOnRefresh by rememberUpdatedState(onRefresh)
+    val pullRefreshConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource,
+            ): Offset {
+                if (source != NestedScrollSource.UserInput ||
+                    latestRefreshing ||
+                    !latestAtBottom ||
+                    available.y == 0f
+                ) {
+                    return Offset.Zero
+                }
+                pullDistance = (pullDistance + abs(available.y))
+                    .coerceAtMost(pullRefreshThresholdPx * 1.5f)
+                return Offset(0f, available.y)
+            }
+
+            override suspend fun onPostFling(
+                consumed: Velocity,
+                available: Velocity,
+            ): Velocity {
+                if (pullDistance >= pullRefreshThresholdPx && !latestRefreshing) {
+                    latestOnRefresh()
+                }
+                pullDistance = 0f
+                return Velocity.Zero
+            }
         }
     }
 
@@ -459,114 +502,147 @@ fun FeedScreen(
                             contentDescription = stringResource(R.string.scroll_to_bottom),
                         )
                     }
-                }
-            },
-        ) { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-            ) {
-                if (visibleErrors.isNotEmpty()) {
-                    ErrorBanner(errors = visibleErrors, onRefresh = onRefresh)
-                }
-
-                when {
-                    state.isLoading && state.posts.isEmpty() -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            CircularProgressIndicator()
-                        }
+                    }
+                },
+            ) { innerPadding ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                ) {
+                    if (visibleErrors.isNotEmpty()) {
+                        ErrorBanner(errors = visibleErrors, onRefresh = onRefresh)
                     }
 
-                    enabledTribunes.isEmpty() -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                text = stringResource(R.string.no_tribunes_enabled),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        when {
+                            state.isLoading && state.posts.isEmpty() -> {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            }
 
-                    visiblePosts.isEmpty() -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                text = if (state.posts.isEmpty()) {
-                                    stringResource(R.string.no_messages_yet)
-                                } else {
-                                    stringResource(R.string.no_messages_from_enabled_tribunes)
-                                },
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+                            enabledTribunes.isEmpty() -> {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.no_tribunes_enabled),
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
 
-                    else -> {
-                        LazyColumn(
-                            state = listState,
-                            reverseLayout = true,
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            items(
-                                items = displayedPosts,
-                                key = { post -> post.key },
-                            ) { post ->
-                                PostRow(
-                                    post = post,
-                                    relation = when {
-                                        post.key in ownPostKeys -> PostRelation.Own
-                                        else -> postRelations[post.key] ?: PostRelation.None
-                                    },
-                                    selected = post.key == selectedPostKey,
-                                    expanded = post.key == expandedPostKey,
-                                    answerClocks = postAnswerClocks[post.key].orEmpty(),
-                                    onLongClick = {
-                                        expandedPostKey = if (expandedPostKey == post.key) {
-                                            null
+                            visiblePosts.isEmpty() -> {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = if (state.posts.isEmpty()) {
+                                            stringResource(R.string.no_messages_yet)
                                         } else {
-                                            post.key
-                                        }
-                                    },
-                                    onClick = {
-                                        if (!state.isPosting) {
-                                            onInsertClock(
-                                                quoteClocks[post.key] ?: post.clock,
-                                                post.tribune.id,
-                                            )
-                                            composerFocusRequest++
-                                        }
-                                    },
-                                    onClockClick = { reference ->
-                                        openClockReference(post, reference)
-                                    },
-                                    onClockLongClick = { reference ->
-                                        filterToClock(post, reference)
-                                    },
-                                    onAnswerClick = ::revealAnswer,
-                                    onAnswerLongClick = ::filterToAnswer,
-                                    onTotozPress = { name, anchor ->
-                                        activeTotoz = TotozPopup(name, anchor)
-                                    },
-                                    onTotozRelease = {
-                                        activeTotoz = null
-                                    },
-                                )
+                                            stringResource(R.string.no_messages_from_enabled_tribunes)
+                                        },
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+
+                            else -> {
+                                LazyColumn(
+                                    state = listState,
+                                    reverseLayout = true,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .nestedScroll(pullRefreshConnection)
+                                        .pointerInput(Unit) {
+                                            awaitEachGesture {
+                                                awaitFirstDown(requireUnconsumed = false)
+                                                val up = waitForUpOrCancellation()
+                                                if (up != null &&
+                                                    pullDistance >= pullRefreshThresholdPx &&
+                                                    !latestRefreshing
+                                                ) {
+                                                    onRefresh()
+                                                }
+                                                pullDistance = 0f
+                                            }
+                                        },
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    items(
+                                        items = displayedPosts,
+                                        key = { post -> post.key },
+                                    ) { post ->
+                                        PostRow(
+                                            post = post,
+                                            relation = when {
+                                                post.key in ownPostKeys -> PostRelation.Own
+                                                else -> postRelations[post.key] ?: PostRelation.None
+                                            },
+                                            selected = post.key == selectedPostKey,
+                                            expanded = post.key == expandedPostKey,
+                                            answerClocks = postAnswerClocks[post.key].orEmpty(),
+                                            onLongClick = {
+                                                expandedPostKey = if (expandedPostKey == post.key) {
+                                                    null
+                                                } else {
+                                                    post.key
+                                                }
+                                            },
+                                            onClick = {
+                                                if (!state.isPosting) {
+                                                    onInsertClock(
+                                                        quoteClocks[post.key] ?: post.clock,
+                                                        post.tribune.id,
+                                                    )
+                                                    composerFocusRequest++
+                                                }
+                                            },
+                                            onClockClick = { reference ->
+                                                openClockReference(post, reference)
+                                            },
+                                            onClockLongClick = { reference ->
+                                                filterToClock(post, reference)
+                                            },
+                                            onAnswerClick = ::revealAnswer,
+                                            onAnswerLongClick = ::filterToAnswer,
+                                            onTotozPress = { name, anchor ->
+                                                activeTotoz = TotozPopup(name, anchor)
+                                            },
+                                            onTotozRelease = {
+                                                activeTotoz = null
+                                            },
+                                        )
+                                    }
+                                }
                             }
                         }
+
+                        if (pullDistance > 0f) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = 12.dp)
+                                    .rotate(
+                                        (pullDistance / pullRefreshThresholdPx)
+                                            .coerceIn(0f, 1f) * 180f,
+                                    )
+                                    .size(24.dp),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
                     }
-                }
             }
         }
     }
