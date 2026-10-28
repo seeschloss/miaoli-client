@@ -34,6 +34,10 @@ import kotlin.math.roundToInt
 internal val TOTOZ_PATTERN = Regex("""\[:[^\]/]+\]""")
 internal const val MAX_TOTOZ_IMAGES = 50
 
+/** Tiny reaction images are enlarged to this long edge; large ones are capped. */
+private val MinTotozLongEdge = 96.dp
+private val MaxTotozLongEdge = 280.dp
+
 /** A totoz reference such as `[:wouhou]` in a message. */
 internal data class TotozReference(
     val text: String,
@@ -148,13 +152,11 @@ internal fun TotozOverlay(popup: TotozPopup) {
         val windowHeight = with(density) { maxHeight.toPx() }
         val naturalWidth = with(density) { intrinsic.width.toDp() }
         val naturalHeight = with(density) { intrinsic.height.toDp() }
-        val maxImageWidth = minOf(maxWidth, 320.dp)
-        val maxImageHeight = minOf(maxHeight, 320.dp)
-        val scale = minOf(
-            1f,
-            maxImageWidth.value / naturalWidth.value,
-            maxImageHeight.value / naturalHeight.value,
-        )
+        val naturalLongEdge = maxOf(naturalWidth, naturalHeight)
+        val availableLongEdge = minOf(maxWidth, maxHeight, MaxTotozLongEdge)
+        val minLongEdge = minOf(MinTotozLongEdge, availableLongEdge)
+        val targetLongEdge = naturalLongEdge.coerceIn(minLongEdge, availableLongEdge)
+        val scale = targetLongEdge.value / naturalLongEdge.value
         val imageWidth = naturalWidth * scale
         val imageHeight = naturalHeight * scale
         val imageWidthPx = with(density) { imageWidth.toPx() }
