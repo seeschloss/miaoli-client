@@ -101,9 +101,13 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import im.miaoli.R
@@ -763,6 +767,14 @@ private fun PostComposer(
                 )
             }
 
+            FormattingBar(
+                enabled = !state.isPosting,
+                onInsert = { tag ->
+                    onDraftChange(insertTag(state.draft.value, tag))
+                    focusRequester.requestFocus()
+                },
+            )
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -859,6 +871,68 @@ private fun PostComposer(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun FormattingBar(
+    enabled: Boolean,
+    onInsert: (String) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(0.dp),
+    ) {
+        FormattingButton(
+            label = "B",
+            enabled = enabled,
+            textStyle = TextStyle(fontWeight = FontWeight.Bold),
+            onClick = { onInsert("b") },
+        )
+        FormattingButton(
+            label = "I",
+            enabled = enabled,
+            textStyle = TextStyle(fontStyle = FontStyle.Italic),
+            onClick = { onInsert("i") },
+        )
+        FormattingButton(
+            label = "U",
+            enabled = enabled,
+            textStyle = TextStyle(textDecoration = TextDecoration.Underline),
+            onClick = { onInsert("u") },
+        )
+        FormattingButton(
+            label = "S",
+            enabled = enabled,
+            textStyle = TextStyle(textDecoration = TextDecoration.LineThrough),
+            onClick = { onInsert("s") },
+        )
+        FormattingButton(
+            label = "tt",
+            enabled = enabled,
+            textStyle = TextStyle(fontFamily = FontFamily.Monospace),
+            onClick = { onInsert("tt") },
+        )
+    }
+}
+
+@Composable
+private fun FormattingButton(
+    label: String,
+    enabled: Boolean,
+    textStyle: TextStyle,
+    onClick: () -> Unit,
+) {
+    TextButton(
+        onClick = onClick,
+        enabled = enabled,
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+        modifier = Modifier.height(32.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge.merge(textStyle),
+        )
     }
 }
 
