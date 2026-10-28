@@ -1,7 +1,6 @@
 package im.miaoli.ui
 
 import android.content.Context
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,12 +11,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.dp
 import coil3.SingletonImageLoader
+import coil3.compose.AsyncImage
 import coil3.compose.rememberAsyncImagePainter
 import coil3.memory.MemoryCache
 import coil3.request.Disposable
@@ -34,9 +34,8 @@ import kotlin.math.roundToInt
 internal val TOTOZ_PATTERN = Regex("""\[:[^\]/]+\]""")
 internal const val MAX_TOTOZ_IMAGES = 50
 
-/** Tiny reaction images are enlarged to this long edge; large ones are capped. */
-private val MinTotozLongEdge = 96.dp
-private val MaxTotozLongEdge = 280.dp
+/** Render totoz source pixels three times their natural size. */
+private const val TOTOZ_SCALE = 3f
 
 /** A totoz reference such as `[:wouhou]` in a message. */
 internal data class TotozReference(
@@ -152,13 +151,18 @@ internal fun TotozOverlay(popup: TotozPopup) {
         val windowHeight = with(density) { maxHeight.toPx() }
         val naturalWidth = with(density) { intrinsic.width.toDp() }
         val naturalHeight = with(density) { intrinsic.height.toDp() }
-        val naturalLongEdge = maxOf(naturalWidth, naturalHeight)
-        val availableLongEdge = minOf(maxWidth, maxHeight, MaxTotozLongEdge)
-        val minLongEdge = minOf(MinTotozLongEdge, availableLongEdge)
-        val targetLongEdge = naturalLongEdge.coerceIn(minLongEdge, availableLongEdge)
-        val scale = targetLongEdge.value / naturalLongEdge.value
-        val imageWidth = naturalWidth * scale
-        val imageHeight = naturalHeight * scale
+        // One source pixel becomes three dp, then the result is capped to the
+        // screen. This deliberately upscales even small reaction images.
+        val upscale = TOTOZ_SCALE * density.density
+        val targetWidth = naturalWidth * upscale
+        val targetHeight = naturalHeight * upscale
+        val fit = minOf(
+            1f,
+            maxWidth.value / targetWidth.value,
+            maxHeight.value / targetHeight.value,
+        )
+        val imageWidth = targetWidth * fit
+        val imageHeight = targetHeight * fit
         val imageWidthPx = with(density) { imageWidth.toPx() }
         val imageHeightPx = with(density) { imageHeight.toPx() }
 
@@ -178,11 +182,12 @@ internal fun TotozOverlay(popup: TotozPopup) {
                 IntOffset(x.roundToInt(), y.roundToInt())
             },
         ) {
-            Image(
-                painter = painter,
+            AsyncImage(
+                model = request,
                 contentDescription = null,
                 modifier = Modifier.size(imageWidth, imageHeight),
                 contentScale = ContentScale.Fit,
+                filterQuality = FilterQuality.None,
             )
         }
     }
