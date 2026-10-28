@@ -11,6 +11,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -277,7 +278,7 @@ fun FeedScreen(
                 val index = displayedPosts.indexOfFirst { it.key == result.post.key }
                 if (index >= 0) {
                     selectedPostKey = result.post.key
-                    scope.launch { listState.animateScrollToItem(index) }
+                    scope.launch { listState.animateItemToTop(index) }
                 } else {
                     Toast.makeText(
                         context,
@@ -1013,6 +1014,33 @@ private fun FormattingButton(
             text = label,
             style = MaterialTheme.typography.labelLarge.merge(textStyle),
         )
+    }
+}
+
+private fun LazyListState.isItemFullyVisible(index: Int): Boolean {
+    val info = layoutInfo
+    val item = info.visibleItemsInfo.firstOrNull { it.index == index } ?: return false
+    return item.offset >= info.viewportStartOffset &&
+        item.offset + item.size <= info.viewportEndOffset
+}
+
+/**
+ * Brings [index] to the visual top unless it is already fully visible. The
+ * first scroll gets an off-screen item composed; the second aligns it after
+ * its measured offset is available.
+ */
+private suspend fun LazyListState.animateItemToTop(index: Int) {
+    if (index !in 0 until layoutInfo.totalItemsCount) return
+    if (isItemFullyVisible(index)) return
+
+    animateScrollToItem(index)
+    withFrameNanos { }
+
+    val info = layoutInfo
+    val item = info.visibleItemsInfo.firstOrNull { it.index == index } ?: return
+    val delta = item.offset - info.viewportStartOffset
+    if (delta != 0) {
+        animateScrollBy(delta.toFloat())
     }
 }
 
