@@ -8,11 +8,14 @@ import org.json.JSONObject
 internal data class TribuneNotificationState(
     val initialized: Boolean = false,
     val seenPostKeys: Set<String> = emptySet(),
+    /** When notifications were last enabled for this tribune. */
+    val enabledAt: Long = 0L,
 )
 
 internal interface NotificationStateStore {
     fun load(): Map<Long, TribuneNotificationState>
     fun save(states: Map<Long, TribuneNotificationState>)
+    fun markEnabled(tribuneIds: Set<Long>, enabledAt: Long)
 }
 
 /** Small per-tribune state used to avoid notifying the same answer twice. */
@@ -35,6 +38,7 @@ internal class SharedPreferencesNotificationStateStore(context: Context) :
                         tribuneId,
                         TribuneNotificationState(
                             initialized = item.optBoolean("initialized", false),
+                            enabledAt = item.optLong("enabledAt", 0L),
                             seenPostKeys = buildSet {
                                 val keys = item.optJSONArray("seenPostKeys") ?: JSONArray()
                                 for (index in 0 until keys.length()) {
@@ -57,6 +61,7 @@ internal class SharedPreferencesNotificationStateStore(context: Context) :
                 tribuneId.toString(),
                 JSONObject().apply {
                     put("initialized", state.initialized)
+                    put("enabledAt", state.enabledAt)
                     put(
                         "seenPostKeys",
                         JSONArray().apply {
@@ -69,6 +74,18 @@ internal class SharedPreferencesNotificationStateStore(context: Context) :
         preferences.edit {
             putString(KEY_STATES, root.toString())
         }
+    }
+
+    override fun markEnabled(tribuneIds: Set<Long>, enabledAt: Long) {
+        if (tribuneIds.isEmpty()) return
+        val updated = load().toMutableMap()
+        tribuneIds.forEach { tribuneId ->
+            updated[tribuneId] = TribuneNotificationState(
+                initialized = false,
+                enabledAt = enabledAt,
+            )
+        }
+        save(updated)
     }
 
     private companion object {

@@ -47,9 +47,24 @@ internal fun scanForReplyNotifications(
             val previous = previousStates[tribune.id]
 
             if (previous == null || !previous.initialized) {
+                val enabledAt = previous?.enabledAt ?: 0L
+                if (tribune.notifyOnAnswers && enabledAt > 0L) {
+                    currentPosts
+                        .asSequence()
+                        .filter { it.key !in ownKeys }
+                        .filter { reply ->
+                            reply.timestamp?.toEpochMilli()?.let { it >= enabledAt } == true
+                        }
+                        .forEach { reply ->
+                            findOwnTarget(reply, posts, tribunes, ownKeys)?.let { ownPost ->
+                                notifications += ReplyNotification(reply, ownPost)
+                            }
+                        }
+                }
                 states[tribune.id] = TribuneNotificationState(
                     initialized = true,
                     seenPostKeys = trimSeenKeys(currentKeys),
+                    enabledAt = enabledAt,
                 )
                 return@forEach
             }

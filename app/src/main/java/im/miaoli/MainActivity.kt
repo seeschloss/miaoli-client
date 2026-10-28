@@ -58,6 +58,9 @@ class MainActivity : ComponentActivity() {
                 var showFeedSettings by rememberSaveable { mutableStateOf(false) }
                 var configuredTribuneId by rememberSaveable { mutableStateOf<Long?>(null) }
                 var newTribuneId by rememberSaveable { mutableStateOf<Long?>(null) }
+                var previousNotificationTribuneIds by remember {
+                    mutableStateOf<Set<Long>?>(null)
+                }
 
                 LaunchedEffect(lifecycleOwner, state.config.pollingSeconds) {
                     lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -66,7 +69,18 @@ class MainActivity : ComponentActivity() {
                 }
 
                 LaunchedEffect(state.config) {
-                    ReplyNotificationScheduler.sync(context.applicationContext, state.config)
+                    val notificationTribuneIds = state.config.tribunes
+                        .filter { it.enabled && it.notifyOnAnswers }
+                        .mapTo(mutableSetOf()) { it.id }
+                    val newlyEnabled = previousNotificationTribuneIds
+                        ?.let { previous -> notificationTribuneIds - previous }
+                        .orEmpty()
+                    ReplyNotificationScheduler.sync(
+                        context = context.applicationContext,
+                        config = state.config,
+                        newlyEnabledTribuneIds = newlyEnabled,
+                    )
+                    previousNotificationTribuneIds = notificationTribuneIds
                 }
 
                 LaunchedEffect(pendingQuote) {

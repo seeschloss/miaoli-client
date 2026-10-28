@@ -6,6 +6,7 @@ import im.miaoli.data.Tribune
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.Instant
 
 class ReplyNotificationDetectorTest {
     private val tribune = Tribune(
@@ -35,6 +36,49 @@ class ReplyNotificationDetectorTest {
             setOf("1:1", "1:2"),
             result.states.getValue(1L).seenPostKeys,
         )
+    }
+
+
+    @Test
+    fun reportsAnAnswerReceivedBeforeTheFirstScanAfterEnabling() {
+        val enabledAt = Instant.parse("2026-01-01T12:00:30Z").toEpochMilli()
+
+        val result = scanForReplyNotifications(
+            posts = listOf(
+                post(id = "2", time = "20260101120100", message = "12:00:00"),
+                post(id = "1", time = "20260101120000", message = "original"),
+            ),
+            tribunes = listOf(tribune),
+            previousStates = mapOf(
+                1L to TribuneNotificationState(
+                    initialized = false,
+                    enabledAt = enabledAt,
+                ),
+            ),
+        )
+
+        assertEquals(listOf("1:2"), result.notifications.map { it.reply.key })
+    }
+
+    @Test
+    fun doesNotReportAnAnswerOlderThanTheEnableTime() {
+        val enabledAt = Instant.parse("2026-01-01T12:01:30Z").toEpochMilli()
+
+        val result = scanForReplyNotifications(
+            posts = listOf(
+                post(id = "2", time = "20260101120100", message = "12:00:00"),
+                post(id = "1", time = "20260101120000", message = "original"),
+            ),
+            tribunes = listOf(tribune),
+            previousStates = mapOf(
+                1L to TribuneNotificationState(
+                    initialized = false,
+                    enabledAt = enabledAt,
+                ),
+            ),
+        )
+
+        assertTrue(result.notifications.isEmpty())
     }
 
     @Test

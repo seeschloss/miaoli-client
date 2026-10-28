@@ -13,13 +13,30 @@ internal object ReplyNotificationScheduler {
     private const val WORK_NAME = "reply_notifications"
     private const val CHECK_INTERVAL_MINUTES = 15L
 
-    fun sync(context: Context, config: TribuneConfig) {
+    fun sync(
+        context: Context,
+        config: TribuneConfig,
+        newlyEnabledTribuneIds: Set<Long> = emptySet(),
+    ) {
         val workManager = WorkManager.getInstance(context)
         ReplyNotifications.syncChannels(context, config)
 
-        if (config.tribunes.none { it.enabled && it.notifyOnAnswers }) {
+        val notificationTribuneIds = config.tribunes
+            .filter { it.enabled && it.notifyOnAnswers }
+            .mapTo(mutableSetOf()) { it.id }
+        if (notificationTribuneIds.isEmpty()) {
             workManager.cancelUniqueWork(WORK_NAME)
             return
+        }
+
+        // Establish the "notifications started at" time right away. This lets
+        // the first background scan report answers received between enabling
+        // notifications and the first periodic run.
+        val stateStore = SharedPreferencesNotificationStateStore(context)
+        val states = stateStore.load()
+        val idsToStart = newlyEnabledTribuneIds + notificationTribuneIds.filter { it !in states }
+        if (idsToStart.isNotEmpty()) {
+            stateStore.markEnabled(idsToStart, System.currentTimeMillis())
         }
 
         val request = PeriodicWorkRequestBuilder<ReplyCheckWorker>(
