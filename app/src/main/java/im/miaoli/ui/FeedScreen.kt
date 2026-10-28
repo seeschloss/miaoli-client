@@ -123,11 +123,14 @@ import im.miaoli.R
 import im.miaoli.data.Post
 import im.miaoli.data.Tribune
 import im.miaoli.ui.theme.LocalMiaoliPostColors
+import kotlin.math.roundToInt
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
 private const val SCROLL_TARGET_TIMEOUT_MS = 2_000L
+private const val SCROLL_ALIGNMENT_TOLERANCE_PX = 1
 
 @Composable
 fun FeedScreen(
@@ -156,6 +159,7 @@ fun FeedScreen(
     var postRelations by remember { mutableStateOf<Map<String, PostRelation>>(emptyMap()) }
     var otherTotozUsage by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var activeTotoz by remember { mutableStateOf<TotozPopup?>(null) }
+    var clockScrollJob by remember { mutableStateOf<Job?>(null) }
     val enabledTribunes = state.feedTribunes
     val enabledTribuneIds = remember(enabledTribunes) {
         enabledTribunes.mapTo(mutableSetOf()) { it.id }
@@ -278,7 +282,10 @@ fun FeedScreen(
                 val index = displayedPosts.indexOfFirst { it.key == result.post.key }
                 if (index >= 0) {
                     selectedPostKey = result.post.key
-                    scope.launch { listState.animateItemToTop(index) }
+                    clockScrollJob?.cancel()
+                    clockScrollJob = scope.launch {
+                        listState.animateItemToTop(index)
+                    }
                 } else {
                     Toast.makeText(
                         context,
@@ -1025,26 +1032,51 @@ private fun LazyListState.isItemFullyVisible(index: Int): Boolean {
 }
 
 /**
- * Brings [index] to the visual top unless it is already fully visible. The
- * first scroll gets an off-screen item composed; the second aligns it after
- * its measured offset is available.
+ * Brings [index] to the visual top unless it is already fully visible.
+ * A partially visible item is moved directly; an off-screen item is first
+ * brought in with a viewport-aware offset, then corrected once measured.
  */
 private suspend fun LazyListState.animateItemToTop(index: Int) {
     if (index !in 0 until layoutInfo.totalItemsCount) return
     if (isItemFullyVisible(index)) return
 
-    animateScrollToItem(index)
-    withFrameNanos { }
+    // A partially visible item already has a measured offset, so move it
+    // directly instead of first sending it to the viewport start and then
+    // back to the top.
+    if (layoutInfo.visibleItemsInfo.none { it.index == index }) {
+        // animateScrollToItem normally puts the target at the start of a
+        // reversed viewport, i.e. the bottom. Offset the target by roughly
+        // one viewport so the initial animation lands near the top instead
+        // of scrolling a whole screen past it and then coming back.
+        val info = layoutInfo
+        val estimate = info.visibleItemsInfo
+            .filter { item ->
+                item.offset >= info.viewportStartOffset &&
+                    item.offset + item.size <= info.viewportEndOffset
+            }
+            .map { it.size }
+            .average()
+            .roundToInt()
+            .takeIf { it > 0 }
+            ?: info.visibleItemsInfo.firstOrNull()?.size
+            ?: 0
+        animateScrollToItem(
+            index = index,
+            scrollOffset = -(info.viewportEndOffset - estimate),
+        )
+        withFrameNanos { }
+    }
+    animateItemToVisualTop(index)
+}
 
+private suspend fun LazyListState.animateItemToVisualTop(index: Int) {
     // In a reversed list the reported offset grows upwards from the visual
     // bottom, so the visual top is the viewport end minus the item height.
-    // animateScrollToItem leaves the target at the bottom, so scroll the
-    // remaining distance to put it at the top.
     val info = layoutInfo
     val item = info.visibleItemsInfo.firstOrNull { it.index == index } ?: return
     val visualTop = info.viewportEndOffset - item.size
     val distance = visualTop - item.offset
-    if (distance != 0) {
+    if (distance !in -SCROLL_ALIGNMENT_TOLERANCE_PX..SCROLL_ALIGNMENT_TOLERANCE_PX) {
         animateScrollBy(-distance.toFloat())
     }
 }
