@@ -37,7 +37,6 @@
     <string name="refresh_interval_seconds">Intervale (secondes)</string>
     <string name="polling_interval_error">SVP ne pas inonder la tribune avec un intervale de moins de %1$d secondes!</string>
     <string name="minimal_clock_quotes">Horloges courtes</string>
-    <string name="minimal_clock_quotes_supporting">Utiliser HH:mm quand la minute est terminée et ne contient qu\'un seul message</string>
 
     <!-- Tribune configuration -->
     <string name="new_tribune">Nouvelle tribune</string>

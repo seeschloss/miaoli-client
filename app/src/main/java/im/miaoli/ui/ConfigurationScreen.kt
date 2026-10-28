@@ -150,11 +150,6 @@ fun FeedSettingsScreen(
                             text = stringResource(R.string.minimal_clock_quotes),
                             style = MaterialTheme.typography.bodyLarge,
                         )
-                        Text(
-                            text = stringResource(R.string.minimal_clock_quotes_supporting),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
                     }
                     Switch(
                         checked = minimalClockQuotes,
