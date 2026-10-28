@@ -11,6 +11,10 @@ data class Post(
     /** Server timestamp in yyyyMMddHHmmss form, in [tribune]'s time zone. */
     val time: String,
     val author: String,
+    /** Raw author info from the feed; may be a username or a user-agent. */
+    val authorInfo: String = author,
+    /** Login/username from the feed; blank for anonymous posts. */
+    val login: String = "",
     /** Message body, possibly containing HTML markup. */
     val message: String,
     val tribune: Tribune,

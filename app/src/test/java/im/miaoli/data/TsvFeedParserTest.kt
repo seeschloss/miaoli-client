@@ -21,6 +21,8 @@ class TsvFeedParserTest {
         assertEquals("375040", posts[0].id)
         assertEquals("20261023155241", posts[0].time)
         assertEquals("nedflan", posts[0].author)
+        assertEquals("nedflan", posts[0].authorInfo)
+        assertEquals("", posts[0].login)
         assertEquals("<s>jean-paul huchon</s>", posts[0].message)
         assertEquals("15:52:41", posts[0].clock)
         assertEquals("cbo", posts[1].author)
@@ -34,6 +36,8 @@ class TsvFeedParserTest {
 
         assertEquals(1, posts.size)
         assertEquals("login-name", posts.single().author)
+        assertEquals("info-name", posts.single().authorInfo)
+        assertEquals("login-name", posts.single().login)
     }
 
     @Test

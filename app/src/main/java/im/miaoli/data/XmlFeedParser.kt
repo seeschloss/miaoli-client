@@ -52,6 +52,8 @@ class XmlFeedParser(
                             id = postId,
                             time = postTime,
                             author = login.ifBlank { info }.ifBlank { "?" },
+                            authorInfo = info,
+                            login = login,
                             message = message,
                             tribune = tribune,
                         )

@@ -16,6 +16,7 @@ import im.miaoli.R
 import im.miaoli.data.Post
 import im.miaoli.data.Tribune
 import im.miaoli.data.TribuneConfig
+import im.miaoli.ui.parseMessage
 
 internal const val ACTION_OPEN_REPLY = "im.miaoli.action.OPEN_REPLY"
 internal const val EXTRA_TRIBUNE_ID = "im.miaoli.extra.TRIBUNE_ID"
@@ -41,6 +42,14 @@ internal fun consumeNotificationQuote(intent: Intent?): NotificationQuote? {
     intent?.removeExtra(EXTRA_TRIBUNE_ID)
     intent?.removeExtra(EXTRA_CLOCK)
     return quote
+}
+
+/** Uses the login when available; otherwise truncates the feed's raw info field. */
+internal fun Post.notificationAuthor(): String {
+    val username = login.trim()
+    if (username.isNotEmpty()) return username
+    val info = authorInfo.trim().ifEmpty { author.trim() }
+    return info.take(12)
 }
 
 internal object ReplyNotifications {
@@ -80,24 +89,30 @@ internal object ReplyNotifications {
             manager.createNotificationChannel(channelFor(notification.reply.tribune))
         }
 
+        val reply = notification.reply
+        val title = context.getString(
+            R.string.notification_answer_title,
+            reply.tribune.title,
+            reply.notificationAuthor(),
+        )
         val text = context.getString(
             R.string.notification_answer_text,
-            notification.reply.author,
-            notification.reply.clock,
+            reply.clock,
+            parseMessage(reply.message).text.trim(),
         )
         val builder = NotificationCompat.Builder(context, notificationChannelId)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(notification.reply.tribune.title)
+            .setContentTitle(title)
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setShowWhen(true)
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setContentIntent(replyPendingIntent(context, notification.reply))
+            .setContentIntent(replyPendingIntent(context, reply))
 
         NotificationManagerCompat.from(context).notify(
-            notification.reply.key.hashCode(),
+            reply.key.hashCode(),
             builder.build(),
         )
     }

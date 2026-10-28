@@ -23,6 +23,8 @@ class TsvFeedParser : FeedParser {
             id = id,
             time = time,
             author = login.ifBlank { info }.ifBlank { "?" },
+            authorInfo = info,
+            login = login,
             message = fields[4],
             tribune = tribune,
         )
