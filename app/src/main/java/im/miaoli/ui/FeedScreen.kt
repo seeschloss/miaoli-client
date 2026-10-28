@@ -790,8 +790,10 @@ private fun PostComposer(
             ) {
                 FormattingBar(
                     enabled = !state.isPosting,
-                    onInsert = { tag ->
-                        onDraftChange(insertTag(state.draft.value, tag))
+                    onInsert = { opening, closing ->
+                        onDraftChange(
+                            insertPair(state.draft.value, opening, closing),
+                        )
                         focusRequester.requestFocus()
                     },
                 )
@@ -900,7 +902,7 @@ private fun PostComposer(
 @Composable
 private fun FormattingBar(
     enabled: Boolean,
-    onInsert: (String) -> Unit,
+    onInsert: (String, String) -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -910,31 +912,37 @@ private fun FormattingBar(
             label = "B",
             enabled = enabled,
             textStyle = TextStyle(fontWeight = FontWeight.Bold),
-            onClick = { onInsert("b") },
+            onClick = { onInsert("<b>", "</b>") },
         )
         FormattingButton(
             label = "I",
             enabled = enabled,
             textStyle = TextStyle(fontStyle = FontStyle.Italic),
-            onClick = { onInsert("i") },
+            onClick = { onInsert("<i>", "</i>") },
         )
         FormattingButton(
             label = "U",
             enabled = enabled,
             textStyle = TextStyle(textDecoration = TextDecoration.Underline),
-            onClick = { onInsert("u") },
+            onClick = { onInsert("<u>", "</u>") },
         )
         FormattingButton(
             label = "S",
             enabled = enabled,
             textStyle = TextStyle(textDecoration = TextDecoration.LineThrough),
-            onClick = { onInsert("s") },
+            onClick = { onInsert("<s>", "</s>") },
         )
         FormattingButton(
             label = "tt",
             enabled = enabled,
             textStyle = TextStyle(fontFamily = FontFamily.Monospace),
-            onClick = { onInsert("tt") },
+            onClick = { onInsert("<tt>", "</tt>") },
+        )
+        FormattingButton(
+            label = "[:]",
+            enabled = enabled,
+            textStyle = TextStyle(fontFamily = FontFamily.Monospace),
+            onClick = { onInsert("[:", "]") },
         )
     }
 }

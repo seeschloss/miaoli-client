@@ -8,9 +8,10 @@ import org.junit.Test
 class DraftTagsTest {
     @Test
     fun insertsEmptyPairAtCursor() {
-        val result = insertTag(
+        val result = insertPair(
             TextFieldValue("hello world", selection = TextRange(5)),
-            "b",
+            "<b>",
+            "</b>",
         )
 
         assertEquals("hello<b></b> world", result.text)
@@ -19,9 +20,10 @@ class DraftTagsTest {
 
     @Test
     fun wrapsSelection() {
-        val result = insertTag(
+        val result = insertPair(
             TextFieldValue("hello world", selection = TextRange(6, 11)),
-            "i",
+            "<i>",
+            "</i>",
         )
 
         assertEquals("hello <i>world</i>", result.text)
@@ -30,9 +32,10 @@ class DraftTagsTest {
 
     @Test
     fun wrapsReversedSelection() {
-        val result = insertTag(
+        val result = insertPair(
             TextFieldValue("hello world", selection = TextRange(11, 6)),
-            "u",
+            "<u>",
+            "</u>",
         )
 
         assertEquals("hello <u>world</u>", result.text)
@@ -42,8 +45,20 @@ class DraftTagsTest {
     @Test
     fun supportsAllRequestedTags() {
         listOf("s", "b", "i", "u", "tt").forEach { tag ->
-            val result = insertTag(TextFieldValue(), tag)
+            val result = insertPair(TextFieldValue(), "<$tag>", "</$tag>")
             assertEquals("<$tag></$tag>", result.text)
         }
+    }
+
+    @Test
+    fun insertsTotozEmptyPairWithCursorInside() {
+        val result = insertPair(
+            TextFieldValue("hello", selection = TextRange(5)),
+            "[:",
+            "]",
+        )
+
+        assertEquals("hello[:]", result.text)
+        assertEquals(TextRange(7), result.selection)
     }
 }
