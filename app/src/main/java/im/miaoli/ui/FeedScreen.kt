@@ -295,6 +295,28 @@ fun FeedScreen(
 
     val pullRefreshConnection = remember {
         object : NestedScrollConnection {
+            override fun onPreScroll(
+                available: Offset,
+                source: NestedScrollSource,
+            ): Offset {
+                if (source != NestedScrollSource.UserInput ||
+                    latestRefreshing ||
+                    arrowFading ||
+                    !latestAtBottom ||
+                    pullDirection == 0f
+                ) {
+                    return Offset.Zero
+                }
+                val delta = available.y * pullDirection
+                if (delta >= 0f) return Offset.Zero
+
+                // The list is at its end. Consume every backward movement for
+                // the rest of this gesture so it withdraws the overlay instead
+                // of scrolling the list toward older posts.
+                pullDistance = (pullDistance + delta).coerceAtLeast(0f)
+                return Offset(0f, available.y)
+            }
+
             override fun onPostScroll(
                 consumed: Offset,
                 available: Offset,
@@ -312,14 +334,9 @@ fun FeedScreen(
                     pullDirection = if (available.y > 0f) 1f else -1f
                 }
                 val delta = available.y * pullDirection
-                if (delta <= 0f && pullDistance <= 0f) {
-                    pullDirection = 0f
-                    return Offset.Zero
-                }
+                if (delta <= 0f) return Offset.Zero
+
                 pullDistance = (pullDistance + delta).coerceIn(0f, maxPullPx)
-                if (pullDistance == 0f) {
-                    pullDirection = 0f
-                }
                 return Offset(0f, available.y)
             }
 
