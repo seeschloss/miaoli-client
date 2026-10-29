@@ -7,8 +7,15 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.graphics.BitmapFactory
 import android.os.Build
+import android.widget.RemoteViews
+import android.text.Html
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
+import android.text.style.URLSpan
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -17,7 +24,8 @@ import im.miaoli.R
 import im.miaoli.data.Post
 import im.miaoli.data.Tribune
 import im.miaoli.data.TribuneConfig
-import im.miaoli.ui.parseMessage
+import im.miaoli.ui.clockReferences
+import im.miaoli.ui.totozReferences
 
 internal const val ACTION_OPEN_REPLY = "im.miaoli.action.OPEN_REPLY"
 internal const val EXTRA_TRIBUNE_ID = "im.miaoli.extra.TRIBUNE_ID"
@@ -55,6 +63,90 @@ internal fun Post.notificationAuthor(): String {
     if (username.isNotEmpty()) return username
     val info = authorInfo.trim().ifEmpty { author.trim() }
     return info.take(12)
+}
+
+private data class NotificationColors(
+    val accent: Int,
+    val postClock: Int,
+    val foreground: Int,
+)
+
+private fun notificationColors(context: Context): NotificationColors {
+    val night = context.resources.configuration.uiMode and
+        Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
+    return if (night) {
+        NotificationColors(
+            accent = 0xFF90CAF9.toInt(),
+            postClock = 0xFFFFB74D.toInt(),
+            foreground = 0xFFE6E6E6.toInt(),
+        )
+    } else {
+        NotificationColors(
+            accent = 0xFF1976D2.toInt(),
+            postClock = 0xFF8A4B00.toInt(),
+            foreground = 0xFF1A1A1A.toInt(),
+        )
+    }
+}
+
+private fun buildNotificationText(
+    context: Context,
+    reply: Post,
+    accentColor: Int,
+    postClockColor: Int,
+): Spanned {
+    val message = styledNotificationMessage(reply.message, accentColor)
+    val builder = SpannableStringBuilder()
+    val clockStart = builder.length
+    builder.append(reply.clock)
+    builder.setSpan(
+        ForegroundColorSpan(postClockColor),
+        clockStart,
+        builder.length,
+        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+    )
+    builder.append(context.getString(R.string.notification_answer_separator))
+    builder.append(message)
+    return builder
+}
+
+private fun styledNotificationMessage(message: String, accentColor: Int): Spanned {
+    val parsed = runCatching {
+        Html.fromHtml(message, Html.FROM_HTML_MODE_LEGACY)
+    }.getOrElse {
+        SpannableStringBuilder(message)
+    }
+    val styled = SpannableStringBuilder(parsed)
+    styled.getSpans(0, styled.length, URLSpan::class.java).forEach { span ->
+        val start = styled.getSpanStart(span)
+        val end = styled.getSpanEnd(span)
+        if (start >= 0 && end > start) {
+            styled.setSpan(
+                ForegroundColorSpan(accentColor),
+                start,
+                end,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+            )
+        }
+    }
+    val visibleText = styled.toString()
+    clockReferences(visibleText).forEach { reference ->
+        styled.setSpan(
+            ForegroundColorSpan(accentColor),
+            reference.start,
+            reference.end,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+        )
+    }
+    totozReferences(visibleText).forEach { reference ->
+        styled.setSpan(
+            ForegroundColorSpan(accentColor),
+            reference.start,
+            reference.end,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+        )
+    }
+    return styled
 }
 
 internal object ReplyNotifications {
@@ -100,11 +192,22 @@ internal object ReplyNotifications {
             reply.tribune.title,
             reply.notificationAuthor(),
         )
-        val text = context.getString(
-            R.string.notification_answer_text,
-            reply.clock,
-            parseMessage(reply.message).text.trim(),
+        val colors = notificationColors(context)
+        val text = buildNotificationText(
+            context = context,
+            reply = reply,
+            accentColor = colors.accent,
+            postClockColor = colors.postClock,
         )
+        val customContent = RemoteViews(
+            context.packageName,
+            R.layout.notification_answer,
+        ).apply {
+            setTextViewText(R.id.notification_answer_title, title)
+            setTextViewText(R.id.notification_answer_body, text)
+            setTextColor(R.id.notification_answer_title, colors.foreground)
+            setTextColor(R.id.notification_answer_body, colors.foreground)
+        }
         val builder = NotificationCompat.Builder(context, notificationChannelId)
             .setSmallIcon(R.drawable.ic_notification)
             .setLargeIcon(
@@ -112,7 +215,9 @@ internal object ReplyNotifications {
             )
             .setContentTitle(title)
             .setContentText(text)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setCustomContentView(customContent)
+            .setCustomBigContentView(customContent)
+            .setStyle(NotificationCompat.DecoratedCustomViewStyle())
             .setShowWhen(true)
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
