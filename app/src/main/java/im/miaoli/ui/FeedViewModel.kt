@@ -257,17 +257,14 @@ class FeedViewModel(
                 receipt.postId?.let { postId ->
                     recordOwnPost(tribune.id, postId)
                 }
-                if (tribune.username.isBlank()) {
-                    val normalizedMessage = normalizedLoginText(message)
-                    if (normalizedMessage.isNotEmpty()) {
-                        pendingLoginDetection = PendingLoginDetection(
-                            tribuneId = tribune.id,
-                            postedId = receipt.postId,
-                            normalizedMessage = normalizedMessage,
-                            userAgent = tribune.userAgent.trim(),
-                            baselineId = baselineId,
-                        )
-                    }
+                if (receipt.postId == null || tribune.username.isBlank()) {
+                    pendingLoginDetection = PendingLoginDetection(
+                        tribuneId = tribune.id,
+                        postedId = receipt.postId,
+                        normalizedMessage = normalizedLoginText(message),
+                        userAgent = tribune.userAgent.trim(),
+                        baselineId = baselineId,
+                    )
                 }
                 recordTotozUsage(message)
                 _state.update {
@@ -486,34 +483,41 @@ class FeedViewModel(
                 pendingLoginDetection = null
                 return
             }
-        if (tribune.username.isNotBlank() || !tribune.canPost) {
+        if (!tribune.canPost) {
             pendingLoginDetection = null
             return
         }
 
-        val candidates = current.posts.filter { post ->
-            if (post.tribune.id != pending.tribuneId) return@filter false
-            if (pending.postedId != null) {
-                post.id == pending.postedId
-            } else {
-                val id = post.id.toLongOrNull()
-                id != null &&
-                    id > pending.baselineId &&
-                    post.authorInfo.trim() == pending.userAgent &&
-                    normalizedLoginText(post.message).contains(pending.normalizedMessage)
+        val candidate = if (pending.postedId != null) {
+            current.posts.firstOrNull {
+                it.tribune.id == pending.tribuneId && it.id == pending.postedId
+            }
+        } else {
+            val newPosts = current.posts.filter { post ->
+                post.tribune.id == pending.tribuneId &&
+                    (post.id.toLongOrNull() ?: Long.MIN_VALUE) > pending.baselineId
+            }
+            when {
+                newPosts.size == 1 -> newPosts.single()
+                newPosts.size > 1 -> {
+                    val matches = newPosts.filter { post ->
+                        post.authorInfo.trim() == pending.userAgent &&
+                            normalizedLoginText(post.message)
+                                .contains(pending.normalizedMessage)
+                    }
+                    if (matches.size == 1) matches.single() else null
+                }
+                else -> null
             }
         }
 
-        if (candidates.size > 1) {
-            pendingLoginDetection = null
-            return
-        }
-
-        val candidate = candidates.singleOrNull()
         if (candidate != null) {
-            val login = candidate.login.trim()
-            if (login.isNotEmpty()) {
-                recordOwnLogin(pending.tribuneId, login)
+            recordOwnPost(pending.tribuneId, candidate.id)
+            if (tribune.username.isBlank()) {
+                val login = candidate.login.trim()
+                if (login.isNotEmpty()) {
+                    recordOwnLogin(pending.tribuneId, login)
+                }
             }
             pendingLoginDetection = null
             return

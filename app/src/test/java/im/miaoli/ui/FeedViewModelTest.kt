@@ -186,6 +186,40 @@ class FeedViewModelTest {
         )
     }
 
+
+    @Test
+    fun recordsTheOnlyNewPostWithoutReceiptIdOrLogin() {
+        val post = Post(
+            id = "42",
+            time = "20260101120000",
+            author = "anonymous",
+            authorInfo = "",
+            login = "",
+            message = "Hello world",
+            tribune = tribunes.first(),
+        )
+        val localViewModel = FeedViewModel(
+            configStore = store,
+            repository = FakeFeedDataSource(posts = listOf(post)),
+        )
+
+        localViewModel.updateDraft(TextFieldValue("Hello world"))
+        localViewModel.post()
+
+        assertEquals(
+            listOf("42"),
+            localViewModel.state.value.config.tribunes
+                .first { it.id == 1L }
+                .ownPostIds,
+        )
+        assertEquals(
+            "",
+            localViewModel.state.value.config.tribunes
+                .first { it.id == 1L }
+                .username,
+        )
+    }
+
     @Test
     fun doesNotGuessLoginWhenSeveralPostsMatch() {
         val first = Post(

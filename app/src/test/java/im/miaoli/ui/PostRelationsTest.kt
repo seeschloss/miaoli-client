@@ -34,6 +34,24 @@ class PostRelationsTest {
         assertNull(relations["1:3"])
     }
 
+
+    @Test
+    fun matchesConfiguredUsernameAgainstTheLoginField() = runBlocking {
+        val configured = tribune.copy(username = "Alice")
+        val posts = listOf(
+            Post(
+                id = "1",
+                time = "20260101120000",
+                author = "display name",
+                login = "Alice",
+                message = "original",
+                tribune = configured,
+            ),
+        )
+
+        assertEquals(PostRelation.Own, computePostRelations(posts, listOf(configured))["1:1"])
+    }
+
     @Test
     fun matchesOwnPostsByUsernameWhenIdsAreUnavailable() = runBlocking {
         val posts = listOf(
