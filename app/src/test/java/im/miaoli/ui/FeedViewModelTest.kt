@@ -127,6 +127,93 @@ class FeedViewModelTest {
         )
     }
 
+
+    @Test
+    fun detectsLoginNameFromPostedMessage() {
+        val post = Post(
+            id = "42",
+            time = "20260101120000",
+            author = "Alice",
+            authorInfo = Tribune.DEFAULT_USER_AGENT,
+            login = "Alice",
+            message = "<b>Hello</b> world",
+            tribune = tribunes.first(),
+        )
+        val localViewModel = FeedViewModel(
+            configStore = store,
+            repository = FakeFeedDataSource(posts = listOf(post)),
+        )
+
+        localViewModel.updateDraft(TextFieldValue("Hello world"))
+        localViewModel.post()
+        assertEquals(
+            "Alice",
+            localViewModel.state.value.config.tribunes
+                .first { it.id == 1L }
+                .username,
+        )
+        assertEquals(
+            "Alice",
+            store.config.tribunes.first { it.id == 1L }.username,
+        )
+    }
+
+    @Test
+    fun retriesLoginDetectionOnFollowingRefreshes() {
+        val repository = FakeFeedDataSource()
+        val localViewModel = FeedViewModel(configStore = store, repository = repository)
+        localViewModel.updateDraft(TextFieldValue("Hello world"))
+        localViewModel.post()
+
+        repository.posts = listOf(
+            Post(
+                id = "42",
+                time = "20260101120000",
+                author = "Alice",
+                authorInfo = Tribune.DEFAULT_USER_AGENT,
+                login = "Alice",
+                message = "Hello <b>world</b>",
+                tribune = tribunes.first(),
+            ),
+        )
+        localViewModel.refresh()
+
+        assertEquals(
+            "Alice",
+            localViewModel.state.value.config.tribunes
+                .first { it.id == 1L }
+                .username,
+        )
+    }
+
+    @Test
+    fun doesNotGuessLoginWhenSeveralPostsMatch() {
+        val first = Post(
+            id = "42",
+            time = "20260101120000",
+            author = "Alice",
+            authorInfo = Tribune.DEFAULT_USER_AGENT,
+            login = "Alice",
+            message = "Hello world",
+            tribune = tribunes.first(),
+        )
+        val second = first.copy(id = "43", login = "Bob", author = "Bob")
+        val localViewModel = FeedViewModel(
+            configStore = store,
+            repository = FakeFeedDataSource(posts = listOf(first, second)),
+        )
+
+        localViewModel.updateDraft(TextFieldValue("Hello world"))
+        localViewModel.post()
+
+        assertEquals(
+            "",
+            localViewModel.state.value.config.tribunes
+                .first { it.id == 1L }
+                .username,
+        )
+    }
+
     @Test
     fun recordsTotozUsageFromSuccessfulPost() {
         val usageStore = FakeTotozUsageStore()
@@ -338,7 +425,7 @@ class FeedViewModelTest {
         viewModel.state.value.feedTribunes.mapTo(mutableSetOf()) { it.id }
 
     private class FakeFeedDataSource(
-        private val posts: List<Post> = emptyList(),
+        var posts: List<Post> = emptyList(),
         private val postReceipt: PostReceipt = PostReceipt(),
     ) : FeedDataSource {
         val fetchedTribuneIds = mutableListOf<List<Long>>()

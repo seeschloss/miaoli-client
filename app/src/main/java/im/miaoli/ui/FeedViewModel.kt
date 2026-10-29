@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import im.miaoli.data.FeedDataSource
 import im.miaoli.data.FeedRepository
 import im.miaoli.data.NoopTotozUsageStore
+import im.miaoli.data.Post
 import im.miaoli.data.PostMerger
 import im.miaoli.data.TotozUsageStore
 import im.miaoli.data.Tribune
@@ -28,6 +29,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
+private val HTML_TAG_PATTERN = Regex("<[^>]*>")
+
 class FeedViewModel(
     private val configStore: TribuneConfigStore,
     private val repository: FeedDataSource = FeedRepository(),
@@ -46,6 +49,7 @@ class FeedViewModel(
     private val refreshMutex = Mutex()
     private var manualRefresh: Job? = null
     private var nextScrollRequestId = 0L
+    private var pendingLoginDetection: PendingLoginDetection? = null
 
     fun updateDraft(value: TextFieldValue) {
         _state.update { current ->
@@ -239,6 +243,11 @@ class FeedViewModel(
         val tribune = current.postableTribunes
             .firstOrNull { it.id == current.selectedTribuneId }
             ?: return
+        val baselineId = current.posts
+            .asSequence()
+            .filter { it.tribune.id == tribune.id }
+            .mapNotNull { it.id.toLongOrNull() }
+            .maxOrNull() ?: 0L
 
         viewModelScope.launch {
             _state.update { it.copy(isPosting = true, postError = null) }
@@ -247,6 +256,18 @@ class FeedViewModel(
                 val receipt = repository.post(tribune, message)
                 receipt.postId?.let { postId ->
                     recordOwnPost(tribune.id, postId)
+                }
+                if (tribune.username.isBlank()) {
+                    val normalizedMessage = normalizedLoginText(message)
+                    if (normalizedMessage.isNotEmpty()) {
+                        pendingLoginDetection = PendingLoginDetection(
+                            tribuneId = tribune.id,
+                            postedId = receipt.postId,
+                            normalizedMessage = normalizedMessage,
+                            userAgent = tribune.userAgent.trim(),
+                            baselineId = baselineId,
+                        )
+                    }
                 }
                 recordTotozUsage(message)
                 _state.update {
@@ -440,6 +461,7 @@ class FeedViewModel(
                     errors = errors,
                 )
             }
+            maybeCompleteLoginDetection()
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
@@ -454,6 +476,94 @@ class FeedViewModel(
             refreshMutex.unlock()
         }
     }
+
+    private fun maybeCompleteLoginDetection() {
+        val pending = pendingLoginDetection ?: return
+        val current = _state.value
+        val tribune = current.config.tribunes
+            .firstOrNull { it.id == pending.tribuneId }
+            ?: run {
+                pendingLoginDetection = null
+                return
+            }
+        if (tribune.username.isNotBlank() || !tribune.canPost) {
+            pendingLoginDetection = null
+            return
+        }
+
+        val candidates = current.posts.filter { post ->
+            if (post.tribune.id != pending.tribuneId) return@filter false
+            if (pending.postedId != null) {
+                post.id == pending.postedId
+            } else {
+                val id = post.id.toLongOrNull()
+                id != null &&
+                    id > pending.baselineId &&
+                    post.authorInfo.trim() == pending.userAgent &&
+                    normalizedLoginText(post.message).contains(pending.normalizedMessage)
+            }
+        }
+
+        if (candidates.size > 1) {
+            pendingLoginDetection = null
+            return
+        }
+
+        val candidate = candidates.singleOrNull()
+        if (candidate != null) {
+            val login = candidate.login.trim()
+            if (login.isNotEmpty()) {
+                recordOwnLogin(pending.tribuneId, login)
+            }
+            pendingLoginDetection = null
+            return
+        }
+
+        pending.remainingChecks -= 1
+        if (pending.remainingChecks <= 0) {
+            pendingLoginDetection = null
+        }
+    }
+
+    private fun recordOwnLogin(tribuneId: Long, login: String) {
+        val updated = _state.updateAndGet { current ->
+            current.copy(
+                config = current.config.copy(
+                    tribunes = current.config.tribunes.map { tribune ->
+                        if (tribune.id == tribuneId && tribune.username.isBlank()) {
+                            tribune.copy(username = login)
+                        } else {
+                            tribune
+                        }
+                    },
+                ),
+            )
+        }
+        configStore.save(updated.config)
+    }
+
+    private fun normalizedLoginText(message: String): String =
+        parseMessage(message).text
+            .replace(HTML_TAG_PATTERN, "")
+            .replace("&nbsp;", " ")
+            .replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", "\"")
+            .replace("&apos;", "'")
+            .replace("&#39;", "'")
+            .filterNot { character ->
+                character.isWhitespace() || character == '\u00A0'
+            }
+
+    private data class PendingLoginDetection(
+        val tribuneId: Long,
+        val postedId: String?,
+        val normalizedMessage: String,
+        val userAgent: String,
+        val baselineId: Long,
+        var remainingChecks: Int = 3,
+    )
 
     companion object {
         fun factory(

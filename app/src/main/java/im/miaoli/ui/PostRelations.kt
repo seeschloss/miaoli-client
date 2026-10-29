@@ -20,7 +20,10 @@ internal fun Tribune.matchesOwnPost(post: Post): Boolean {
     if (post.id in ownPostIds) return true
     val configuredUsername = username.trim()
     return configuredUsername.isNotEmpty() &&
-        post.author.trim() == configuredUsername
+        (
+            post.login.trim() == configuredUsername ||
+                post.author.trim() == configuredUsername
+            )
 }
 
 internal data class PostRelationData(
