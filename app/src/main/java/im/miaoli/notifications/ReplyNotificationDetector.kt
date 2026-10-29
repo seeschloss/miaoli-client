@@ -3,6 +3,7 @@ package im.miaoli.notifications
 import im.miaoli.data.Post
 import im.miaoli.data.Tribune
 import im.miaoli.ui.ClockTargetResult
+import im.miaoli.ui.isBigornophone
 import im.miaoli.ui.matchesOwnPost
 import im.miaoli.ui.messageClockReferences
 import im.miaoli.ui.resolveClockTarget
@@ -11,7 +12,7 @@ internal const val MAX_NOTIFICATION_SEEN_POST_KEYS = 1_000
 
 internal data class ReplyNotification(
     val reply: Post,
-    val ownPost: Post,
+    val ownPost: Post?,
 )
 
 internal data class ReplyScanResult(
@@ -58,9 +59,8 @@ internal fun scanForReplyNotifications(
                             reply.timestamp?.toEpochMilli()?.let { it >= enabledAt } == true
                         }
                         .forEach { reply ->
-                            findOwnTarget(reply, posts, tribunes, ownKeys)?.let { ownPost ->
-                                notifications += ReplyNotification(reply, ownPost)
-                            }
+                            replyNotification(reply, posts, tribunes, ownKeys, tribune)
+                                ?.let(notifications::add)
                         }
                 }
                 states[tribune.id] = TribuneNotificationState(
@@ -78,9 +78,8 @@ internal fun scanForReplyNotifications(
                     .filter { it.key !in ownKeys }
                     .filter { it.isNewerThan(previous.latestSeenPostId) }
                     .forEach { reply ->
-                        findOwnTarget(reply, posts, tribunes, ownKeys)?.let { ownPost ->
-                            notifications += ReplyNotification(reply, ownPost)
-                        }
+                        replyNotification(reply, posts, tribunes, ownKeys, tribune)
+                            ?.let(notifications::add)
                     }
             }
 
@@ -100,6 +99,21 @@ internal fun scanForReplyNotifications(
 
 private fun Post.isNewerThan(seenPostId: Long): Boolean =
     id.toLongOrNull()?.let { it > seenPostId } ?: true
+
+private fun replyNotification(
+    reply: Post,
+    posts: List<Post>,
+    tribunes: List<Tribune>,
+    ownKeys: Set<String>,
+    tribune: Tribune,
+): ReplyNotification? {
+    val ownPost = findOwnTarget(reply, posts, tribunes, ownKeys)
+    return when {
+        ownPost != null -> ReplyNotification(reply, ownPost)
+        isBigornophone(reply.message, tribune.username) -> ReplyNotification(reply, null)
+        else -> null
+    }
+}
 
 private fun findOwnTarget(
     reply: Post,

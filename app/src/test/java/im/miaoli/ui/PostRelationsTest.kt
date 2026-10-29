@@ -52,6 +52,21 @@ class PostRelationsTest {
         assertEquals(PostRelation.Own, computePostRelations(posts, listOf(configured))["1:1"])
     }
 
+
+    @Test
+    fun marksBigornophonePostsAsRepliesWithoutAddingAnAnswerClock() = runBlocking {
+        val configured = tribune.copy(username = "Alice")
+        val posts = listOf(
+            post(id = "2", time = "20260101120100", message = "Hello Alice<"),
+            post(id = "1", time = "20260101120000", message = "original"),
+        )
+
+        val data = computePostRelationsWithAnswers(posts, listOf(configured))
+
+        assertEquals(PostRelation.ReplyToOwn, data.relations["1:2"])
+        assertNull(data.answers["1:1"])
+    }
+
     @Test
     fun matchesOwnPostsByUsernameWhenIdsAreUnavailable() = runBlocking {
         val posts = listOf(

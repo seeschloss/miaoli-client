@@ -69,7 +69,10 @@ internal suspend fun computePostRelationsWithAnswers(
             message = post.message,
             linkColor = readableLinkColor(Color(post.tribune.color)),
         )
-        var repliesToOwn = false
+        var repliesToOwn = isBigornophone(
+            message = post.message,
+            login = tribunesById[post.tribune.id]?.username.orEmpty(),
+        )
         rendered.clockReferences.forEach { reference ->
             val target = (resolveClockTarget(
                 origin = post,

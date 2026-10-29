@@ -120,6 +120,29 @@ class ReplyNotificationDetectorTest {
         assertEquals(listOf("1:3"), result.notifications.map { it.reply.key })
     }
 
+
+    @Test
+    fun reportsBigornophoneRepliesWithoutAClockTarget() {
+        val configured = tribune.copy(username = "Alice")
+        val state = TribuneNotificationState(
+            initialized = true,
+            seenPostKeys = setOf("1:1"),
+            latestSeenPostId = 1L,
+        )
+
+        val result = scanForReplyNotifications(
+            posts = listOf(
+                post(id = "2", time = "20260101120100", message = "Hello Alice<"),
+                post(id = "1", time = "20260101120000", message = "original"),
+            ),
+            tribunes = listOf(configured),
+            previousStates = mapOf(1L to state),
+        )
+
+        assertEquals(listOf("1:2"), result.notifications.map { it.reply.key })
+        assertTrue(result.notifications.single().ownPost == null)
+    }
+
     @Test
     fun reportsEachNewReplyOnce() {
         val baseline = scanForReplyNotifications(
