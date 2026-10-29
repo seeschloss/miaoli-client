@@ -144,6 +144,7 @@ import im.miaoli.data.Tribune
 import im.miaoli.ui.theme.LocalMiaoliPostColors
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -165,6 +166,7 @@ fun FeedScreen(
     onAddTribune: () -> Unit,
     onPost: () -> Unit,
     onScrollRequestHandled: (Long) -> Unit,
+    onPostsSeen: (List<Post>) -> Unit,
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -216,6 +218,7 @@ fun FeedScreen(
     }
     val newestVisibleKey = visiblePosts.firstOrNull()?.key
     val latestDisplayedPosts by rememberUpdatedState(displayedPosts)
+    val latestOnPostsSeen by rememberUpdatedState(onPostsSeen)
     val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
     val isAtBottom by remember(listState) {
         derivedStateOf {
@@ -365,6 +368,31 @@ fun FeedScreen(
             displayedPosts.none { it.key == expandedPostKey }
         ) {
             expandedPostKey = null
+        }
+    }
+
+    LaunchedEffect(listState, displayedPosts) {
+        var lastSeenIds = emptyMap<Long, Long>()
+        snapshotFlow {
+            listState.layoutInfo.visibleItemsInfo.mapNotNull { item ->
+                displayedPosts.getOrNull(item.index)
+            }
+        }.collect { visible ->
+            val maxima = mutableMapOf<Long, Long>()
+            visible.forEach { post ->
+                val id = post.id.toLongOrNull() ?: return@forEach
+                if (id > (maxima[post.tribune.id] ?: 0L)) {
+                    maxima[post.tribune.id] = id
+                }
+            }
+            if (maxima.any { (tribuneId, id) -> id > (lastSeenIds[tribuneId] ?: 0L) }) {
+                latestOnPostsSeen(visible)
+                lastSeenIds = lastSeenIds.toMutableMap().apply {
+                    maxima.forEach { (tribuneId, id) ->
+                        if (id > (this[tribuneId] ?: 0L)) this[tribuneId] = id
+                    }
+                }
+            }
         }
     }
 

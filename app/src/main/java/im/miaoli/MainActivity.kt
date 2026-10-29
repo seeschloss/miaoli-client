@@ -19,6 +19,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import im.miaoli.data.SharedPreferencesTotozUsageStore
+import im.miaoli.notifications.SharedPreferencesNotificationStateStore
 import im.miaoli.data.SharedPreferencesTribuneConfigStore
 import im.miaoli.notifications.NotificationQuote
 import im.miaoli.notifications.ReplyNotificationScheduler
@@ -46,6 +47,9 @@ class MainActivity : ComponentActivity() {
                 }
                 val totozUsageStore = remember(context) {
                     SharedPreferencesTotozUsageStore(context.applicationContext)
+                }
+                val notificationStateStore = remember(context) {
+                    SharedPreferencesNotificationStateStore(context.applicationContext)
                 }
                 val factory = remember(configStore, totozUsageStore) {
                     FeedViewModel.factory(configStore, totozUsageStore)
@@ -151,6 +155,7 @@ class MainActivity : ComponentActivity() {
                         },
                         onPost = viewModel::post,
                         onScrollRequestHandled = viewModel::consumeScrollRequest,
+                        onPostsSeen = { posts -> notificationStateStore.markSeen(posts) },
                     )
                 }
             }

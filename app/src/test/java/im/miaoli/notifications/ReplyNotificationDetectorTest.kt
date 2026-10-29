@@ -81,6 +81,45 @@ class ReplyNotificationDetectorTest {
         assertTrue(result.notifications.isEmpty())
     }
 
+
+    @Test
+    fun suppressesRepliesAtOrBelowTheSeenPostId() {
+        val state = TribuneNotificationState(
+            initialized = true,
+            latestSeenPostId = 2L,
+        )
+
+        val result = scanForReplyNotifications(
+            posts = listOf(
+                post(id = "2", time = "20260101120100", message = "12:00:00"),
+                post(id = "1", time = "20260101120000", message = "original"),
+            ),
+            tribunes = listOf(tribune),
+            previousStates = mapOf(1L to state),
+        )
+
+        assertTrue(result.notifications.isEmpty())
+    }
+
+    @Test
+    fun reportsRepliesAboveTheSeenPostId() {
+        val state = TribuneNotificationState(
+            initialized = true,
+            latestSeenPostId = 2L,
+        )
+
+        val result = scanForReplyNotifications(
+            posts = listOf(
+                post(id = "3", time = "20260101120200", message = "12:00:00"),
+                post(id = "1", time = "20260101120000", message = "original"),
+            ),
+            tribunes = listOf(tribune),
+            previousStates = mapOf(1L to state),
+        )
+
+        assertEquals(listOf("1:3"), result.notifications.map { it.reply.key })
+    }
+
     @Test
     fun reportsEachNewReplyOnce() {
         val baseline = scanForReplyNotifications(

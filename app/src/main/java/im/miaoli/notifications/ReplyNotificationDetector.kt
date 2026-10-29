@@ -49,9 +49,11 @@ internal fun scanForReplyNotifications(
             if (previous == null || !previous.initialized) {
                 val enabledAt = previous?.enabledAt ?: 0L
                 if (tribune.notifyOnAnswers && enabledAt > 0L) {
+                    val latestSeenPostId = previous?.latestSeenPostId ?: 0L
                     currentPosts
                         .asSequence()
                         .filter { it.key !in ownKeys }
+                        .filter { it.isNewerThan(latestSeenPostId) }
                         .filter { reply ->
                             reply.timestamp?.toEpochMilli()?.let { it >= enabledAt } == true
                         }
@@ -74,6 +76,7 @@ internal fun scanForReplyNotifications(
                     .asSequence()
                     .filter { it.key !in previous.seenPostKeys }
                     .filter { it.key !in ownKeys }
+                    .filter { it.isNewerThan(previous.latestSeenPostId) }
                     .forEach { reply ->
                         findOwnTarget(reply, posts, tribunes, ownKeys)?.let { ownPost ->
                             notifications += ReplyNotification(reply, ownPost)
@@ -94,6 +97,9 @@ internal fun scanForReplyNotifications(
         states = states,
     )
 }
+
+private fun Post.isNewerThan(seenPostId: Long): Boolean =
+    id.toLongOrNull()?.let { it > seenPostId } ?: true
 
 private fun findOwnTarget(
     reply: Post,
