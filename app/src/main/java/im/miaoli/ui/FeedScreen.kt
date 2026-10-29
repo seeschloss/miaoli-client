@@ -82,6 +82,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -136,6 +137,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import im.miaoli.R
@@ -224,6 +228,30 @@ fun FeedScreen(
         derivedStateOf {
             listState.firstVisibleItemIndex == 0 &&
                 listState.firstVisibleItemScrollOffset == 0
+        }
+    }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val latestFilteredPostKeys by rememberUpdatedState(filteredPostKeys)
+    var lastNewestMostlyVisible by remember { mutableStateOf(true) }
+    var pendingAutoScroll by remember { mutableStateOf(true) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> {
+                    lastNewestMostlyVisible = latestFilteredPostKeys == null &&
+                        listState.isNewestPostMostlyVisible(latestDisplayedPosts)
+                }
+                Lifecycle.Event.ON_START -> {
+                    if (lastNewestMostlyVisible) {
+                        pendingAutoScroll = true
+                    }
+                }
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
     val pullRefreshThresholdPx = with(LocalDensity.current) { 64.dp.toPx() }
@@ -369,6 +397,26 @@ fun FeedScreen(
         ) {
             expandedPostKey = null
         }
+    }
+
+    LaunchedEffect(
+        pendingAutoScroll,
+        filteredPostKeys,
+        state.scrollRequest?.id,
+        displayedPosts.firstOrNull()?.key,
+    ) {
+        if (!pendingAutoScroll) return@LaunchedEffect
+        if (filteredPostKeys != null) {
+            pendingAutoScroll = false
+            return@LaunchedEffect
+        }
+        if (state.scrollRequest != null) {
+            pendingAutoScroll = false
+            return@LaunchedEffect
+        }
+        if (displayedPosts.isEmpty()) return@LaunchedEffect
+        pendingAutoScroll = false
+        listState.animateScrollToItem(0)
     }
 
     LaunchedEffect(listState, displayedPosts) {
@@ -1310,6 +1358,15 @@ private fun FormattingButton(
             style = MaterialTheme.typography.labelLarge.merge(textStyle),
         )
     }
+}
+
+private fun LazyListState.isNewestPostMostlyVisible(posts: List<Post>): Boolean {
+    if (posts.isEmpty()) return false
+    val info = layoutInfo
+    val item = info.visibleItemsInfo.firstOrNull { it.index == 0 } ?: return false
+    val visibleTop = maxOf(item.offset, info.viewportStartOffset)
+    val visibleBottom = minOf(item.offset + item.size, info.viewportEndOffset)
+    return visibleBottom - visibleTop > item.size / 2f
 }
 
 private fun LazyListState.isItemFullyVisible(index: Int): Boolean {
