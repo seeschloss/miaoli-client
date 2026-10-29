@@ -27,6 +27,14 @@ class MessageTextTest {
     }
 
     @Test
+    fun findsDateAndTimeISO() {
+        assertEquals(
+            listOf(TextRange(0, 19)),
+            clockRanges("2026-10-25T23:30:03 si tu t'organises"),
+        )
+    }
+
+    @Test
     fun findsSuffix() {
         assertEquals(
             listOf(TextRange(0, 15)),
@@ -45,6 +53,16 @@ class MessageTextTest {
     @Test
     fun findsDateAndMinuteOnlyClock() {
         val reference = clockReferences("2026-10-25 12:34@Moules").single()
+
+        assertEquals("2026-10-25", reference.date)
+        assertEquals("12:34", reference.time)
+        assertEquals("Moules", reference.tribuneTitle)
+        assertTrue(reference.isMinuteOnly)
+    }
+
+    @Test
+    fun findsDateISO() {
+        val reference = clockReferences("2026-10-25T12:34@Moules").single()
 
         assertEquals("2026-10-25", reference.date)
         assertEquals("12:34", reference.time)
@@ -78,7 +96,7 @@ class MessageTextTest {
             "12:34:60",
             "112:34:56",
             "12:34:567",
-            "2026-10-26T12:34:56",
+            "2026-10-26P12:34:56",
             "2026-10-26-12:34:56",
             "https://example.org/12:34:56",
         )

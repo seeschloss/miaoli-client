@@ -22,7 +22,7 @@ private val SUFFIX_PATTERN = Regex("""(?:@[0-9A-Za-z]+)?""")
  * being treated as clocks.
  */
 private val CLOCK_BASE_PATTERN = Regex(
-    """(?<![\p{L}\p{N}_/:.-])(?:(?<date>${DATE_PATTERN}) )?(?<time>${TIME_PATTERN})(?![\p{L}\p{N}_:/.-])""",
+    """(?<![\p{L}\p{N}_/:.-])(?:(?<date>${DATE_PATTERN})[ T])?(?<time>${TIME_PATTERN})(?![\p{L}\p{N}_:/.-])""",
 )
 
 /** A clock reference found in a message. */
