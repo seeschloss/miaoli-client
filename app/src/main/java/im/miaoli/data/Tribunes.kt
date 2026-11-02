@@ -5,10 +5,10 @@ object Tribunes {
         id = 1L,
         title = "Miaoli Android",
         color = 0xFFB8E0C2,
-        backendUrl = "https://miaoli.im/@See/miaoli-android/posts.tsv",
+        backendUrl = "https://miaoli.im/@See/+miaoli-android/posts.tsv",
         format = FeedFormat.TSV,
         timeZoneId = "UTC",
-        postUrl = "https://miaoli.im/@See/miaoli-android",
+        postUrl = "https://miaoli.im/@See/+miaoli-android",
         loginUrl = "https://miaoli.im",
         postField = "message",
     )
